@@ -1,6 +1,14 @@
 {#
 For guidance on how to use layouts see:
 https://prototype-kit.service.gov.uk/docs/how-to-use-layouts
+
+This extends the kit's "unbranded" layout rather than "govuk-branded" so the
+prototype does not display the crown/GOV.UK crest, the GDS Transport typeface,
+or any other crown copyright material. See CLAUDE.md for why.
 #}
 
-{% extends "govuk-prototype-kit/layouts/govuk-branded.njk" %}
+{% extends "govuk-prototype-kit/layouts/unbranded.njk" %}
+
+{% block pageTitle %}
+  {% if pageName %}{{ pageName }} - {% endif %}{{ serviceName }}
+{% endblock %}

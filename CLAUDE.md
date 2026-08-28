@@ -36,6 +36,22 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
   Frontend's styles.
 - `app/config.json` — service name and kit-level config.
 
+## No crown branding
+
+This project is **not entitled to use the crown/GOV.UK crest, the "GDS Transport" typeface, or
+any other crown copyright material**, and it must not display or reintroduce them. That's why
+`app/views/layouts/main.html` extends the kit's `unbranded.njk` layout (not
+`govuk-branded.njk`) — it has no header, no footer, no crest, and no GDS Transport font. Do
+not:
+- switch the layout back to `govuk-branded.njk` (or extend `govuk/template.njk` directly),
+- add the crown/crest SVG, GOV.UK header/footer components, or GDS Transport font, back into
+  any page,
+- set `useServiceNavigation` in `app/config.json` in a way that reintroduces the branded
+  header.
+
+GOV.UK Frontend's other components (buttons, forms, layout grid, typography scale, etc.) are
+fine to use as normal — only the crown crest and GDS Transport typeface are restricted.
+
 ## Adding a new prototype
 
 1. Create `app/views/<slug>/index.html`, extending `layouts/main.html` (see existing prototypes
