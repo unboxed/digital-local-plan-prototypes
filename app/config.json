@@ -1,0 +1,9 @@
+{
+  "serviceName": "Digital Local Plan prototypes",
+  "useServiceNavigation": true,
+  "plugins": {
+    "govuk-frontend": {
+      "rebrand": true
+    }
+  }
+}
