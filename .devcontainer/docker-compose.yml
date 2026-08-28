@@ -1,0 +1,64 @@
+services:
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    environment:
+      # Read-only operations - allowed
+      CONTAINERS: 1
+      IMAGES: 1
+      INFO: 1
+      NETWORKS: 1
+      VOLUMES: 1
+      # Dangerous operations - blocked
+      POST: 0
+      BUILD: 0
+      COMMIT: 0
+      EXEC: 0
+      SWARM: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - default
+
+  workspace:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ..:/workspace:delegated
+      - claude-code-history:/commandhistory
+      - claude-code-config:/home/node/.claude
+      - github-cli-config:/home/node/.config/gh
+    environment:
+      CLAUDE_CODE_VERSION: "latest"
+      CLAUDE_CONFIG_DIR": "/home/node/.claude"
+      DOCKER_HOST: "tcp://docker-proxy:2375"
+      GIT_DELTA_VERSION: "0.18.2"
+      NODE_OPTIONS: "--max-old-space-size=4096"
+      POWERLEVEL9K_DISABLE_GITSTATUS: "true"
+      TZ: "${TZ:-Europe/London}"
+      ZSH_IN_DOCKER_VERSION: "1.2.0"
+    networks:
+      - default
+    depends_on:
+      - docker-proxy
+    # Socket cleanup loop: 10 passes at 30s intervals (~5 minutes) to catch all
+    # VS Code IPC sockets, including late-created ones. Runs as a child of the
+    # container's own bash process – not subject to VS Code lifecycle management.
+    command: >
+      bash -c '
+      (for i in 1 2 3 4 5 6 7 8 9 10; do sleep 30;
+        find /tmp -maxdepth 2 \( -name "vscode-ipc-*.sock" -o -name "vscode-git-*.sock" \) -delete 2>/dev/null;
+      done) &
+      sleep infinity'
+
+networks:
+  default:
+
+volumes:
+  claude-code-history:
+  claude-code-config:
+  github-cli-config:
