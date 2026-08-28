@@ -104,6 +104,8 @@ RUN sed -i '1i source ~/.config/security-harden.sh 2>/dev/null || true' ~/.zshrc
 
 RUN <<EOF
 mkdir -p /home/node/.config/gh && cat << 'GITCONFIG' > /home/node/.gitconfig
+[safe]
+        directory = /workspace
 [credential "https://github.com"]
         helper =
         helper = !/usr/bin/gh auth git-credential
