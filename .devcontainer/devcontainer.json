@@ -1,0 +1,56 @@
+{
+  "name": "Vibez Container",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "node",
+  "shutdownAction": "stopCompose",
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "",
+    "GPG_AGENT_INFO": "",
+    "BROWSER": "",
+    "VSCODE_IPC_HOOK_CLI": null,
+    "VSCODE_GIT_IPC_HANDLE": null,
+    "GIT_ASKPASS": null,
+    "VSCODE_GIT_ASKPASS_MAIN": null,
+    "VSCODE_GIT_ASKPASS_NODE": null,
+    "VSCODE_GIT_ASKPASS_EXTRA_ARGS": null,
+    "REMOTE_CONTAINERS_IPC": null,
+    "REMOTE_CONTAINERS_SOCKETS": null,
+    "REMOTE_CONTAINERS_DISPLAY_SOCK": null,
+    "WAYLAND_DISPLAY": null
+  },
+  // postStartCommand: clean up sockets created before VS Code attaches
+  "postStartCommand": "find /tmp -maxdepth 2 \\( -name 'vscode-ssh-auth-*.sock' -o -name 'vscode-remote-containers-ipc-*.sock' -o -name 'vscode-remote-containers-*.js' \\) -delete 2>/dev/null || true",
+  // IPC socket cleanup (vscode-ipc-*.sock, vscode-git-*.sock) is handled by a background
+  // loop in the Docker Compose command – see the "Socket file deletion" section below.
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "dev.containers.dockerCredentialHelper": false,
+        "dev.containers.copyGitConfig": false,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        }
+      }
+    }
+  }
+}
