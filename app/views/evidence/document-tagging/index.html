@@ -1,0 +1,173 @@
+{% extends "layouts/main.html" %} {% set pageName = "Document tagging" %} {%
+block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+
+    <span class="govuk-caption-l">Evidence document</span>
+    <h1 class="govuk-heading-xl">Local Housing Needs Assessment</h1>
+
+    <p class="govuk-body govuk-!-margin-bottom-2">
+      <span class="govuk-!-font-weight-bold">Source:</span> Local authority
+      evidence base
+    </p>
+    <p class="govuk-body govuk-!-margin-bottom-6">
+      <span class="govuk-!-font-weight-bold">Published:</span> 2024
+    </p>
+
+    <div
+      class="govuk-!-padding-4 govuk-!-background-grey-4"
+      style="border-left: 4px solid #1d70b8"
+    >
+      <p class="govuk-body govuk-!-margin-bottom-0">Chapter 3: Housing need</p>
+    </div>
+
+    <p class="govuk-body">
+      Local population growth has increased demand for homes in the borough over
+      the last decade. Forecasts suggest that households will continue to form
+      at a faster rate than previously expected, leading to pressure on both the
+      private rented and affordable housing markets.
+    </p>
+
+    <p class="govuk-body">
+      The council has a strategic objective to provide enough homes for future
+      residents, while also ensuring that new development is delivered in a way
+      that supports transport capacity, local services and environmental
+      protection.
+    </p>
+
+    <div
+      class="govuk-!-padding-3"
+      style="
+        background-color: #fff7bf;
+        border-left: 4px solid #b1b4b6;
+        border-top: 1px solid #b1b4b6;
+        border-right: 1px solid #b1b4b6;
+        border-bottom: 1px solid #b1b4b6;
+      "
+    >
+      <p class="govuk-body govuk-!-margin-bottom-2">
+        <span class="govuk-!-font-weight-bold">Selected text</span>
+      </p>
+      <p class="govuk-body govuk-!-margin-bottom-0">
+        “Projected household growth over the next 15 years will place
+        significant pressure on existing housing supply.”
+      </p>
+    </div>
+
+    <p class="govuk-body">
+      Existing housing supply is heavily constrained by the availability of
+      brownfield land, infrastructure delivery constraints and limited capacity
+      in some strategic growth areas. These issues are likely to shape the
+      authority’s future development trajectory and the level of intervention
+      required through the local plan.
+    </p>
+
+    <p class="govuk-body">
+      In several parts of the borough, the evidence suggests that housing demand
+      is concentrated in areas with stronger public transport links and better
+      access to services. This means that future growth may need to be planned
+      carefully to maintain the balance between housing provision and local
+      amenity.
+    </p>
+
+    <div class="govuk-button-group">
+      <button type="button" class="govuk-button">Save selection</button>
+      <a class="govuk-link" href="/evidence/selected-evidence"
+        >Skip to evidence list</a
+      >
+    </div>
+  </div>
+
+  <div class="govuk-grid-column-one-third">
+    <aside
+      class="govuk-!-padding-4"
+      style="
+        background: #f3f2f1;
+        border: 1px solid #b1b4b6;
+        position: sticky;
+        top: 20px;
+      "
+    >
+      <h2 class="govuk-heading-s">Tag selected evidence</h2>
+
+      <p class="govuk-body govuk-!-margin-bottom-2">
+        <span class="govuk-!-font-weight-bold">Insight type</span>
+      </p>
+      <div class="govuk-!-margin-bottom-4">
+        <strong class="govuk-tag govuk-tag--blue">Fact</strong>
+        <strong class="govuk-tag govuk-tag--grey govuk-!-margin-left-1"
+          >Context</strong
+        >
+      </div>
+
+      <p class="govuk-body govuk-!-margin-bottom-2">
+        <span class="govuk-!-font-weight-bold">Topic</span>
+      </p>
+      <div class="govuk-!-margin-bottom-4">
+        <strong class="govuk-tag govuk-tag--green">Housing</strong>
+        <strong class="govuk-tag govuk-tag--turquoise govuk-!-margin-left-1"
+          >Growth</strong
+        >
+      </div>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="evidence-note">
+          Short note
+        </label>
+        <textarea
+          class="govuk-textarea"
+          id="evidence-note"
+          name="evidence-note"
+          rows="4"
+        >
+Household growth is expected to create significant pressure on housing supply over the next 15 years.</textarea
+        >
+      </div>
+
+      <button type="button" class="govuk-button">Save to selection</button>
+    </aside>
+
+    <div class="govuk-!-margin-top-6">
+      <h2 class="govuk-heading-s">Selected evidence</h2>
+
+      <ul class="govuk-list govuk-list--spaced">
+        <li>
+          <div style="border-left: 4px solid #1d70b8; padding-left: 10px">
+            <p class="govuk-body govuk-!-margin-bottom-1">
+              <strong>Housing growth pressure</strong>
+            </p>
+            <p class="govuk-body govuk-!-margin-bottom-0">Fact / Housing</p>
+          </div>
+        </li>
+        <li>
+          <div style="border-left: 4px solid #1d70b8; padding-left: 10px">
+            <p class="govuk-body govuk-!-margin-bottom-1">
+              <strong>Transport service constraints</strong>
+            </p>
+            <p class="govuk-body govuk-!-margin-bottom-0">
+              Context / Transport
+            </p>
+          </div>
+        </li>
+        <li>
+          <div style="border-left: 4px solid #1d70b8; padding-left: 10px">
+            <p class="govuk-body govuk-!-margin-bottom-1">
+              <strong>Community concern over delivery</strong>
+            </p>
+            <p class="govuk-body govuk-!-margin-bottom-0">Opinion / Housing</p>
+          </div>
+        </li>
+      </ul>
+
+      <p class="govuk-body govuk-!-margin-top-4">
+        <a class="govuk-link" href="/evidence/selected-evidence"
+          >View grouped evidence</a
+        >
+      </p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

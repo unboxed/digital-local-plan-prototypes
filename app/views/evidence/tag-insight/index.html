@@ -1,0 +1,194 @@
+{% extends "layouts/main.html" %} {% set pageName = "Tag this insight" %} {%
+block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+
+    <span class="govuk-caption-l">Evidence insight</span>
+    <h1 class="govuk-heading-xl">Tag this insight</h1>
+
+    <div class="govuk-inset-text">
+      <p class="govuk-body govuk-!-margin-bottom-0">
+        Selected evidence from the Local Housing Needs Assessment
+      </p>
+    </div>
+
+    <div
+      class="govuk-body govuk-!-padding-4 govuk-!-background-grey-4"
+      style="border-left: 4px solid #1d70b8"
+    >
+      “Projected household growth over the next 15 years will place significant
+      pressure on existing housing supply.”
+    </div>
+
+    <form action="/evidence" method="get">
+      <div class="govuk-form-group">
+        <fieldset class="govuk-fieldset">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+            What type of insight is this?
+          </legend>
+
+          <div class="govuk-radios" data-module="govuk-radios">
+            <div class="govuk-radios__item">
+              <input
+                class="govuk-radios__input"
+                id="insight-type-fact"
+                name="insight-type"
+                type="radio"
+                value="fact"
+                checked
+              />
+              <label
+                class="govuk-label govuk-radios__label"
+                for="insight-type-fact"
+              >
+                Fact
+              </label>
+            </div>
+            <div class="govuk-radios__item">
+              <input
+                class="govuk-radios__input"
+                id="insight-type-opinion"
+                name="insight-type"
+                type="radio"
+                value="opinion"
+              />
+              <label
+                class="govuk-label govuk-radios__label"
+                for="insight-type-opinion"
+              >
+                Opinion
+              </label>
+            </div>
+            <div class="govuk-radios__item">
+              <input
+                class="govuk-radios__input"
+                id="insight-type-context"
+                name="insight-type"
+                type="radio"
+                value="context"
+              />
+              <label
+                class="govuk-label govuk-radios__label"
+                for="insight-type-context"
+              >
+                Context
+              </label>
+            </div>
+            <div class="govuk-radios__item">
+              <input
+                class="govuk-radios__input"
+                id="insight-type-expert"
+                name="insight-type"
+                type="radio"
+                value="expert-insight"
+              />
+              <label
+                class="govuk-label govuk-radios__label"
+                for="insight-type-expert"
+              >
+                Expert insight
+              </label>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="govuk-form-group">
+        <fieldset class="govuk-fieldset">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+            Which topic does this relate to?
+          </legend>
+
+          <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+            <div class="govuk-checkboxes__item">
+              <input
+                class="govuk-checkboxes__input"
+                id="topic-housing"
+                name="topic"
+                type="checkbox"
+                value="housing"
+                checked
+              />
+              <label
+                class="govuk-label govuk-checkboxes__label"
+                for="topic-housing"
+              >
+                Housing
+              </label>
+            </div>
+            <div class="govuk-checkboxes__item">
+              <input
+                class="govuk-checkboxes__input"
+                id="topic-transport"
+                name="topic"
+                type="checkbox"
+                value="transport"
+              />
+              <label
+                class="govuk-label govuk-checkboxes__label"
+                for="topic-transport"
+              >
+                Transport
+              </label>
+            </div>
+            <div class="govuk-checkboxes__item">
+              <input
+                class="govuk-checkboxes__input"
+                id="topic-flood-risk"
+                name="topic"
+                type="checkbox"
+                value="flood-risk"
+              />
+              <label
+                class="govuk-label govuk-checkboxes__label"
+                for="topic-flood-risk"
+              >
+                Flood risk
+              </label>
+            </div>
+            <div class="govuk-checkboxes__item">
+              <input
+                class="govuk-checkboxes__input"
+                id="topic-heritage"
+                name="topic"
+                type="checkbox"
+                value="heritage"
+              />
+              <label
+                class="govuk-label govuk-checkboxes__label"
+                for="topic-heritage"
+              >
+                Heritage
+              </label>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="insight-note">
+          Short note
+        </label>
+        <textarea
+          class="govuk-textarea"
+          id="insight-note"
+          name="insight-note"
+          rows="4"
+        >
+Housing growth trend indicates increasing pressure on supply.</textarea
+        >
+      </div>
+
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button">Save insight</button>
+        <button type="button" class="govuk-button govuk-button--secondary">
+          Create report card
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

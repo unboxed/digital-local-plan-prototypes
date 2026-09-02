@@ -1,0 +1,122 @@
+{% extends "layouts/main.html" %} {% set pageName = "Selected evidence" %} {%
+block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/evidence/document-tagging"
+      >Back to document</a
+    >
+
+    <h1 class="govuk-heading-xl">Selected evidence</h1>
+
+    <p class="govuk-body">
+      Review and group evidence by insight type and topic to support policy
+      drafting.
+    </p>
+
+    <div class="govuk-form-group">
+      <label class="govuk-label" for="search-evidence"> Search evidence </label>
+      <input
+        class="govuk-input"
+        id="search-evidence"
+        name="search-evidence"
+        type="text"
+        value="housing"
+      />
+    </div>
+
+    <div class="govuk-button-group">
+      <button type="button" class="govuk-button govuk-button--secondary">
+        All
+      </button>
+      <button type="button" class="govuk-button govuk-button--secondary">
+        Fact
+      </button>
+      <button type="button" class="govuk-button govuk-button--secondary">
+        Opinion
+      </button>
+      <button type="button" class="govuk-button govuk-button--secondary">
+        Context
+      </button>
+      <button type="button" class="govuk-button govuk-button--secondary">
+        Expert insight
+      </button>
+    </div>
+
+    <div class="govuk-!-margin-top-6">
+      <div
+        class="govuk-!-padding-4"
+        style="
+          border: 1px solid #b1b4b6;
+          background: #f3f2f1;
+          margin-bottom: 20px;
+        "
+      >
+        <p class="govuk-body govuk-!-margin-bottom-1">
+          <strong>Housing growth pressure</strong>
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-2">
+          <strong class="govuk-tag govuk-tag--blue">Fact</strong>
+          <strong class="govuk-tag govuk-tag--green">Housing</strong>
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-1">
+          Source: Local Housing Needs Assessment
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-0">
+          Projected household growth over the next 15 years will place
+          significant pressure on existing housing supply.
+        </p>
+      </div>
+
+      <div
+        class="govuk-!-padding-4"
+        style="
+          border: 1px solid #b1b4b6;
+          background: #f3f2f1;
+          margin-bottom: 20px;
+        "
+      >
+        <p class="govuk-body govuk-!-margin-bottom-1">
+          <strong>Local concern about delivery</strong>
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-2">
+          <strong class="govuk-tag govuk-tag--grey">Opinion</strong>
+          <strong class="govuk-tag govuk-tag--green">Housing</strong>
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-1">
+          Source: Stakeholder feedback
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-0">
+          Residents are concerned that planned growth will not be matched by
+          sufficient infrastructure or local services.
+        </p>
+      </div>
+
+      <div
+        class="govuk-!-padding-4"
+        style="
+          border: 1px solid #b1b4b6;
+          background: #f3f2f1;
+          margin-bottom: 20px;
+        "
+      >
+        <p class="govuk-body govuk-!-margin-bottom-1">
+          <strong>Housing demand concentrated around services</strong>
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-2">
+          <strong class="govuk-tag govuk-tag--purple">Context</strong>
+          <strong class="govuk-tag govuk-tag--green">Housing</strong>
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-1">
+          Source: Local evidence review
+        </p>
+        <p class="govuk-body govuk-!-margin-bottom-0">
+          Demand is concentrated in areas with good public transport and
+          services, which may influence future spatial priorities.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
