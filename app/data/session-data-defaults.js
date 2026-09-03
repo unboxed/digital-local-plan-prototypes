@@ -8,7 +8,7 @@ module.exports = {
       source: 'Local Housing Needs Assessment',
       tags: ['Need', 'Capacity'],
       customTags: [],
-      policyArea: 'Housing',
+      policyAreas: ['Housing'],
       policyReference: 'H1'
     },
     {
@@ -18,7 +18,7 @@ module.exports = {
       source: 'Local Housing Needs Assessment',
       tags: ['Capacity'],
       customTags: ['Public transport'],
-      policyArea: 'Transport and connectivity',
+      policyAreas: ['Transport and connectivity'],
       policyReference: 'T2'
     },
     {
@@ -28,7 +28,7 @@ module.exports = {
       source: 'Stakeholder feedback',
       tags: ['Need'],
       customTags: ['Community engagement'],
-      policyArea: 'Housing',
+      policyAreas: ['Housing'],
       policyReference: 'H1'
     },
     {
@@ -38,7 +38,7 @@ module.exports = {
       source: 'Local Housing Needs Assessment',
       tags: ['Site Allocations'],
       customTags: [],
-      policyArea: 'Housing',
+      policyAreas: ['Housing'],
       policyReference: 'H2'
     },
     {
@@ -48,7 +48,7 @@ module.exports = {
       source: 'Heritage and Conservation Study',
       tags: ['Heritage', 'Conservation'],
       customTags: [],
-      policyArea: 'Heritage and design',
+      policyAreas: ['Heritage and design'],
       policyReference: 'HE1'
     },
     {
@@ -58,7 +58,7 @@ module.exports = {
       source: 'Green Belt Assessment',
       tags: ['Green Belt'],
       customTags: [],
-      policyArea: 'Green Belt and countryside',
+      policyAreas: ['Green Belt and countryside'],
       policyReference: 'GB1'
     }
   ]

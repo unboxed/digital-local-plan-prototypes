@@ -19,23 +19,16 @@ const router = govukPrototypeKit.requests.setupRouter()
 // a user moves between the library, the document and the results screen.
 
 const DOCUMENT_SOURCE = 'Local Housing Needs Assessment'
+const DOCUMENT_CHAPTER = 'Chapter 3: Housing need'
 
-const DOCUMENT_PASSAGES = [
-  {
-    id: 'passage-1',
-    chapter: 'Chapter 3: Housing need',
-    text: 'Projected household growth over the next 15 years will place significant pressure on existing housing supply.'
-  },
-  {
-    id: 'passage-2',
-    chapter: 'Chapter 3: Housing need',
-    text: 'Existing housing supply is heavily constrained by the availability of brownfield land, infrastructure delivery constraints and limited capacity in some strategic growth areas.'
-  },
-  {
-    id: 'passage-3',
-    chapter: 'Chapter 3: Housing need',
-    text: 'In several parts of the borough, the evidence suggests that housing demand is concentrated in areas with stronger public transport links and better access to services.'
-  }
+// Full, uninterrupted document body. Users highlight any part of this text
+// directly rather than selecting from predefined chunks.
+const DOCUMENT_PARAGRAPHS = [
+  'Local population growth has increased demand for homes in the borough over the last decade. Forecasts suggest that households will continue to form at a faster rate than previously expected, leading to pressure on both the private rented and affordable housing markets.',
+  'The council has a strategic objective to provide enough homes for future residents, while also ensuring that new development is delivered in a way that supports transport capacity, local services and environmental protection.',
+  'Projected household growth over the next 15 years will place significant pressure on existing housing supply.',
+  'Existing housing supply is heavily constrained by the availability of brownfield land, infrastructure delivery constraints and limited capacity in some strategic growth areas. These issues are likely to shape the authority\'s future development trajectory and the level of intervention required through the local plan.',
+  'In several parts of the borough, the evidence suggests that housing demand is concentrated in areas with stronger public transport links and better access to services. This means that future growth may need to be planned carefully to maintain the balance between housing provision and local amenity.'
 ]
 
 const SUGGESTED_TAGS = [
@@ -68,9 +61,20 @@ const POLICY_AREAS = [
   'Infrastructure and delivery'
 ]
 
+const POLICY_REFERENCES = [
+  'H1', 'H2', 'H3', 'T1', 'T2', 'EN1', 'EN2',
+  'HE1', 'HE2', 'GB1', 'SA1', 'SA2', 'OFF1'
+]
+
+// The prototype kit merges session-data-defaults.js into a brand new
+// session with a shallow Object.assign, so a fresh session's evidenceItems
+// starts out as the *same array object* as the seed data. Deep-clone it on
+// first touch so pushing a new item never mutates the shared seed data
+// (which would otherwise leak added evidence into every future session).
 function getEvidenceItems (req) {
-  if (!Array.isArray(req.session.data.evidenceItems)) {
-    req.session.data.evidenceItems = []
+  if (!req.session.data.evidenceItemsOwned) {
+    req.session.data.evidenceItems = JSON.parse(JSON.stringify(req.session.data.evidenceItems || []))
+    req.session.data.evidenceItemsOwned = true
   }
   return req.session.data.evidenceItems
 }
@@ -80,7 +84,9 @@ function asArray (value) {
   return Array.isArray(value) ? value : [value]
 }
 
-function parseCustomTags (value) {
+// Splits a comma-joined string (built client-side from lozenge selections)
+// into a clean list of tag names.
+function parseTagList (value) {
   if (!value) return []
   return value.split(',').map(tag => tag.trim()).filter(Boolean)
 }
@@ -102,8 +108,9 @@ function filterEvidenceItems (items, filters) {
     const allTags = item.tags.concat(item.customTags)
 
     if (search) {
-      const haystack = [item.text, item.source, item.policyArea, item.policyReference]
+      const haystack = [item.text, item.source, item.policyReference]
         .concat(allTags)
+        .concat(item.policyAreas)
         .join(' ')
         .toLowerCase()
       if (!haystack.includes(search)) return false
@@ -113,7 +120,7 @@ function filterEvidenceItems (items, filters) {
       return false
     }
 
-    if (filters.policyArea && item.policyArea !== filters.policyArea) {
+    if (filters.policyArea && !item.policyAreas.includes(filters.policyArea)) {
       return false
     }
 
@@ -128,7 +135,8 @@ function filterEvidenceItems (items, filters) {
 const evidenceViewData = {
   suggestedTags: SUGGESTED_TAGS,
   tagColours: TAG_COLOURS,
-  policyAreas: POLICY_AREAS
+  policyAreas: POLICY_AREAS,
+  policyReferences: POLICY_REFERENCES
 }
 
 // --- Compatibility redirects for earlier prototype URLs ---
@@ -141,50 +149,58 @@ router.get('/evidence/tag-insight', (req, res) => {
   res.redirect('/evidence/document-tagging')
 })
 
-// --- Document viewing, passage selection and note tagging ---
+// --- Document viewing, highlight-to-tag and note tagging ---
 
 router.get('/evidence/document-tagging', (req, res) => {
   const items = getEvidenceItems(req)
+  const savedPassages = items.filter(item => item.source === DOCUMENT_SOURCE && item.type === 'passage')
 
   res.render('evidence/document-tagging/index', Object.assign({}, evidenceViewData, {
     documentSource: DOCUMENT_SOURCE,
-    passages: DOCUMENT_PASSAGES,
-    savedItems: items.filter(item => item.source === DOCUMENT_SOURCE).slice().reverse()
+    documentChapter: DOCUMENT_CHAPTER,
+    documentParagraphs: DOCUMENT_PARAGRAPHS,
+    savedItems: items.filter(item => item.source === DOCUMENT_SOURCE).slice().reverse(),
+    savedPassagesJson: JSON.stringify(savedPassages)
   }))
 })
 
 router.post('/evidence/document-tagging', (req, res) => {
   const items = getEvidenceItems(req)
-  const tags = asArray(req.body.tags)
-  const customTags = parseCustomTags(req.body.customTag)
-  const policyArea = req.body.policyArea || ''
-  const policyReference = (req.body.policyReference || '').trim()
+
+  // Lozenge selections arrive as a single comma-joined field. Anything that
+  // isn't a recognised suggested tag is treated as a custom tag.
+  const submittedTags = parseTagList(req.body.tags)
+  const tags = submittedTags.filter(tag => SUGGESTED_TAGS.includes(tag))
+  const customTags = submittedTags.filter(tag => !SUGGESTED_TAGS.includes(tag))
+  const policyAreas = parseTagList(req.body.policyAreas)
+  const policyReference = req.body.policyReference || ''
+  const hasTags = tags.length || customTags.length || policyAreas.length
 
   if (req.body.entryType === 'passage') {
-    const passage = DOCUMENT_PASSAGES.find(candidate => candidate.id === req.body.passageId)
-    if (passage && (tags.length || customTags.length)) {
+    const text = (req.body.selectedText || '').trim()
+    if (text && hasTags) {
       items.push({
         id: 'evidence-' + Date.now(),
         type: 'passage',
-        text: passage.text,
+        text,
         source: DOCUMENT_SOURCE,
         tags,
         customTags,
-        policyArea,
+        policyAreas,
         policyReference
       })
     }
   } else if (req.body.entryType === 'note') {
-    const noteText = (req.body.noteText || '').trim()
-    if (noteText) {
+    const text = (req.body.noteText || '').trim()
+    if (text && hasTags) {
       items.push({
         id: 'evidence-' + Date.now(),
         type: 'note',
-        text: noteText,
+        text,
         source: DOCUMENT_SOURCE,
         tags,
         customTags,
-        policyArea,
+        policyAreas,
         policyReference
       })
     }

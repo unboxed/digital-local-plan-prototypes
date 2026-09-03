@@ -18,7 +18,7 @@
     </div>
     <div class="dlp-evidence-card__meta-row">
       <dt>Policy area</dt>
-      <dd>{{ item.policyArea if item.policyArea else "Not set" }}</dd>
+      <dd>{{ item.policyAreas | join(", ") if item.policyAreas.length else "Not set" }}</dd>
     </div>
     <div class="dlp-evidence-card__meta-row">
       <dt>Policy reference</dt>

@@ -1,6 +1,5 @@
 {% extends "layouts/main.html" %} {% set pageName = "Document tagging" %} {%
 block content %}
-{% from "evidence/partials/tag-checkboxes.html" import tagCheckboxes %}
 {% from "evidence/partials/evidence-card.html" import evidenceCard %}
 
 {% include "evidence/partials/nav.html" %}
@@ -17,143 +16,15 @@ block content %}
       evidence base
     </p>
 
-    <div class="dlp-document">
-      <p class="govuk-body-s dlp-document__chapter">{{ passages[0].chapter }}</p>
+    <p class="dlp-document-hint govuk-body-s">
+      Highlight any text in the document below, then apply tags in the panel.
+    </p>
 
-      <p class="govuk-body">
-        Local population growth has increased demand for homes in the
-        borough over the last decade. Forecasts suggest that households
-        will continue to form at a faster rate than previously expected,
-        leading to pressure on both the private rented and affordable
-        housing markets.
-      </p>
-
-      <form action="/evidence/document-tagging" method="post">
-        <input type="hidden" name="entryType" value="passage">
-
-        <div class="govuk-form-group">
-          <fieldset class="govuk-fieldset">
-            <legend class="govuk-fieldset__legend govuk-visually-hidden">
-              Select a passage to tag as evidence
-            </legend>
-
-            {% for passage in passages %}
-            <div class="dlp-passage">
-              <div class="govuk-radios__item dlp-passage__select">
-                <input class="govuk-radios__input" id="passage-{{ loop.index }}" name="passageId" type="radio" value="{{ passage.id }}">
-                <label class="govuk-label govuk-radios__label" for="passage-{{ loop.index }}">
-                  Select this passage
-                </label>
-              </div>
-              <p class="govuk-body dlp-passage__text">{{ passage.text }}</p>
-            </div>
-            {% endfor %}
-          </fieldset>
-        </div>
-
-        <div class="dlp-tagging-panel">
-          <h2 class="govuk-heading-s">Tag selected passage</h2>
-
-          <div class="govuk-form-group">
-            <fieldset class="govuk-fieldset">
-              <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Suggested tags</legend>
-              {{ tagCheckboxes("passage", suggestedTags) }}
-            </fieldset>
-          </div>
-
-          <div class="govuk-form-group">
-            <label class="govuk-label govuk-label--s" for="passage-custom-tag">
-              Add your own tags
-            </label>
-            <div class="govuk-hint">Separate multiple tags with a comma</div>
-            <input class="govuk-input" id="passage-custom-tag" name="customTag" type="text">
-          </div>
-
-          <div class="govuk-form-group">
-            <label class="govuk-label govuk-label--s" for="passage-policy-area">Policy area</label>
-            <select class="govuk-select" id="passage-policy-area" name="policyArea">
-              <option value="">Choose a policy area</option>
-              {% for area in policyAreas %}
-              <option value="{{ area }}">{{ area }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="govuk-form-group">
-            <label class="govuk-label govuk-label--s" for="passage-policy-reference">Policy reference</label>
-            <input class="govuk-input govuk-input--width-10" id="passage-policy-reference" name="policyReference" type="text">
-          </div>
-
-          <button type="submit" class="govuk-button">Save passage to evidence</button>
-        </div>
-      </form>
-
-      <p class="govuk-body">
-        Existing housing supply is heavily constrained by the availability
-        of brownfield land, infrastructure delivery constraints and
-        limited capacity in some strategic growth areas. These issues are
-        likely to shape the authority's future development trajectory and
-        the level of intervention required through the local plan.
-      </p>
-
-      <p class="govuk-body">
-        In several parts of the borough, the evidence suggests that
-        housing demand is concentrated in areas with stronger public
-        transport links and better access to services. This means that
-        future growth may need to be planned carefully to maintain the
-        balance between housing provision and local amenity.
-      </p>
-    </div>
-  </div>
-
-  <div class="govuk-grid-column-one-third">
-    <div class="dlp-tagging-panel">
-      <h2 class="govuk-heading-s">Add a note</h2>
-      <p class="govuk-body-s">
-        Record a note about a conversation or meeting related to this
-        document, and tag it the same way as a passage.
-      </p>
-
-      <form action="/evidence/document-tagging" method="post">
-        <input type="hidden" name="entryType" value="note">
-
-        <div class="govuk-form-group">
-          <label class="govuk-label govuk-label--s" for="note-text">Note</label>
-          <textarea class="govuk-textarea" id="note-text" name="noteText" rows="4"></textarea>
-        </div>
-
-        <div class="govuk-form-group">
-          <fieldset class="govuk-fieldset">
-            <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Suggested tags</legend>
-            {{ tagCheckboxes("note", suggestedTags) }}
-          </fieldset>
-        </div>
-
-        <div class="govuk-form-group">
-          <label class="govuk-label govuk-label--s" for="note-custom-tag">
-            Add your own tags
-          </label>
-          <div class="govuk-hint">Separate multiple tags with a comma</div>
-          <input class="govuk-input" id="note-custom-tag" name="customTag" type="text">
-        </div>
-
-        <div class="govuk-form-group">
-          <label class="govuk-label govuk-label--s" for="note-policy-area">Policy area</label>
-          <select class="govuk-select" id="note-policy-area" name="policyArea">
-            <option value="">Choose a policy area</option>
-            {% for area in policyAreas %}
-            <option value="{{ area }}">{{ area }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="govuk-form-group">
-          <label class="govuk-label govuk-label--s" for="note-policy-reference">Policy reference</label>
-          <input class="govuk-input govuk-input--width-10" id="note-policy-reference" name="policyReference" type="text">
-        </div>
-
-        <button type="submit" class="govuk-button">Save note to evidence</button>
-      </form>
+    <div class="dlp-document-viewer" id="document-viewer">
+      <p class="dlp-document-viewer__chapter">{{ documentChapter }}</p>
+      {% for paragraph in documentParagraphs %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
     </div>
 
     <div class="govuk-!-margin-top-6">
@@ -174,6 +45,76 @@ block content %}
       </p>
     </div>
   </div>
+
+  <div class="govuk-grid-column-one-third">
+    <div class="dlp-tag-panel" id="tag-panel">
+      <h2 class="dlp-tag-panel__heading">Tag evidence</h2>
+
+      <div class="dlp-mode-switch" role="group" aria-label="What are you tagging?">
+        <button type="button" class="dlp-mode-btn" data-mode="passage" aria-pressed="true">Tag selected text</button>
+        <button type="button" class="dlp-mode-btn" data-mode="note" aria-pressed="false">Add a note</button>
+      </div>
+
+      <div class="dlp-tag-panel__section" data-mode-panel="passage">
+        <p class="dlp-tag-panel__hint">Selected text:</p>
+        <blockquote class="dlp-selected-text dlp-selected-text--empty" id="selected-text-preview">
+          Nothing selected yet — highlight some text in the document
+        </blockquote>
+      </div>
+
+      <div class="dlp-tag-panel__section" data-mode-panel="note" hidden>
+        <label class="dlp-label" for="note-text">Note</label>
+        <textarea class="dlp-textarea" id="note-text" rows="4" placeholder="Add a note about a conversation or meeting"></textarea>
+      </div>
+
+      <form action="/evidence/document-tagging" method="post" id="save-tags-form">
+        <input type="hidden" name="entryType" id="entry-type-input" value="passage">
+        <input type="hidden" name="selectedText" id="selected-text-input">
+        <input type="hidden" name="noteText" id="note-text-input">
+        <input type="hidden" name="tags" id="tags-input">
+        <input type="hidden" name="policyAreas" id="policy-areas-input">
+
+        <fieldset class="dlp-lozenge-group">
+          <legend class="dlp-legend">Tags</legend>
+          <div class="dlp-lozenges" id="topic-lozenges">
+            {% for tag in suggestedTags %}
+            <button type="button" class="dlp-lozenge" data-tag="{{ tag }}" aria-pressed="false">{{ tag }}</button>
+            {% endfor %}
+          </div>
+          <div class="dlp-custom-tag">
+            <label class="dlp-label" for="custom-tag-input">Add your own tag</label>
+            <div class="dlp-custom-tag__row">
+              <input class="dlp-input" id="custom-tag-input" type="text">
+              <button type="button" class="dlp-button dlp-button--secondary" id="add-custom-tag-btn">Add</button>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="dlp-lozenge-group">
+          <legend class="dlp-legend">Policy area</legend>
+          <div class="dlp-lozenges" id="policy-area-lozenges">
+            {% for area in policyAreas %}
+            <button type="button" class="dlp-lozenge dlp-lozenge--policy" data-tag="{{ area }}" aria-pressed="false">{{ area }}</button>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <div class="dlp-form-group">
+          <label class="dlp-label" for="policy-reference-select">Policy reference</label>
+          <select class="dlp-select" id="policy-reference-select" name="policyReference">
+            <option value="">Choose a reference</option>
+            {% for reference in policyReferences %}
+            <option value="{{ reference }}">{{ reference }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="govuk-button" data-module="govuk-button">Save tags</button>
+      </form>
+    </div>
+  </div>
 </div>
+
+<script type="application/json" id="saved-passages-data">{{ savedPassagesJson | safe }}</script>
 
 {% endblock %}

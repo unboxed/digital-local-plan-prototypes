@@ -8,6 +8,9 @@
 $dlp-border-grey: govuk-colour("black", $variant: "tint-80");
 $dlp-muted-text: govuk-colour("black", $variant: "tint-25");
 $dlp-panel-background: govuk-colour("black", $variant: "tint-95");
+$dlp-tag-accent: govuk-colour("blue");
+$dlp-policy-accent: govuk-colour("purple");
+$dlp-highlight-background: #fff7bf;
 
 // Workspace top navigation
 .dlp-workspace-nav {
@@ -42,46 +45,238 @@ $dlp-panel-background: govuk-colour("black", $variant: "tint-95");
   color: $dlp-muted-text;
 }
 
-// Document layout
-.dlp-document {
-  border-top: 1px solid $dlp-border-grey;
-  padding-top: govuk-spacing(4);
+// Document viewer — a plain, uninterrupted reading view. Text is
+// highlighted (not broken up with controls) to select it for tagging.
+.dlp-document-hint {
+  color: $dlp-muted-text;
 }
 
-.dlp-document__chapter {
+.dlp-document-viewer {
+  background: govuk-colour("white");
+  border: 2px solid $dlp-border-grey;
+  border-radius: 4px;
+  padding: govuk-spacing(4);
+
+  p {
+    @include govuk-font($size: 19);
+    margin-bottom: govuk-spacing(4);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.dlp-document-viewer__chapter {
   color: $dlp-muted-text;
   font-weight: bold;
 }
 
-.dlp-passage {
-  border-left: 4px solid $dlp-border-grey;
-  margin-bottom: govuk-spacing(4);
-  padding: govuk-spacing(2) 0 govuk-spacing(2) govuk-spacing(3);
-
-  &:has(.govuk-radios__input:checked) {
-    border-left-color: govuk-colour("blue");
-  }
+// A highlighted, previously-tagged passage within the document text
+.dlp-highlight {
+  background: $dlp-highlight-background;
+  border-bottom: 2px solid govuk-colour("black", $variant: "tint-50");
+  padding: 0 2px;
 }
 
-.dlp-passage__select {
-  margin-bottom: govuk-spacing(1);
+.dlp-highlight__tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+  margin-left: govuk-spacing(1);
 }
 
-.dlp-passage__text {
-  margin-bottom: 0;
+.dlp-chip {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-border-grey;
+  border-radius: 12px;
+  display: inline-block;
+  font-family: inherit;
+  font-size: 0.875rem;
+  padding: 1px govuk-spacing(2);
 }
 
-// Tagging panel and notes form
-.dlp-tagging-panel {
+// Tag evidence panel
+.dlp-tag-panel {
   background: $dlp-panel-background;
   border: 1px solid $dlp-border-grey;
-  margin-top: govuk-spacing(4);
+  border-radius: 4px;
   padding: govuk-spacing(4);
 
   @include govuk-media-query($from: desktop) {
     position: sticky;
     top: govuk-spacing(4);
   }
+}
+
+.dlp-tag-panel__heading {
+  @include govuk-font($size: 24, $weight: bold);
+  margin: 0 0 govuk-spacing(4);
+}
+
+.dlp-tag-panel__section {
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-tag-panel__hint {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(1);
+}
+
+// Mode switch (Tag selected text / Add a note)
+.dlp-mode-switch {
+  display: flex;
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-mode-btn {
+  @include govuk-font($size: 16);
+  background: govuk-colour("white");
+  border: 2px solid $dlp-border-grey;
+  cursor: pointer;
+  flex: 1 1 0;
+  padding: govuk-spacing(2);
+
+  &:first-child {
+    border-radius: 4px 0 0 4px;
+    border-right: 0;
+  }
+
+  &:last-child {
+    border-radius: 0 4px 4px 0;
+  }
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+
+  &[aria-pressed="true"] {
+    background: govuk-colour("black");
+    border-color: govuk-colour("black");
+    color: govuk-colour("white");
+    font-weight: bold;
+  }
+}
+
+.dlp-selected-text {
+  @include govuk-font($size: 19);
+  background: $dlp-highlight-background;
+  border-left: 4px solid govuk-colour("black", $variant: "tint-50");
+  margin: 0;
+  padding: govuk-spacing(2) govuk-spacing(3);
+
+  &.dlp-selected-text--empty {
+    background: transparent;
+    border-left-color: $dlp-border-grey;
+    color: $dlp-muted-text;
+    font-style: italic;
+  }
+}
+
+// Custom, lightweight form controls used only within the tag panel
+.dlp-label {
+  @include govuk-font($size: 16, $weight: bold);
+  display: block;
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-legend {
+  @include govuk-font($size: 16, $weight: bold);
+  margin-bottom: govuk-spacing(2);
+  padding: 0;
+}
+
+.dlp-textarea,
+.dlp-input,
+.dlp-select {
+  @include govuk-font($size: 16);
+  border: 2px solid govuk-colour("black");
+  border-radius: 4px;
+  padding: govuk-spacing(1) govuk-spacing(2);
+  width: 100%;
+
+  &:focus {
+    @include govuk-focused-form-input;
+  }
+}
+
+.dlp-textarea {
+  resize: vertical;
+}
+
+.dlp-form-group {
+  margin-bottom: govuk-spacing(4);
+}
+
+// Tag and policy area lozenges
+.dlp-lozenge-group {
+  border: 0;
+  margin: 0 0 govuk-spacing(4);
+  padding: 0;
+}
+
+.dlp-lozenges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-lozenge {
+  @include govuk-font($size: 16);
+  background: govuk-colour("white");
+  border: 2px solid $dlp-tag-accent;
+  border-radius: 20px;
+  color: $dlp-tag-accent;
+  cursor: pointer;
+  padding: govuk-spacing(1) govuk-spacing(3);
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+
+  &[aria-pressed="true"] {
+    background: $dlp-tag-accent;
+    color: govuk-colour("white");
+    font-weight: bold;
+  }
+}
+
+.dlp-lozenge--policy {
+  border-color: $dlp-policy-accent;
+  color: $dlp-policy-accent;
+
+  &[aria-pressed="true"] {
+    background: $dlp-policy-accent;
+    color: govuk-colour("white");
+  }
+}
+
+.dlp-custom-tag__row {
+  display: flex;
+  gap: govuk-spacing(1);
+
+  .dlp-input {
+    flex: 1 1 auto;
+  }
+}
+
+.dlp-button {
+  @include govuk-font($size: 16, $weight: bold);
+  border: 2px solid govuk-colour("black");
+  border-radius: 4px;
+  cursor: pointer;
+  padding: govuk-spacing(1) govuk-spacing(3);
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+.dlp-button--secondary {
+  background: govuk-colour("white");
+  color: govuk-colour("black");
 }
 
 // Evidence cards
