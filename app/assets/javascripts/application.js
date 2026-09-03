@@ -178,15 +178,73 @@ function highlightPassage (viewer, item) {
     mark.className = 'dlp-highlight'
     range.surroundContents(mark)
 
-    const tagWrap = document.createElement('span')
-    tagWrap.className = 'dlp-highlight__tags'
-    item.tags.concat(item.customTags).forEach(tag => {
-      const chip = document.createElement('span')
-      chip.className = 'dlp-chip'
-      chip.textContent = tag
-      tagWrap.appendChild(chip)
-    })
-    mark.insertAdjacentElement('afterend', tagWrap)
+    const paragraph = mark.closest('p')
+    if (paragraph) {
+      addTagsBelowParagraph(paragraph, item)
+    }
     break
   }
+}
+
+// Tags for a highlighted passage sit in a block underneath the paragraph
+// that contains it, rather than inline with the highlight — so the
+// paragraph's own text and spacing are never disturbed. Multiple tagged
+// passages within the same paragraph share one row underneath it.
+function addTagsBelowParagraph (paragraph, item) {
+  let row = paragraph.nextElementSibling
+  if (!row || !row.classList.contains('dlp-highlight-tags-row')) {
+    row = document.createElement('div')
+    row.className = 'dlp-highlight-tags-row'
+    paragraph.insertAdjacentElement('afterend', row)
+  }
+
+  const group = document.createElement('span')
+  group.className = 'dlp-highlight-tags-group'
+  item.tags.concat(item.customTags).forEach(tag => {
+    group.appendChild(createRemovableTagChip(item.id, tag, 'topic'))
+  })
+  item.policyAreas.forEach(area => {
+    group.appendChild(createRemovableTagChip(item.id, area, 'policy'))
+  })
+  row.appendChild(group)
+}
+
+// Each tag chip is a real form that posts back to remove just that tag (or
+// policy area) from the saved item — clicking it removes it, no extra JS
+// wiring needed.
+function createRemovableTagChip (itemId, tag, kind) {
+  const form = document.createElement('form')
+  form.className = 'dlp-chip-form'
+  form.method = 'post'
+  form.action = '/evidence/document-tagging/remove-tag'
+
+  const itemIdField = document.createElement('input')
+  itemIdField.type = 'hidden'
+  itemIdField.name = 'itemId'
+  itemIdField.value = itemId
+  form.appendChild(itemIdField)
+
+  const tagField = document.createElement('input')
+  tagField.type = 'hidden'
+  tagField.name = 'tag'
+  tagField.value = tag
+  form.appendChild(tagField)
+
+  const button = document.createElement('button')
+  button.type = 'submit'
+  button.className = 'dlp-chip dlp-chip--removable' + (kind === 'policy' ? ' dlp-chip--policy' : '')
+  button.setAttribute('aria-label', 'Remove tag ' + tag)
+
+  const label = document.createElement('span')
+  label.textContent = tag
+  button.appendChild(label)
+
+  const removeIcon = document.createElement('span')
+  removeIcon.className = 'dlp-chip__remove'
+  removeIcon.setAttribute('aria-hidden', 'true')
+  removeIcon.textContent = '×'
+  button.appendChild(removeIcon)
+
+  form.appendChild(button)
+  return form
 }

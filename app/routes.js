@@ -184,6 +184,7 @@ router.post('/evidence/document-tagging', (req, res) => {
         type: 'passage',
         text,
         source: DOCUMENT_SOURCE,
+        chapter: DOCUMENT_CHAPTER,
         tags,
         customTags,
         policyAreas,
@@ -198,12 +199,28 @@ router.post('/evidence/document-tagging', (req, res) => {
         type: 'note',
         text,
         source: DOCUMENT_SOURCE,
+        chapter: DOCUMENT_CHAPTER,
         tags,
         customTags,
         policyAreas,
         policyReference
       })
     }
+  }
+
+  res.redirect('/evidence/document-tagging')
+})
+
+// Removes a single tag (suggested or custom) from a saved item, clicked
+// directly on its chip within the document view.
+router.post('/evidence/document-tagging/remove-tag', (req, res) => {
+  const items = getEvidenceItems(req)
+  const item = items.find(candidate => candidate.id === req.body.itemId)
+
+  if (item) {
+    item.tags = item.tags.filter(tag => tag !== req.body.tag)
+    item.customTags = item.customTags.filter(tag => tag !== req.body.tag)
+    item.policyAreas = item.policyAreas.filter(area => area !== req.body.tag)
   }
 
   res.redirect('/evidence/document-tagging')

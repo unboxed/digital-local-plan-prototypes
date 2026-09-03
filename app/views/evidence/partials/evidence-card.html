@@ -1,7 +1,7 @@
 {% macro evidenceCard(item, tagColours) %}
 <div class="dlp-evidence-card">
-  <p class="govuk-body-s dlp-evidence-card__type">
-    {{ "Note" if item.type == "note" else "Document passage" }}
+  <p class="dlp-evidence-card__type">
+    {{ item.source }}{% if item.chapter %} / {{ item.chapter }}{% endif %}
   </p>
 
   <p class="govuk-body dlp-evidence-card__text">{{ item.text }}</p>
@@ -12,10 +12,6 @@
   </p>
 
   <dl class="govuk-body-s dlp-evidence-card__meta">
-    <div class="dlp-evidence-card__meta-row">
-      <dt>Source</dt>
-      <dd>{{ item.source }}</dd>
-    </div>
     <div class="dlp-evidence-card__meta-row">
       <dt>Policy area</dt>
       <dd>{{ item.policyAreas | join(", ") if item.policyAreas.length else "Not set" }}</dd>

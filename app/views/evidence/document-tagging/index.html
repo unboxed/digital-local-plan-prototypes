@@ -27,6 +27,12 @@ block content %}
       {% endfor %}
     </div>
 
+    <p class="govuk-!-margin-top-4">
+      <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="/evidence/document-tagging" target="_blank" rel="noopener noreferrer">
+        Open document in new window
+      </a>
+    </p>
+
     <div class="govuk-!-margin-top-6">
       <h2 class="govuk-heading-s">Saved evidence from this document</h2>
 
@@ -51,8 +57,8 @@ block content %}
       <h2 class="dlp-tag-panel__heading">Tag evidence</h2>
 
       <div class="dlp-mode-switch" role="group" aria-label="What are you tagging?">
-        <button type="button" class="dlp-mode-btn" data-mode="passage" aria-pressed="true">Tag selected text</button>
-        <button type="button" class="dlp-mode-btn" data-mode="note" aria-pressed="false">Add a note</button>
+        <button type="button" class="dlp-mode-btn" data-mode="passage" aria-pressed="true">Tag selected evidence</button>
+        <button type="button" class="dlp-mode-btn" data-mode="note" aria-pressed="false">Add note</button>
       </div>
 
       <div class="dlp-tag-panel__section" data-mode-panel="passage">
