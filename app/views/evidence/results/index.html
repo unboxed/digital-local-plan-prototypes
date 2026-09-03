@@ -1,0 +1,66 @@
+{% extends "layouts/main.html" %} {% set pageName = "Filtered results" %} {%
+block content %}
+{% from "evidence/partials/evidence-card.html" import evidenceCard %}
+
+{% include "evidence/partials/nav.html" %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/evidence">Back to evidence library</a>
+
+    <h1 class="govuk-heading-xl">Filtered results</h1>
+
+    {% if exportSummary %}
+    <div class="govuk-panel govuk-panel--confirmation">
+      <h1 class="govuk-panel__title">Evidence export ready</h1>
+      <div class="govuk-panel__body">
+        {{ exportSummary.count }} evidence item{{ "s" if exportSummary.count != 1 }} would be exported
+      </div>
+    </div>
+
+    <p class="govuk-body">
+      This prototype does not generate a downloadable file. In a live
+      service, this step would produce an export in a format such as CSV
+      or Word.
+    </p>
+
+    <p class="govuk-body">
+      <a class="govuk-link" href="/evidence">Back to evidence library</a>
+    </p>
+    {% else %}
+    <div class="dlp-active-filters">
+      <h2 class="govuk-heading-s">Active filters</h2>
+      {% if filters.search or filters.tags.length or filters.policyArea or filters.policyReference %}
+      <p class="dlp-active-filters__list">
+        {% if filters.search %}<strong class="govuk-tag dlp-evidence-card__tag">Search: {{ filters.search }}</strong>{% endif %}
+        {% for tag in filters.tags %}<strong class="govuk-tag{% if tagColours[tag] %} govuk-tag--{{ tagColours[tag] }}{% endif %} dlp-evidence-card__tag">{{ tag }}</strong>{% endfor %}
+        {% if filters.policyArea %}<strong class="govuk-tag dlp-evidence-card__tag">{{ filters.policyArea }}</strong>{% endif %}
+        {% if filters.policyReference %}<strong class="govuk-tag dlp-evidence-card__tag">Reference: {{ filters.policyReference }}</strong>{% endif %}
+      </p>
+      {% else %}
+      <p class="govuk-body">No filters applied — showing all evidence.</p>
+      {% endif %}
+    </div>
+
+    <p class="govuk-body govuk-!-font-weight-bold">
+      {{ resultCount }} matching evidence item{{ "s" if resultCount != 1 }}
+    </p>
+
+    {% if items.length %}
+    <ul class="govuk-list dlp-evidence-list">
+      {% for item in items %}
+      <li>{{ evidenceCard(item, tagColours) }}</li>
+      {% endfor %}
+    </ul>
+
+    <form action="/evidence/results" method="post">
+      <button type="submit" class="govuk-button">Export filtered evidence</button>
+    </form>
+    {% else %}
+    <p class="govuk-body">No evidence matches the current filters.</p>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

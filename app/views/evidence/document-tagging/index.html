@@ -1,171 +1,176 @@
 {% extends "layouts/main.html" %} {% set pageName = "Document tagging" %} {%
 block content %}
+{% from "evidence/partials/tag-checkboxes.html" import tagCheckboxes %}
+{% from "evidence/partials/evidence-card.html" import evidenceCard %}
+
+{% include "evidence/partials/nav.html" %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+    <a class="govuk-back-link" href="/evidence">Back to evidence library</a>
 
     <span class="govuk-caption-l">Evidence document</span>
-    <h1 class="govuk-heading-xl">Local Housing Needs Assessment</h1>
+    <h1 class="govuk-heading-xl">{{ documentSource }}</h1>
 
-    <p class="govuk-body govuk-!-margin-bottom-2">
+    <p class="govuk-body">
       <span class="govuk-!-font-weight-bold">Source:</span> Local authority
       evidence base
     </p>
-    <p class="govuk-body govuk-!-margin-bottom-6">
-      <span class="govuk-!-font-weight-bold">Published:</span> 2024
-    </p>
 
-    <div
-      class="govuk-!-padding-4 govuk-!-background-grey-4"
-      style="border-left: 4px solid #1d70b8"
-    >
-      <p class="govuk-body govuk-!-margin-bottom-0">Chapter 3: Housing need</p>
-    </div>
+    <div class="dlp-document">
+      <p class="govuk-body-s dlp-document__chapter">{{ passages[0].chapter }}</p>
 
-    <p class="govuk-body">
-      Local population growth has increased demand for homes in the borough over
-      the last decade. Forecasts suggest that households will continue to form
-      at a faster rate than previously expected, leading to pressure on both the
-      private rented and affordable housing markets.
-    </p>
-
-    <p class="govuk-body">
-      The council has a strategic objective to provide enough homes for future
-      residents, while also ensuring that new development is delivered in a way
-      that supports transport capacity, local services and environmental
-      protection.
-    </p>
-
-    <div
-      class="govuk-!-padding-3"
-      style="
-        background-color: #fff7bf;
-        border-left: 4px solid #b1b4b6;
-        border-top: 1px solid #b1b4b6;
-        border-right: 1px solid #b1b4b6;
-        border-bottom: 1px solid #b1b4b6;
-      "
-    >
-      <p class="govuk-body govuk-!-margin-bottom-2">
-        <span class="govuk-!-font-weight-bold">Selected text</span>
+      <p class="govuk-body">
+        Local population growth has increased demand for homes in the
+        borough over the last decade. Forecasts suggest that households
+        will continue to form at a faster rate than previously expected,
+        leading to pressure on both the private rented and affordable
+        housing markets.
       </p>
-      <p class="govuk-body govuk-!-margin-bottom-0">
-        “Projected household growth over the next 15 years will place
-        significant pressure on existing housing supply.”
+
+      <form action="/evidence/document-tagging" method="post">
+        <input type="hidden" name="entryType" value="passage">
+
+        <div class="govuk-form-group">
+          <fieldset class="govuk-fieldset">
+            <legend class="govuk-fieldset__legend govuk-visually-hidden">
+              Select a passage to tag as evidence
+            </legend>
+
+            {% for passage in passages %}
+            <div class="dlp-passage">
+              <div class="govuk-radios__item dlp-passage__select">
+                <input class="govuk-radios__input" id="passage-{{ loop.index }}" name="passageId" type="radio" value="{{ passage.id }}">
+                <label class="govuk-label govuk-radios__label" for="passage-{{ loop.index }}">
+                  Select this passage
+                </label>
+              </div>
+              <p class="govuk-body dlp-passage__text">{{ passage.text }}</p>
+            </div>
+            {% endfor %}
+          </fieldset>
+        </div>
+
+        <div class="dlp-tagging-panel">
+          <h2 class="govuk-heading-s">Tag selected passage</h2>
+
+          <div class="govuk-form-group">
+            <fieldset class="govuk-fieldset">
+              <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Suggested tags</legend>
+              {{ tagCheckboxes("passage", suggestedTags) }}
+            </fieldset>
+          </div>
+
+          <div class="govuk-form-group">
+            <label class="govuk-label govuk-label--s" for="passage-custom-tag">
+              Add your own tags
+            </label>
+            <div class="govuk-hint">Separate multiple tags with a comma</div>
+            <input class="govuk-input" id="passage-custom-tag" name="customTag" type="text">
+          </div>
+
+          <div class="govuk-form-group">
+            <label class="govuk-label govuk-label--s" for="passage-policy-area">Policy area</label>
+            <select class="govuk-select" id="passage-policy-area" name="policyArea">
+              <option value="">Choose a policy area</option>
+              {% for area in policyAreas %}
+              <option value="{{ area }}">{{ area }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="govuk-form-group">
+            <label class="govuk-label govuk-label--s" for="passage-policy-reference">Policy reference</label>
+            <input class="govuk-input govuk-input--width-10" id="passage-policy-reference" name="policyReference" type="text">
+          </div>
+
+          <button type="submit" class="govuk-button">Save passage to evidence</button>
+        </div>
+      </form>
+
+      <p class="govuk-body">
+        Existing housing supply is heavily constrained by the availability
+        of brownfield land, infrastructure delivery constraints and
+        limited capacity in some strategic growth areas. These issues are
+        likely to shape the authority's future development trajectory and
+        the level of intervention required through the local plan.
       </p>
-    </div>
 
-    <p class="govuk-body">
-      Existing housing supply is heavily constrained by the availability of
-      brownfield land, infrastructure delivery constraints and limited capacity
-      in some strategic growth areas. These issues are likely to shape the
-      authority’s future development trajectory and the level of intervention
-      required through the local plan.
-    </p>
-    </p>
-
-    <p class="govuk-body">
-      In several parts of the borough, the evidence suggests that housing demand
-      is concentrated in areas with stronger public transport links and better
-      access to services. This means that future growth may need to be planned
-      carefully to maintain the balance between housing provision and local
-      amenity.
-    </p>
-
-    <div class="govuk-button-group">
-      <button type="button" class="govuk-button">Save selection</button>
-      <a class="govuk-link" href="/evidence/selected-evidence"
-        >View in evidence list</a
-      >
+      <p class="govuk-body">
+        In several parts of the borough, the evidence suggests that
+        housing demand is concentrated in areas with stronger public
+        transport links and better access to services. This means that
+        future growth may need to be planned carefully to maintain the
+        balance between housing provision and local amenity.
+      </p>
     </div>
   </div>
 
   <div class="govuk-grid-column-one-third">
-    <aside
-      class="govuk-!-padding-4"
-      style="
-        background: #f3f2f1;
-        border: 1px solid #b1b4b6;
-        position: sticky;
-        top: 20px;
-      "
-    >
-      <h2 class="govuk-heading-s">Tag selected evidence</h2>
-
-      <p class="govuk-body govuk-!-margin-bottom-2">
-        <span class="govuk-!-font-weight-bold">Insight type</span>
+    <div class="dlp-tagging-panel">
+      <h2 class="govuk-heading-s">Add a note</h2>
+      <p class="govuk-body-s">
+        Record a note about a conversation or meeting related to this
+        document, and tag it the same way as a passage.
       </p>
-      <div class="govuk-!-margin-bottom-4">
-        <strong class="govuk-tag govuk-tag--blue">Fact</strong>
-        <strong class="govuk-tag govuk-tag--grey govuk-!-margin-left-1"
-          >Context</strong
-        >
-      </div>
 
-      <p class="govuk-body govuk-!-margin-bottom-2">
-        <span class="govuk-!-font-weight-bold">Topic</span>
-      </p>
-      <div class="govuk-!-margin-bottom-4">
-        <strong class="govuk-tag govuk-tag--green">Housing</strong>
-        <strong class="govuk-tag govuk-tag--turquoise govuk-!-margin-left-1"
-          >Growth</strong
-        >
-      </div>
+      <form action="/evidence/document-tagging" method="post">
+        <input type="hidden" name="entryType" value="note">
 
-      <div class="govuk-form-group">
-        <label class="govuk-label govuk-label--s" for="evidence-note">
-          Short note
-        </label>
-        <textarea
-          class="govuk-textarea"
-          id="evidence-note"
-          name="evidence-note"
-          rows="4"
-        >
-Household growth is expected to create significant pressure on housing supply over the next 15 years.</textarea
-        >
-      </div>
+        <div class="govuk-form-group">
+          <label class="govuk-label govuk-label--s" for="note-text">Note</label>
+          <textarea class="govuk-textarea" id="note-text" name="noteText" rows="4"></textarea>
+        </div>
 
-      <button type="button" class="govuk-button">Save to selection</button>
-    </aside>
+        <div class="govuk-form-group">
+          <fieldset class="govuk-fieldset">
+            <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Suggested tags</legend>
+            {{ tagCheckboxes("note", suggestedTags) }}
+          </fieldset>
+        </div>
+
+        <div class="govuk-form-group">
+          <label class="govuk-label govuk-label--s" for="note-custom-tag">
+            Add your own tags
+          </label>
+          <div class="govuk-hint">Separate multiple tags with a comma</div>
+          <input class="govuk-input" id="note-custom-tag" name="customTag" type="text">
+        </div>
+
+        <div class="govuk-form-group">
+          <label class="govuk-label govuk-label--s" for="note-policy-area">Policy area</label>
+          <select class="govuk-select" id="note-policy-area" name="policyArea">
+            <option value="">Choose a policy area</option>
+            {% for area in policyAreas %}
+            <option value="{{ area }}">{{ area }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="govuk-form-group">
+          <label class="govuk-label govuk-label--s" for="note-policy-reference">Policy reference</label>
+          <input class="govuk-input govuk-input--width-10" id="note-policy-reference" name="policyReference" type="text">
+        </div>
+
+        <button type="submit" class="govuk-button">Save note to evidence</button>
+      </form>
+    </div>
 
     <div class="govuk-!-margin-top-6">
-      <h2 class="govuk-heading-s">Selected evidence</h2>
+      <h2 class="govuk-heading-s">Saved evidence from this document</h2>
 
-      <ul class="govuk-list govuk-list--spaced">
-        <li>
-          <div style="border-left: 4px solid #1d70b8; padding-left: 10px">
-            <p class="govuk-body govuk-!-margin-bottom-1">
-              <strong>Housing growth pressure</strong>
-            </p>
-            <p class="govuk-body govuk-!-margin-bottom-0">Fact / Housing</p>
-          </div>
-        </li>
-        <li>
-          <div style="border-left: 4px solid #1d70b8; padding-left: 10px">
-            <p class="govuk-body govuk-!-margin-bottom-1">
-              <strong>Transport service constraints</strong>
-            </p>
-            <p class="govuk-body govuk-!-margin-bottom-0">
-              Context / Transport
-            </p>
-          </div>
-        </li>
-        <li>
-          <div style="border-left: 4px solid #1d70b8; padding-left: 10px">
-            <p class="govuk-body govuk-!-margin-bottom-1">
-              <strong>Community concern over delivery</strong>
-            </p>
-            <p class="govuk-body govuk-!-margin-bottom-0">Opinion / Housing</p>
-          </div>
-        </li>
+      {% if savedItems.length %}
+      <ul class="govuk-list dlp-evidence-summary">
+        {% for item in savedItems %}
+        <li>{{ evidenceCard(item, tagColours) }}</li>
+        {% endfor %}
       </ul>
+      {% else %}
+      <p class="govuk-body">No evidence saved from this document yet.</p>
+      {% endif %}
 
       <p class="govuk-body govuk-!-margin-top-4">
-        <a class="govuk-link" href="/evidence/selected-evidence"
-          >View grouped evidence</a
-        >
+        <a class="govuk-link" href="/evidence">View evidence library</a>
       </p>
     </div>
   </div>

@@ -1,6 +1,162 @@
 //
 // For guidance on how to add CSS and SCSS see:
 // https://prototype-kit.service.gov.uk/docs/adding-css-javascript-and-images
-// 
+//
 
-// Add extra styles here
+// Evidence prototype (E2US3 / E2US4)
+
+$dlp-border-grey: govuk-colour("black", $variant: "tint-80");
+$dlp-muted-text: govuk-colour("black", $variant: "tint-25");
+$dlp-panel-background: govuk-colour("black", $variant: "tint-95");
+
+// Workspace top navigation
+.dlp-workspace-nav {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+}
+
+.dlp-workspace-nav__list {
+  @include govuk-font($size: 19);
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-workspace-nav__item {
+  margin-right: govuk-spacing(6);
+}
+
+.dlp-workspace-nav__label {
+  display: inline-block;
+  padding: govuk-spacing(3) 0;
+}
+
+.dlp-workspace-nav__label--active {
+  border-bottom: 4px solid govuk-colour("blue");
+  font-weight: bold;
+}
+
+.dlp-workspace-nav__label--inactive {
+  color: $dlp-muted-text;
+}
+
+// Document layout
+.dlp-document {
+  border-top: 1px solid $dlp-border-grey;
+  padding-top: govuk-spacing(4);
+}
+
+.dlp-document__chapter {
+  color: $dlp-muted-text;
+  font-weight: bold;
+}
+
+.dlp-passage {
+  border-left: 4px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(2) 0 govuk-spacing(2) govuk-spacing(3);
+
+  &:has(.govuk-radios__input:checked) {
+    border-left-color: govuk-colour("blue");
+  }
+}
+
+.dlp-passage__select {
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-passage__text {
+  margin-bottom: 0;
+}
+
+// Tagging panel and notes form
+.dlp-tagging-panel {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  margin-top: govuk-spacing(4);
+  padding: govuk-spacing(4);
+
+  @include govuk-media-query($from: desktop) {
+    position: sticky;
+    top: govuk-spacing(4);
+  }
+}
+
+// Evidence cards
+.dlp-evidence-list,
+.dlp-evidence-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-evidence-card {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(4);
+}
+
+.dlp-evidence-card__type {
+  color: $dlp-muted-text;
+  font-weight: bold;
+  margin-bottom: govuk-spacing(1);
+  text-transform: uppercase;
+}
+
+.dlp-evidence-card__text {
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-evidence-card__tags {
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-evidence-card__tag {
+  margin-bottom: govuk-spacing(1);
+  margin-right: govuk-spacing(1);
+}
+
+.dlp-evidence-card__meta {
+  margin: 0;
+}
+
+.dlp-evidence-card__meta-row {
+  display: flex;
+  margin-bottom: govuk-spacing(1);
+
+  dt {
+    color: $dlp-muted-text;
+    flex: 0 0 auto;
+    font-weight: bold;
+    margin-right: govuk-spacing(2);
+    width: 140px;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+// Filter controls
+.dlp-filter-form {
+  border-right: 1px solid $dlp-border-grey;
+  padding-right: govuk-spacing(4);
+
+  @include govuk-media-query($until: tablet) {
+    border-right: 0;
+    margin-bottom: govuk-spacing(6);
+    padding-right: 0;
+  }
+}
+
+// Active filters summary on the results screen
+.dlp-active-filters {
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-active-filters__list {
+  margin-bottom: 0;
+}

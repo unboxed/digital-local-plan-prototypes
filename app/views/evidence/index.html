@@ -1,33 +1,85 @@
 {% extends "layouts/main.html" %} {% set pageName="Evidence" %} {% block content
 %}
+{% from "evidence/partials/evidence-card.html" import evidenceCard %}
+
+{% include "evidence/partials/nav.html" %}
 
 <div class="govuk-grid-row">
-  <div class="govuk-grid-column-two-thirds">
+  <div class="govuk-grid-column-one-third">
     <a class="govuk-back-link" href="/">Back to prototypes</a>
 
-    <h1 class="govuk-heading-xl">Evidence</h1>
+    <h1 class="govuk-heading-xl">Evidence library</h1>
 
+    <form class="dlp-filter-form" action="/evidence" method="get">
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="evidence-search">Search evidence</label>
+        <input class="govuk-input" id="evidence-search" name="evidenceSearch" type="text" value="{{ filters.search }}">
+      </div>
+
+      <div class="govuk-form-group">
+        <fieldset class="govuk-fieldset">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Tags</legend>
+          <input type="hidden" name="evidenceTagFilter" value="_unchecked">
+          <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">
+            {% for tag in suggestedTags %}
+            <div class="govuk-checkboxes__item">
+              <input class="govuk-checkboxes__input" id="filter-tag-{{ loop.index }}" name="evidenceTagFilter" type="checkbox" value="{{ tag }}" {{ "checked" if tag in filters.tags }}>
+              <label class="govuk-label govuk-checkboxes__label" for="filter-tag-{{ loop.index }}">{{ tag }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="evidence-policy-area">Policy area</label>
+        <select class="govuk-select" id="evidence-policy-area" name="evidencePolicyAreaFilter">
+          <option value="">All policy areas</option>
+          {% for area in policyAreas %}
+          <option value="{{ area }}" {{ "selected" if filters.policyArea == area }}>{{ area }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="evidence-policy-reference">Policy reference</label>
+        <input class="govuk-input govuk-input--width-10" id="evidence-policy-reference" name="evidencePolicyReferenceFilter" type="text" value="{{ filters.policyReference }}">
+      </div>
+
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button">Apply filters</button>
+        <a class="govuk-link" href="/evidence?evidenceSearch=&evidenceTagFilter=_unchecked&evidencePolicyAreaFilter=&evidencePolicyReferenceFilter=">Clear filters</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="govuk-grid-column-two-thirds">
     <p class="govuk-body">
-      This prototype explores how planners can identify, gather, analyse and use
-      evidence in the plan-making process.
+      Search and filter tagged evidence gathered from documents and notes,
+      grouped by tag and policy area to support policy drafting.
     </p>
 
     <p class="govuk-body">
-      <span class="govuk-!-font-weight-bold">User need:</span>
-      As a planner, I need to identify, gather, analyse and use evidence in the
-      plan-making process.
+      <a class="govuk-link" href="/evidence/document-tagging">Tag evidence from a document</a>
     </p>
 
-    <p class="govuk-body">
-      This is a starting point — add pages and journeys here to explore this
-      user need.
+    <p class="govuk-body govuk-!-font-weight-bold">
+      Showing {{ resultCount }} of {{ totalCount }} evidence items
     </p>
 
+    {% if items.length %}
+    <ul class="govuk-list dlp-evidence-list">
+      {% for item in items %}
+      <li>{{ evidenceCard(item, tagColours) }}</li>
+      {% endfor %}
+    </ul>
+
     <p class="govuk-body">
-      <a class="govuk-link" href="/evidence/document-tagging"
-        >View the evidence tagging mockup</a
-      >
+      <a class="govuk-link" href="/evidence/results">View filtered results and export</a>
     </p>
+    {% else %}
+    <p class="govuk-body">No evidence matches the current filters.</p>
+    {% endif %}
   </div>
 </div>
 

@@ -1,0 +1,29 @@
+{% macro evidenceCard(item, tagColours) %}
+<div class="dlp-evidence-card">
+  <p class="govuk-body-s dlp-evidence-card__type">
+    {{ "Note" if item.type == "note" else "Document passage" }}
+  </p>
+
+  <p class="govuk-body dlp-evidence-card__text">{{ item.text }}</p>
+
+  <p class="dlp-evidence-card__tags">
+    {% for tag in item.tags %}<strong class="govuk-tag{% if tagColours[tag] %} govuk-tag--{{ tagColours[tag] }}{% endif %} dlp-evidence-card__tag">{{ tag }}</strong>{% endfor %}
+    {% for tag in item.customTags %}<strong class="govuk-tag dlp-evidence-card__tag">{{ tag }}</strong>{% endfor %}
+  </p>
+
+  <dl class="govuk-body-s dlp-evidence-card__meta">
+    <div class="dlp-evidence-card__meta-row">
+      <dt>Source</dt>
+      <dd>{{ item.source }}</dd>
+    </div>
+    <div class="dlp-evidence-card__meta-row">
+      <dt>Policy area</dt>
+      <dd>{{ item.policyArea if item.policyArea else "Not set" }}</dd>
+    </div>
+    <div class="dlp-evidence-card__meta-row">
+      <dt>Policy reference</dt>
+      <dd>{{ item.policyReference if item.policyReference else "Not set" }}</dd>
+    </div>
+  </dl>
+</div>
+{% endmacro %}
