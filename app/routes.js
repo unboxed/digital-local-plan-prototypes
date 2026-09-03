@@ -52,18 +52,40 @@ const TAG_COLOURS = {
 }
 
 const POLICY_AREAS = [
+  'Health, inclusion and safety',
   'Housing',
-  'Employment and economy',
-  'Transport and connectivity',
-  'Environment and climate',
-  'Heritage and design',
-  'Green Belt and countryside',
-  'Infrastructure and delivery'
+  'Infrastructure',
+  'Design',
+  'Offices',
+  'Retail',
+  'Culture and visitors',
+  'Heritage and Tall Buildings',
+  'Open Spaces and Green Infrastructure',
+  'Climate Resilience',
+  'Transport'
 ]
+
+// Pre-encoded so the sidebar's nav links don't depend on a urlencode filter
+// being available in Nunjucks.
+const POLICY_AREA_LINKS = POLICY_AREAS.map(area => ({
+  label: area,
+  encoded: encodeURIComponent(area)
+}))
 
 const POLICY_REFERENCES = [
   'H1', 'H2', 'H3', 'T1', 'T2', 'EN1', 'EN2',
-  'HE1', 'HE2', 'GB1', 'SA1', 'SA2', 'OFF1'
+  'HE1', 'HE2', 'GB1', 'SA1', 'SA2', 'EMP1', 'OFF1'
+]
+
+// An evidence item's sourceType decides its display header:
+//   document                     -> "<source> / <chapter>"
+//   note                         -> "Note"
+//   scoping-consultation-response -> "Scoping consultation response"
+//   consultation-response        -> "Consultation response"
+const NOTE_SOURCE_TYPES = [
+  { value: 'note', label: 'Note' },
+  { value: 'scoping-consultation-response', label: 'Scoping consultation response' },
+  { value: 'consultation-response', label: 'Consultation response' }
 ]
 
 // The prototype kit merges session-data-defaults.js into a brand new
@@ -92,10 +114,12 @@ function parseTagList (value) {
 }
 
 function getFilters (req) {
+  const policyArea = req.session.data.evidencePolicyAreaFilter || ''
   return {
     search: req.session.data.evidenceSearch || '',
     tags: asArray(req.session.data.evidenceTagFilter),
-    policyArea: req.session.data.evidencePolicyAreaFilter || '',
+    policyArea,
+    policyAreaEncoded: encodeURIComponent(policyArea),
     policyReference: req.session.data.evidencePolicyReferenceFilter || ''
   }
 }
@@ -136,7 +160,9 @@ const evidenceViewData = {
   suggestedTags: SUGGESTED_TAGS,
   tagColours: TAG_COLOURS,
   policyAreas: POLICY_AREAS,
-  policyReferences: POLICY_REFERENCES
+  policyAreaLinks: POLICY_AREA_LINKS,
+  policyReferences: POLICY_REFERENCES,
+  noteSourceTypes: NOTE_SOURCE_TYPES
 }
 
 // --- Compatibility redirects for earlier prototype URLs ---
@@ -157,6 +183,7 @@ router.get('/evidence/document-tagging', (req, res) => {
 
   res.render('evidence/document-tagging/index', Object.assign({}, evidenceViewData, {
     documentSource: DOCUMENT_SOURCE,
+    documentSourceEncoded: encodeURIComponent(DOCUMENT_SOURCE),
     documentChapter: DOCUMENT_CHAPTER,
     documentParagraphs: DOCUMENT_PARAGRAPHS,
     savedItems: items.filter(item => item.source === DOCUMENT_SOURCE).slice().reverse(),
@@ -182,6 +209,7 @@ router.post('/evidence/document-tagging', (req, res) => {
       items.push({
         id: 'evidence-' + Date.now(),
         type: 'passage',
+        sourceType: 'document',
         text,
         source: DOCUMENT_SOURCE,
         chapter: DOCUMENT_CHAPTER,
@@ -193,10 +221,14 @@ router.post('/evidence/document-tagging', (req, res) => {
     }
   } else if (req.body.entryType === 'note') {
     const text = (req.body.noteText || '').trim()
+    const sourceType = NOTE_SOURCE_TYPES.some(candidate => candidate.value === req.body.sourceType)
+      ? req.body.sourceType
+      : 'note'
     if (text && hasTags) {
       items.push({
         id: 'evidence-' + Date.now(),
         type: 'note',
+        sourceType,
         text,
         source: DOCUMENT_SOURCE,
         chapter: DOCUMENT_CHAPTER,
@@ -226,17 +258,62 @@ router.post('/evidence/document-tagging/remove-tag', (req, res) => {
   res.redirect('/evidence/document-tagging')
 })
 
-// --- Evidence library: search, filter, browse ---
+// A read-only, print/PDF-styled view of a document, opened in a new window
+// by "Open in new window" actions. The prototype only holds the full body
+// text for the interactive document (DOCUMENT_SOURCE) — for any other
+// source, it falls back to showing the extracts already tagged from it.
+router.get('/evidence/document-view', (req, res) => {
+  const items = getEvidenceItems(req)
+  const source = req.query.source || DOCUMENT_SOURCE
+  const isInteractiveDocument = source === DOCUMENT_SOURCE
+
+  res.render('evidence/document-view/index', {
+    source,
+    chapter: isInteractiveDocument ? DOCUMENT_CHAPTER : '',
+    paragraphs: isInteractiveDocument ? DOCUMENT_PARAGRAPHS : [],
+    extracts: isInteractiveDocument ? [] : items.filter(item => item.source === source).map(item => item.text)
+  })
+})
+
+// --- Evidence library: policy area navigation, search, filter, browse ---
+
+// The documents relating to the selected policy area (or all documents, if
+// no area is selected) — one row per distinct source, regardless of how
+// many tagged evidence items came from it.
+function getDocumentsForPolicyArea (items, policyArea) {
+  const inScope = policyArea
+    ? items.filter(item => item.policyAreas.includes(policyArea))
+    : items
+
+  const documents = []
+  inScope.forEach(item => {
+    let document = documents.find(candidate => candidate.source === item.source)
+    if (!document) {
+      document = { source: item.source, chapter: item.chapter || '', count: 0, encoded: encodeURIComponent(item.source) }
+      documents.push(document)
+    }
+    document.count += 1
+  })
+
+  return documents
+}
 
 router.get('/evidence', (req, res) => {
   const items = getEvidenceItems(req)
   const filters = getFilters(req)
-  const filteredItems = filterEvidenceItems(items, filters)
+  const documents = getDocumentsForPolicyArea(items, filters.policyArea)
+
+  // The filtered evidence list only appears once the user has hit Apply on
+  // the horizontal filter bar — browsing a policy area shows its documents
+  // first, matching the "open a document" vs "filter for evidence" choice.
+  const filtersApplied = req.query.applied === '1'
+  const filteredItems = filtersApplied ? filterEvidenceItems(items, filters) : []
 
   res.render('evidence/index', Object.assign({}, evidenceViewData, {
+    documents,
     items: filteredItems.slice().reverse(),
     resultCount: filteredItems.length,
-    totalCount: items.length,
+    filtersApplied,
     filters
   }))
 })

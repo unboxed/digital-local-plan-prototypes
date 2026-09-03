@@ -20,6 +20,7 @@ function initEvidenceTagging () {
   const modeSections = panel.querySelectorAll('[data-mode-panel]')
   const selectedTextPreview = document.getElementById('selected-text-preview')
   const noteTextarea = document.getElementById('note-text')
+  const noteSourceTypeSelect = document.getElementById('note-source-type')
   const topicLozenges = document.getElementById('topic-lozenges')
   const policyLozenges = document.getElementById('policy-area-lozenges')
   const customTagInput = document.getElementById('custom-tag-input')
@@ -28,6 +29,7 @@ function initEvidenceTagging () {
   const entryTypeInput = document.getElementById('entry-type-input')
   const selectedTextInput = document.getElementById('selected-text-input')
   const noteTextInput = document.getElementById('note-text-input')
+  const sourceTypeInput = document.getElementById('source-type-input')
   const tagsInput = document.getElementById('tags-input')
   const policyAreasInput = document.getElementById('policy-areas-input')
 
@@ -121,6 +123,7 @@ function initEvidenceTagging () {
     entryTypeInput.value = mode
     selectedTextInput.value = mode === 'passage' ? currentSelectionText : ''
     noteTextInput.value = mode === 'note' ? noteTextarea.value.trim() : ''
+    sourceTypeInput.value = mode === 'note' ? noteSourceTypeSelect.value : ''
     tagsInput.value = Array.from(selectedTags).join(',')
     policyAreasInput.value = Array.from(selectedPolicyAreas).join(',')
 

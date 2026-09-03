@@ -1,0 +1,34 @@
+{% extends "layouts/main.html" %} {% set pageName = source %} {% block content
+%}
+
+<div class="dlp-pdf-backdrop">
+  <div class="dlp-pdf-page">
+    <header class="dlp-pdf-page__header">
+      <p class="dlp-pdf-page__eyebrow">PDF preview</p>
+      <h1 class="dlp-pdf-page__title">{{ source }}</h1>
+      {% if chapter %}
+      <p class="dlp-pdf-page__chapter">{{ chapter }}</p>
+      {% endif %}
+    </header>
+
+    <div class="dlp-pdf-page__body">
+      {% if paragraphs.length %}
+        {% for paragraph in paragraphs %}
+        <p>{{ paragraph }}</p>
+        {% endfor %}
+      {% elif extracts.length %}
+        <p class="dlp-pdf-page__note">
+          This prototype does not hold the full text of this document —
+          showing the extracts already tagged as evidence from it.
+        </p>
+        {% for extract in extracts %}
+        <p>{{ extract }}</p>
+        {% endfor %}
+      {% else %}
+        <p>No content is available for this document yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

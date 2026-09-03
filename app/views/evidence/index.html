@@ -4,23 +4,61 @@
 
 {% include "evidence/partials/nav.html" %}
 
+<a class="govuk-back-link" href="/">Back to prototypes</a>
+
+<h1 class="govuk-heading-xl">Evidence library</h1>
+
+<p class="govuk-body">
+  Browse evidence documents by policy area, open one to read and tag it, or
+  filter to find specific tagged evidence.
+</p>
+
+<p class="govuk-body">
+  <a class="govuk-link" href="/evidence/document-tagging">Tag evidence from a document</a>
+</p>
+
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-one-third">
-    <a class="govuk-back-link" href="/">Back to prototypes</a>
+    <nav class="dlp-policy-nav" aria-label="Policy areas">
+      <h2 class="dlp-policy-nav__heading">Policy areas</h2>
+      <ul class="dlp-policy-nav__list">
+        <li>
+          <a class="dlp-policy-nav__link{% if not filters.policyArea %} dlp-policy-nav__link--active{% endif %}" href="/evidence">
+            All evidence
+          </a>
+        </li>
+        {% for area in policyAreaLinks %}
+        <li>
+          <a class="dlp-policy-nav__link{% if filters.policyArea == area.label %} dlp-policy-nav__link--active{% endif %}" href="/evidence?evidencePolicyAreaFilter={{ area.encoded }}">
+            {{ area.label }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
 
-    <h1 class="govuk-heading-xl">Evidence library</h1>
+  <div class="govuk-grid-column-two-thirds">
+    <form class="dlp-horizontal-filters" action="/evidence" method="get">
+      <input type="hidden" name="applied" value="1">
 
-    <form class="dlp-filter-form" action="/evidence" method="get">
-      <div class="govuk-form-group">
-        <label class="govuk-label govuk-label--s" for="evidence-search">Search evidence</label>
-        <input class="govuk-input" id="evidence-search" name="evidenceSearch" type="text" value="{{ filters.search }}">
+      <div class="dlp-horizontal-filters__row">
+        <div class="dlp-horizontal-filters__field dlp-horizontal-filters__field--search">
+          <label class="govuk-label govuk-label--s" for="evidence-search">Search evidence</label>
+          <input class="govuk-input" id="evidence-search" name="evidenceSearch" type="text" value="{{ filters.search }}">
+        </div>
+
+        <div class="dlp-horizontal-filters__field">
+          <label class="govuk-label govuk-label--s" for="evidence-policy-reference">Policy reference</label>
+          <input class="govuk-input govuk-input--width-10" id="evidence-policy-reference" name="evidencePolicyReferenceFilter" type="text" value="{{ filters.policyReference }}">
+        </div>
       </div>
 
-      <div class="govuk-form-group">
+      <div class="dlp-horizontal-filters__row">
         <fieldset class="govuk-fieldset">
           <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Tags</legend>
           <input type="hidden" name="evidenceTagFilter" value="_unchecked">
-          <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">
+          <div class="govuk-checkboxes govuk-checkboxes--small dlp-horizontal-filters__tags" data-module="govuk-checkboxes">
             {% for tag in suggestedTags %}
             <div class="govuk-checkboxes__item">
               <input class="govuk-checkboxes__input" id="filter-tag-{{ loop.index }}" name="evidenceTagFilter" type="checkbox" value="{{ tag }}" {{ "checked" if tag in filters.tags }}>
@@ -31,40 +69,41 @@
         </fieldset>
       </div>
 
-      <div class="govuk-form-group">
-        <label class="govuk-label govuk-label--s" for="evidence-policy-area">Policy area</label>
-        <select class="govuk-select" id="evidence-policy-area" name="evidencePolicyAreaFilter">
-          <option value="">All policy areas</option>
-          {% for area in policyAreas %}
-          <option value="{{ area }}" {{ "selected" if filters.policyArea == area }}>{{ area }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="govuk-form-group">
-        <label class="govuk-label govuk-label--s" for="evidence-policy-reference">Policy reference</label>
-        <input class="govuk-input govuk-input--width-10" id="evidence-policy-reference" name="evidencePolicyReferenceFilter" type="text" value="{{ filters.policyReference }}">
-      </div>
-
       <div class="govuk-button-group">
         <button type="submit" class="govuk-button">Apply filters</button>
-        <a class="govuk-link" href="/evidence?evidenceSearch=&evidenceTagFilter=_unchecked&evidencePolicyAreaFilter=&evidencePolicyReferenceFilter=">Clear filters</a>
+        <a class="govuk-link" href="/evidence?evidenceSearch=&evidenceTagFilter=_unchecked&evidencePolicyReferenceFilter=&evidencePolicyAreaFilter={{ filters.policyAreaEncoded }}">Clear filters</a>
       </div>
     </form>
-  </div>
 
-  <div class="govuk-grid-column-two-thirds">
-    <p class="govuk-body">
-      Search and filter tagged evidence gathered from documents and notes,
-      grouped by tag and policy area to support policy drafting.
-    </p>
+    <h2 class="govuk-heading-m">
+      Documents{% if filters.policyArea %} — {{ filters.policyArea }}{% endif %}
+    </h2>
 
-    <p class="govuk-body">
-      <a class="govuk-link" href="/evidence/document-tagging">Tag evidence from a document</a>
-    </p>
+    {% if documents.length %}
+    <ul class="govuk-list dlp-document-list">
+      {% for document in documents %}
+      <li class="dlp-document-list__item">
+        <div>
+          <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ document.source }}</p>
+          <p class="govuk-body-s govuk-!-margin-bottom-0">
+            {{ document.count }} evidence item{{ "s" if document.count != 1 }}{% if document.chapter %} · {{ document.chapter }}{% endif %}
+          </p>
+        </div>
+        <a class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button" href="/evidence/document-view?source={{ document.encoded }}" target="_blank" rel="noopener noreferrer">
+          Open in new window
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="govuk-body">No documents match this policy area yet.</p>
+    {% endif %}
+
+    {% if filtersApplied %}
+    <h2 class="govuk-heading-m">Filtered evidence</h2>
 
     <p class="govuk-body govuk-!-font-weight-bold">
-      Showing {{ resultCount }} of {{ totalCount }} evidence items
+      {{ resultCount }} matching evidence item{{ "s" if resultCount != 1 }}
     </p>
 
     {% if items.length %}
@@ -79,6 +118,7 @@
     </p>
     {% else %}
     <p class="govuk-body">No evidence matches the current filters.</p>
+    {% endif %}
     {% endif %}
   </div>
 </div>

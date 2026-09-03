@@ -28,7 +28,7 @@ block content %}
     </div>
 
     <p class="govuk-!-margin-top-4">
-      <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="/evidence/document-tagging" target="_blank" rel="noopener noreferrer">
+      <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="/evidence/document-view?source={{ documentSourceEncoded }}" target="_blank" rel="noopener noreferrer">
         Open document in new window
       </a>
     </p>
@@ -69,7 +69,14 @@ block content %}
       </div>
 
       <div class="dlp-tag-panel__section" data-mode-panel="note" hidden>
-        <label class="dlp-label" for="note-text">Note</label>
+        <label class="dlp-label" for="note-source-type">What type of note is this?</label>
+        <select class="dlp-select" id="note-source-type">
+          {% for sourceType in noteSourceTypes %}
+          <option value="{{ sourceType.value }}">{{ sourceType.label }}</option>
+          {% endfor %}
+        </select>
+
+        <label class="dlp-label govuk-!-margin-top-3" for="note-text">Note</label>
         <textarea class="dlp-textarea" id="note-text" rows="4" placeholder="Add a note about a conversation or meeting"></textarea>
       </div>
 
@@ -77,6 +84,7 @@ block content %}
         <input type="hidden" name="entryType" id="entry-type-input" value="passage">
         <input type="hidden" name="selectedText" id="selected-text-input">
         <input type="hidden" name="noteText" id="note-text-input">
+        <input type="hidden" name="sourceType" id="source-type-input">
         <input type="hidden" name="tags" id="tags-input">
         <input type="hidden" name="policyAreas" id="policy-areas-input">
 

@@ -1,7 +1,15 @@
 {% macro evidenceCard(item, tagColours) %}
 <div class="dlp-evidence-card">
-  <p class="dlp-evidence-card__type">
-    {{ item.source }}{% if item.chapter %} / {{ item.chapter }}{% endif %}
+  <p class="govuk-body-s dlp-evidence-card__type">
+    {% if item.sourceType == "document" %}
+      {{ item.source }}{% if item.chapter %} / {{ item.chapter }}{% endif %}
+    {% elif item.sourceType == "scoping-consultation-response" %}
+      Scoping consultation response
+    {% elif item.sourceType == "consultation-response" %}
+      Consultation response
+    {% else %}
+      Note
+    {% endif %}
   </p>
 
   <p class="govuk-body dlp-evidence-card__text">{{ item.text }}</p>
