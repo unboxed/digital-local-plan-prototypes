@@ -1,8 +1,544 @@
 //
 // For guidance on how to add CSS and SCSS see:
 // https://prototype-kit.service.gov.uk/docs/adding-css-javascript-and-images
-// 
+//
 
 // Add extra styles here
 
 @import "side-navigation";
+
+// Evidence prototype (E2US3 / E2US4)
+
+$dlp-border-grey: govuk-colour("black", $variant: "tint-80");
+$dlp-muted-text: govuk-colour("black", $variant: "tint-25");
+$dlp-panel-background: govuk-colour("black", $variant: "tint-95");
+$dlp-tag-accent: govuk-colour("blue");
+$dlp-policy-accent: govuk-colour("purple");
+$dlp-highlight-background: #fff7bf;
+
+// Workspace top navigation
+.dlp-workspace-nav {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+}
+
+.dlp-workspace-nav__list {
+  @include govuk-font($size: 19);
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-workspace-nav__item {
+  margin-right: govuk-spacing(6);
+}
+
+.dlp-workspace-nav__label {
+  display: inline-block;
+  padding: govuk-spacing(3) 0;
+}
+
+.dlp-workspace-nav__label--active {
+  border-bottom: 4px solid govuk-colour("blue");
+  font-weight: bold;
+}
+
+.dlp-workspace-nav__label--inactive {
+  color: $dlp-muted-text;
+}
+
+// Document viewer — a plain, uninterrupted reading view. Text is
+// highlighted (not broken up with controls) to select it for tagging.
+.dlp-document-hint {
+  color: $dlp-muted-text;
+}
+
+.dlp-document-viewer {
+  background: govuk-colour("white");
+  border: 2px solid $dlp-border-grey;
+  border-radius: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: govuk-spacing(4);
+
+  p {
+    @include govuk-font($size: 19);
+    margin-bottom: govuk-spacing(4);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.dlp-document-viewer__chapter {
+  color: $dlp-muted-text;
+  font-weight: bold;
+}
+
+// A highlighted, previously-tagged passage within the document text
+.dlp-highlight {
+  background: $dlp-highlight-background;
+  border-bottom: 2px solid govuk-colour("black", $variant: "tint-50");
+  padding: 0 2px;
+}
+
+// Sits underneath the paragraph that contains the highlight (not inline
+// with it), so the paragraph's own text and spacing are never disturbed.
+.dlp-highlight-tags-row {
+  margin-bottom: govuk-spacing(4);
+  margin-top: govuk-spacing(-2);
+}
+
+.dlp-highlight-tags-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+  margin-right: govuk-spacing(2);
+}
+
+.dlp-chip-form {
+  display: inline-block;
+  margin: 0;
+}
+
+.dlp-chip {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-border-grey;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  font-family: $govuk-font-family;
+  font-size: 0.875rem;
+  gap: 4px;
+  padding: 1px govuk-spacing(2);
+}
+
+.dlp-chip--removable {
+  cursor: pointer;
+
+  &:hover,
+  &:focus {
+    background: govuk-colour("red");
+    border-color: govuk-colour("red");
+    color: govuk-colour("white");
+  }
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+.dlp-chip--policy {
+  border-color: $dlp-policy-accent;
+  color: $dlp-policy-accent;
+
+  &:hover,
+  &:focus {
+    background: govuk-colour("red");
+    border-color: govuk-colour("red");
+    color: govuk-colour("white");
+  }
+}
+
+.dlp-chip__remove {
+  font-weight: bold;
+}
+
+// Tag evidence panel
+.dlp-tag-panel {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  padding: govuk-spacing(4);
+
+  @include govuk-media-query($from: desktop) {
+    position: sticky;
+    top: govuk-spacing(4);
+  }
+}
+
+.dlp-tag-panel__heading {
+  @include govuk-font($size: 24, $weight: bold);
+  margin: 0 0 govuk-spacing(4);
+}
+
+.dlp-tag-panel__section {
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-tag-panel__hint {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(1);
+}
+
+// Mode switch (Tag selected evidence / Add note) — plain tabs: an
+// unfilled inactive tab beside a light-grey, underlined active tab.
+.dlp-mode-switch {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-border-grey;
+  display: inline-flex;
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-mode-btn {
+  @include govuk-font($size: 16);
+  background: govuk-colour("white");
+  border: 0;
+  cursor: pointer;
+  padding: govuk-spacing(2) govuk-spacing(4);
+
+  &:not(:last-child) {
+    border-right: 1px solid $dlp-border-grey;
+  }
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+
+  &[aria-pressed="true"] {
+    background: $dlp-panel-background;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
+}
+
+.dlp-selected-text {
+  @include govuk-font($size: 19);
+  background: $dlp-highlight-background;
+  border-left: 4px solid govuk-colour("black", $variant: "tint-50");
+  margin: 0;
+  padding: govuk-spacing(2) govuk-spacing(3);
+
+  &.dlp-selected-text--empty {
+    background: transparent;
+    border-left-color: $dlp-border-grey;
+    color: $dlp-muted-text;
+    font-style: italic;
+  }
+}
+
+// Custom, lightweight form controls used only within the tag panel
+.dlp-label {
+  @include govuk-font($size: 16, $weight: bold);
+  display: block;
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-legend {
+  @include govuk-font($size: 16, $weight: bold);
+  margin-bottom: govuk-spacing(2);
+  padding: 0;
+}
+
+.dlp-textarea,
+.dlp-input,
+.dlp-select {
+  @include govuk-font($size: 16);
+  border: 2px solid govuk-colour("black");
+  border-radius: 4px;
+  padding: govuk-spacing(1) govuk-spacing(2);
+  width: 100%;
+
+  &:focus {
+    @include govuk-focused-form-input;
+  }
+}
+
+.dlp-textarea {
+  resize: vertical;
+}
+
+.dlp-form-group {
+  margin-bottom: govuk-spacing(4);
+}
+
+// Tag and policy area lozenges
+.dlp-lozenge-group {
+  border: 0;
+  margin: 0 0 govuk-spacing(4);
+  padding: 0;
+}
+
+.dlp-lozenges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-lozenge {
+  @include govuk-font($size: 16);
+  background: govuk-colour("white");
+  border: 2px solid $dlp-tag-accent;
+  border-radius: 20px;
+  color: $dlp-tag-accent;
+  cursor: pointer;
+  padding: govuk-spacing(1) govuk-spacing(3);
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+
+  &[aria-pressed="true"] {
+    background: $dlp-tag-accent;
+    color: govuk-colour("white");
+    font-weight: bold;
+  }
+}
+
+.dlp-lozenge--policy {
+  border-color: $dlp-policy-accent;
+  color: $dlp-policy-accent;
+
+  &[aria-pressed="true"] {
+    background: $dlp-policy-accent;
+    color: govuk-colour("white");
+  }
+}
+
+.dlp-custom-tag__row {
+  display: flex;
+  gap: govuk-spacing(1);
+
+  .dlp-input {
+    flex: 1 1 auto;
+  }
+}
+
+.dlp-button {
+  @include govuk-font($size: 16, $weight: bold);
+  border: 2px solid govuk-colour("black");
+  border-radius: 4px;
+  cursor: pointer;
+  padding: govuk-spacing(1) govuk-spacing(3);
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+.dlp-button--secondary {
+  background: govuk-colour("white");
+  color: govuk-colour("black");
+}
+
+// Evidence cards
+.dlp-evidence-list,
+.dlp-evidence-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-evidence-card {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(4);
+}
+
+.dlp-evidence-card__type {
+  color: $dlp-muted-text;
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-evidence-card__text {
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-evidence-card__tags {
+  margin-bottom: govuk-spacing(2);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.dlp-evidence-card__tag {
+  // Keeping tags on one line (see .dlp-evidence-card__tags) means their
+  // text no longer wraps, so govuk-tag's built-in max-width must be
+  // lifted too — otherwise the coloured background stays capped at that
+  // width while the un-wrapped text spills out past it.
+  margin-right: govuk-spacing(1);
+  max-width: none;
+}
+
+.dlp-evidence-card__meta {
+  margin: 0;
+}
+
+.dlp-evidence-card__meta-row {
+  display: flex;
+  margin-bottom: govuk-spacing(1);
+
+  dt {
+    color: $dlp-muted-text;
+    flex: 0 0 auto;
+    font-weight: bold;
+    margin-right: govuk-spacing(2);
+    width: 140px;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+// Policy area sidebar navigation
+.dlp-policy-nav__heading {
+  @include govuk-font($size: 16, $weight: bold);
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-policy-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-policy-nav__link {
+  @include govuk-font($size: 19);
+  border-left: 4px solid transparent;
+  color: govuk-colour("black");
+  display: block;
+  padding: govuk-spacing(2) govuk-spacing(3);
+  text-decoration: none;
+
+  &:hover {
+    background: $dlp-panel-background;
+    text-decoration: underline;
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+.dlp-policy-nav__link--active {
+  background: $dlp-panel-background;
+  border-left-color: $dlp-tag-accent;
+  font-weight: bold;
+}
+
+// Horizontal, persistent filter bar
+.dlp-horizontal-filters {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(4);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dlp-horizontal-filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(4);
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-horizontal-filters__field {
+  flex: 0 1 auto;
+}
+
+.dlp-horizontal-filters__field--search {
+  flex: 1 1 240px;
+}
+
+.dlp-horizontal-filters__tags {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: govuk-spacing(4);
+}
+
+// Documents list
+.dlp-document-list {
+  list-style: none;
+  margin: 0 0 govuk-spacing(6);
+  padding: 0;
+}
+
+.dlp-document-list__item {
+  align-items: center;
+  border: 1px solid $dlp-border-grey;
+  display: flex;
+  gap: govuk-spacing(3);
+  justify-content: space-between;
+  margin-bottom: govuk-spacing(2);
+  padding: govuk-spacing(3) govuk-spacing(4);
+
+  @include govuk-media-query($until: tablet) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+// Active filters summary on the results screen
+.dlp-active-filters {
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-active-filters__list {
+  margin-bottom: 0;
+}
+
+// PDF-style read-only document view, opened in a new window
+$dlp-pdf-font: Georgia, "Times New Roman", serif;
+
+.dlp-pdf-backdrop {
+  background: $dlp-border-grey;
+  padding: govuk-spacing(6) govuk-spacing(3);
+}
+
+.dlp-pdf-page {
+  background: govuk-colour("white");
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  margin: 0 auto;
+  max-width: 760px;
+  padding: govuk-spacing(8);
+}
+
+.dlp-pdf-page__header {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+  padding-bottom: govuk-spacing(4);
+}
+
+.dlp-pdf-page__eyebrow {
+  color: $dlp-muted-text;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  margin: 0 0 govuk-spacing(2);
+  text-transform: uppercase;
+}
+
+.dlp-pdf-page__title {
+  font-family: $dlp-pdf-font;
+  font-size: 2rem;
+  margin: 0 0 govuk-spacing(1);
+}
+
+.dlp-pdf-page__chapter {
+  color: $dlp-muted-text;
+  font-family: $dlp-pdf-font;
+  margin: 0;
+}
+
+.dlp-pdf-page__body {
+  font-family: $dlp-pdf-font;
+  font-size: 1.05rem;
+  line-height: 1.6;
+
+  p {
+    margin-bottom: govuk-spacing(4);
+  }
+}
+
+.dlp-pdf-page__note {
+  color: $dlp-muted-text;
+  font-style: italic;
+}

@@ -1,0 +1,33 @@
+{% macro evidenceCard(item, tagColours) %}
+<div class="dlp-evidence-card">
+  <p class="govuk-body-s dlp-evidence-card__type">
+    {% if item.sourceType == "document" %}
+      {{ item.source }}{% if item.chapter %} / {{ item.chapter }}{% endif %}
+    {% elif item.sourceType == "scoping-consultation-response" %}
+      Scoping consultation response
+    {% elif item.sourceType == "consultation-response" %}
+      Consultation response
+    {% else %}
+      Note
+    {% endif %}
+  </p>
+
+  <p class="govuk-body dlp-evidence-card__text">{{ item.text }}</p>
+
+  <p class="dlp-evidence-card__tags">
+    {% for tag in item.tags %}<strong class="govuk-tag{% if tagColours[tag] %} govuk-tag--{{ tagColours[tag] }}{% endif %} dlp-evidence-card__tag">{{ tag }}</strong>{% endfor %}
+    {% for tag in item.customTags %}<strong class="govuk-tag dlp-evidence-card__tag">{{ tag }}</strong>{% endfor %}
+  </p>
+
+  <dl class="govuk-body-s dlp-evidence-card__meta">
+    <div class="dlp-evidence-card__meta-row">
+      <dt>Policy area</dt>
+      <dd>{{ item.policyAreas | join(", ") if item.policyAreas.length else "Not set" }}</dd>
+    </div>
+    <div class="dlp-evidence-card__meta-row">
+      <dt>Policy reference</dt>
+      <dd>{{ item.policyReference if item.policyReference else "Not set" }}</dd>
+    </div>
+  </dl>
+</div>
+{% endmacro %}
