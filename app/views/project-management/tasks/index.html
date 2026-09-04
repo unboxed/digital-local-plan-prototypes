@@ -1,0 +1,46 @@
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+
+{% set pageName="Review policies" %}
+
+{% set sidebarSections = [
+  {
+    heading: "Assessment tasks",
+    items: [
+      { text: "Check site description", href: "/project-management/tasks", status: "Completed", statusColour: "green" },
+      { text: "Review policies", href: "/project-management/tasks", status: "In progress", statusColour: "blue", active: true },
+      { text: "Draft recommendation", href: "/project-management/tasks", status: "Not started", statusColour: "grey" }
+    ]
+  },
+  {
+    heading: "Consultation tasks",
+    items: [
+      { text: "Notify consultees", href: "/project-management/tasks", status: "Not started", statusColour: "grey" }
+    ]
+  }
+] %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ sections: sidebarSections }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/project-management">Back to project management</a>
+
+    <h1 class="govuk-heading-xl">Review policies</h1>
+
+    <p class="govuk-body">
+      This is an example task page, showing how the shared side navigation component looks
+      alongside page content. Every link in the sidebar points back to this page for the
+      purposes of the demo.
+    </p>
+
+  </div>
+</div>
+
+{% endblock %}
