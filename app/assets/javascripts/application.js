@@ -3,40 +3,57 @@
 // https://prototype-kit.service.gov.uk/docs/adding-css-javascript-and-images
 //
 
+// Evidence tagging behaviour is opted into from markup via data attributes,
+// so a page can carry more than one tag picker (the Review evidence screen
+// has one for document passages and one for notes). Nothing here assumes a
+// particular page or a single instance.
 window.GOVUKPrototypeKit.documentReady(() => {
-  initEvidenceTagging()
+  document.querySelectorAll('[data-dlp-tagger]').forEach(initTagger)
+  document.querySelectorAll('[data-dlp-highlights]').forEach(initSavedHighlights)
+  document.querySelectorAll('[data-dlp-summary]').forEach(initSummarySearch)
 })
 
-// Evidence document tagging (E2US3 / E2US4): highlight text in the document
-// viewer, then apply tags as lozenges rather than picking from a list of
-// predefined passages. Only this interaction needs JavaScript — everything
-// else on the page is a normal form submission.
-function initEvidenceTagging () {
-  const viewer = document.getElementById('document-viewer')
-  const panel = document.getElementById('tag-panel')
-  if (!viewer || !panel) return
+// A tag picker: lozenges for tags and policy areas, an optional custom tag
+// field, and a form whose hidden inputs are filled in on submit. It works in
+// three shapes, chosen by markup:
+//   - driven by a document viewer  (data-dlp-viewer="#some-viewer")
+//   - a note                       (data-dlp-mode="note")
+//   - fixed text                   (data-dlp-text="...")
+function initTagger (root) {
+  const form = root.querySelector('[data-dlp-form]')
+  if (!form) return
 
-  const modeButtons = panel.querySelectorAll('[data-mode]')
-  const modeSections = panel.querySelectorAll('[data-mode-panel]')
-  const selectedTextPreview = document.getElementById('selected-text-preview')
-  const noteTextarea = document.getElementById('note-text')
-  const noteSourceTypeSelect = document.getElementById('note-source-type')
-  const topicLozenges = document.getElementById('topic-lozenges')
-  const policyLozenges = document.getElementById('policy-area-lozenges')
-  const customTagInput = document.getElementById('custom-tag-input')
-  const addCustomTagButton = document.getElementById('add-custom-tag-btn')
-  const form = document.getElementById('save-tags-form')
-  const entryTypeInput = document.getElementById('entry-type-input')
-  const selectedTextInput = document.getElementById('selected-text-input')
-  const noteTextInput = document.getElementById('note-text-input')
-  const sourceTypeInput = document.getElementById('source-type-input')
-  const tagsInput = document.getElementById('tags-input')
-  const policyAreasInput = document.getElementById('policy-areas-input')
+  const fields = form.elements
+  const part = name => root.querySelector('[data-dlp-' + name + ']')
 
-  let mode = 'passage'
-  let currentSelectionText = ''
+  const viewer = querySelectorOrNull(root.dataset.dlpViewer)
+
+  const modeButtons = root.querySelectorAll('[data-mode]')
+  const modeSections = root.querySelectorAll('[data-mode-panel]')
+  const selectedTextPreview = part('selected-text')
+  const noteTextarea = part('note-text')
+  const noteSourceTypeSelect = part('note-source-type')
+  const topicLozenges = part('topic-lozenges')
+  const policyLozenges = part('policy-lozenges')
+  const customTagInput = part('custom-tag-input')
+  const addCustomTagButton = part('custom-tag-add')
+
+  let mode = root.dataset.dlpMode || 'passage'
+  let currentSelectionText = root.dataset.dlpText || ''
   const selectedTags = new Set()
   const selectedPolicyAreas = new Set()
+
+  // Lozenges can arrive already pressed (the AI summary pre-selects its
+  // suggested tags), so seed the sets from the markup.
+  function seedPressed (container, tagSet) {
+    if (!container) return
+    container.querySelectorAll('[aria-pressed="true"]').forEach(button => {
+      tagSet.add(button.dataset.tag)
+    })
+  }
+
+  seedPressed(topicLozenges, selectedTags)
+  seedPressed(policyLozenges, selectedPolicyAreas)
 
   function setMode (nextMode) {
     mode = nextMode
@@ -61,13 +78,17 @@ function initEvidenceTagging () {
     if (!text) return
 
     currentSelectionText = text
-    selectedTextPreview.textContent = text
-    selectedTextPreview.classList.remove('dlp-selected-text--empty')
-    setMode('passage')
+    if (selectedTextPreview) {
+      selectedTextPreview.textContent = text
+      selectedTextPreview.classList.remove('dlp-selected-text--empty')
+    }
+    if (modeButtons.length) setMode('passage')
   }
 
-  viewer.addEventListener('mouseup', updateSelectionPreview)
-  viewer.addEventListener('keyup', updateSelectionPreview)
+  if (viewer) {
+    viewer.addEventListener('mouseup', updateSelectionPreview)
+    viewer.addEventListener('keyup', updateSelectionPreview)
+  }
 
   function toggleLozenge (button, tagSet) {
     const isPressed = button.getAttribute('aria-pressed') === 'true'
@@ -79,15 +100,19 @@ function initEvidenceTagging () {
     }
   }
 
-  topicLozenges.addEventListener('click', event => {
-    const button = event.target.closest('.dlp-lozenge')
-    if (button) toggleLozenge(button, selectedTags)
-  })
+  if (topicLozenges) {
+    topicLozenges.addEventListener('click', event => {
+      const button = event.target.closest('.dlp-lozenge')
+      if (button) toggleLozenge(button, selectedTags)
+    })
+  }
 
-  policyLozenges.addEventListener('click', event => {
-    const button = event.target.closest('.dlp-lozenge')
-    if (button) toggleLozenge(button, selectedPolicyAreas)
-  })
+  if (policyLozenges) {
+    policyLozenges.addEventListener('click', event => {
+      const button = event.target.closest('.dlp-lozenge')
+      if (button) toggleLozenge(button, selectedPolicyAreas)
+    })
+  }
 
   function addCustomTag () {
     const value = customTagInput.value.trim()
@@ -111,47 +136,60 @@ function initEvidenceTagging () {
     customTagInput.focus()
   }
 
-  addCustomTagButton.addEventListener('click', addCustomTag)
-  customTagInput.addEventListener('keydown', event => {
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      addCustomTag()
-    }
-  })
+  if (customTagInput && topicLozenges) {
+    if (addCustomTagButton) addCustomTagButton.addEventListener('click', addCustomTag)
+    customTagInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        addCustomTag()
+      }
+    })
+  }
 
   form.addEventListener('submit', event => {
-    entryTypeInput.value = mode
-    selectedTextInput.value = mode === 'passage' ? currentSelectionText : ''
-    noteTextInput.value = mode === 'note' ? noteTextarea.value.trim() : ''
-    sourceTypeInput.value = mode === 'note' ? noteSourceTypeSelect.value : ''
-    tagsInput.value = Array.from(selectedTags).join(',')
-    policyAreasInput.value = Array.from(selectedPolicyAreas).join(',')
+    const noteText = mode === 'note' && noteTextarea ? noteTextarea.value.trim() : ''
+    const tags = Array.from(selectedTags).join(',')
+    const policyAreas = Array.from(selectedPolicyAreas).join(',')
 
-    if (mode === 'passage' && !selectedTextInput.value) {
+    if (fields.entryType) fields.entryType.value = mode
+    if (fields.selectedText) fields.selectedText.value = mode === 'passage' ? currentSelectionText : ''
+    if (fields.noteText) fields.noteText.value = noteText
+    if (fields.sourceType && noteSourceTypeSelect) {
+      fields.sourceType.value = mode === 'note' ? noteSourceTypeSelect.value : ''
+    }
+    if (fields.tags) fields.tags.value = tags
+    if (fields.policyAreas) fields.policyAreas.value = policyAreas
+
+    if (mode === 'passage' && !currentSelectionText) {
       event.preventDefault()
       window.alert('Highlight some text in the document before saving.')
       return
     }
-    if (mode === 'note' && !noteTextInput.value) {
+    if (mode === 'note' && !noteText) {
       event.preventDefault()
       window.alert('Add a note before saving.')
       return
     }
-    if (!tagsInput.value && !policyAreasInput.value) {
+    if (!tags && !policyAreas) {
       event.preventDefault()
       window.alert('Choose at least one tag before saving.')
     }
   })
-
-  renderSavedHighlights(viewer)
 }
 
-// Wraps previously saved passages in the document text with a highlight,
-// and shows their tags immediately after — so tagged evidence stays visible
-// against the original wording rather than in a separate list only.
-function renderSavedHighlights (viewer) {
-  const dataScript = document.getElementById('saved-passages-data')
+// Wraps previously saved passages in the document text with a highlight, and
+// shows their tags underneath — so tagged evidence stays visible against the
+// original wording rather than in a separate list only. The viewer names its
+// own data source and its own tag-removal endpoint, so more than one screen
+// can use this.
+function initSavedHighlights (viewer) {
+  const dataScript = querySelectorOrNull(viewer.dataset.dlpHighlights)
   if (!dataScript) return
+
+  const options = {
+    action: viewer.dataset.dlpRemoveAction || '/evidence/document-tagging/remove-tag',
+    returnTo: viewer.dataset.dlpReturn || ''
+  }
 
   let savedPassages = []
   try {
@@ -160,10 +198,10 @@ function renderSavedHighlights (viewer) {
     savedPassages = []
   }
 
-  savedPassages.forEach(item => highlightPassage(viewer, item))
+  savedPassages.forEach(item => highlightPassage(viewer, item, options))
 }
 
-function highlightPassage (viewer, item) {
+function highlightPassage (viewer, item, options) {
   const text = item.text
   if (!text) return
 
@@ -183,7 +221,7 @@ function highlightPassage (viewer, item) {
 
     const paragraph = mark.closest('p')
     if (paragraph) {
-      addTagsBelowParagraph(paragraph, item)
+      addTagsBelowParagraph(paragraph, item, options)
     }
     break
   }
@@ -193,7 +231,7 @@ function highlightPassage (viewer, item) {
 // that contains it, rather than inline with the highlight — so the
 // paragraph's own text and spacing are never disturbed. Multiple tagged
 // passages within the same paragraph share one row underneath it.
-function addTagsBelowParagraph (paragraph, item) {
+function addTagsBelowParagraph (paragraph, item, options) {
   let row = paragraph.nextElementSibling
   if (!row || !row.classList.contains('dlp-highlight-tags-row')) {
     row = document.createElement('div')
@@ -204,10 +242,10 @@ function addTagsBelowParagraph (paragraph, item) {
   const group = document.createElement('span')
   group.className = 'dlp-highlight-tags-group'
   item.tags.concat(item.customTags).forEach(tag => {
-    group.appendChild(createRemovableTagChip(item.id, tag, 'topic'))
+    group.appendChild(createRemovableTagChip(item.id, tag, 'topic', options))
   })
   item.policyAreas.forEach(area => {
-    group.appendChild(createRemovableTagChip(item.id, area, 'policy'))
+    group.appendChild(createRemovableTagChip(item.id, area, 'policy', options))
   })
   row.appendChild(group)
 }
@@ -215,23 +253,17 @@ function addTagsBelowParagraph (paragraph, item) {
 // Each tag chip is a real form that posts back to remove just that tag (or
 // policy area) from the saved item — clicking it removes it, no extra JS
 // wiring needed.
-function createRemovableTagChip (itemId, tag, kind) {
+function createRemovableTagChip (itemId, tag, kind, options) {
+  options = options || {}
+
   const form = document.createElement('form')
   form.className = 'dlp-chip-form'
   form.method = 'post'
-  form.action = '/evidence/document-tagging/remove-tag'
+  form.action = options.action || '/evidence/document-tagging/remove-tag'
 
-  const itemIdField = document.createElement('input')
-  itemIdField.type = 'hidden'
-  itemIdField.name = 'itemId'
-  itemIdField.value = itemId
-  form.appendChild(itemIdField)
-
-  const tagField = document.createElement('input')
-  tagField.type = 'hidden'
-  tagField.name = 'tag'
-  tagField.value = tag
-  form.appendChild(tagField)
+  form.appendChild(hiddenField('itemId', itemId))
+  form.appendChild(hiddenField('tag', tag))
+  if (options.returnTo) form.appendChild(hiddenField('_returnTo', options.returnTo))
 
   const button = document.createElement('button')
   button.type = 'submit'
@@ -250,4 +282,97 @@ function createRemovableTagChip (itemId, tag, kind) {
 
   form.appendChild(button)
   return form
+}
+
+// A missing attribute gives undefined and an empty one gives '', both of
+// which would make querySelector throw — so resolve defensively.
+function querySelectorOrNull (selector) {
+  if (!selector) return null
+  try {
+    return document.querySelector(selector)
+  } catch (error) {
+    return null
+  }
+}
+
+function hiddenField (name, value) {
+  const field = document.createElement('input')
+  field.type = 'hidden'
+  field.name = name
+  field.value = value
+  return field
+}
+
+// Keyword search over the AI summary: filters sections and marks matches in
+// place. Client-side so searching never reloads the page, which would reset
+// the tab the user is working in.
+function initSummarySearch (root) {
+  const input = root.querySelector('[data-dlp-summary-search]')
+  const count = root.querySelector('[data-dlp-summary-count]')
+  const sections = Array.from(root.querySelectorAll('[data-dlp-summary-section]'))
+  if (!input || !sections.length) return
+
+  const entries = sections.map(section => ({
+    section,
+    parts: Array.from(section.querySelectorAll('[data-dlp-searchable]'))
+      .map(element => ({ element, original: element.textContent }))
+  }))
+
+  input.addEventListener('input', () => {
+    const term = input.value.trim().toLowerCase()
+    let matches = 0
+
+    entries.forEach(entry => {
+      let hit = false
+
+      entry.parts.forEach(part => {
+        if (!term || part.original.toLowerCase().indexOf(term) === -1) {
+          part.element.textContent = part.original
+          return
+        }
+        hit = true
+        part.element.innerHTML = markMatches(part.original, term)
+      })
+
+      if (hit) matches += 1
+      entry.section.hidden = Boolean(term) && !hit
+    })
+
+    if (!count) return
+    if (!term) {
+      count.textContent = ''
+    } else if (matches) {
+      count.textContent = matches + ' of ' + sections.length + ' sections mention “' + input.value.trim() + '”'
+    } else {
+      count.textContent = 'No sections mention “' + input.value.trim() + '”'
+    }
+  })
+}
+
+function markMatches (original, term) {
+  const lower = original.toLowerCase()
+  let result = ''
+  let index = 0
+
+  for (;;) {
+    const found = lower.indexOf(term, index)
+    if (found === -1) break
+    result += escapeHtml(original.slice(index, found))
+    result += '<mark class="dlp-search-hit">' + escapeHtml(original.slice(found, found + term.length)) + '</mark>'
+    index = found + term.length
+  }
+
+  return result + escapeHtml(original.slice(index))
+}
+
+function escapeHtml (value) {
+  return value.replace(/[&<>"']/g, character => {
+    switch (character) {
+      case '&': return '&amp;'
+      case '<': return '&lt;'
+      case '>': return '&gt;'
+      case '"': return '&quot;'
+      default: return '&#39;'
+    }
+  })
 }

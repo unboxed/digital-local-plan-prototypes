@@ -20,7 +20,7 @@ block content %}
       Highlight any text in the document below, then apply tags in the panel.
     </p>
 
-    <div class="dlp-document-viewer" id="document-viewer">
+    <div class="dlp-document-viewer" id="document-viewer" data-dlp-highlights="#saved-passages-data">
       <p class="dlp-document-viewer__chapter">{{ documentChapter }}</p>
       {% for paragraph in documentParagraphs %}
       <p>{{ paragraph }}</p>
@@ -53,7 +53,7 @@ block content %}
   </div>
 
   <div class="govuk-grid-column-one-third">
-    <div class="dlp-tag-panel" id="tag-panel">
+    <div class="dlp-tag-panel" id="tag-panel" data-dlp-tagger data-dlp-viewer="#document-viewer">
       <h2 class="dlp-tag-panel__heading">Tag evidence</h2>
 
       <div class="dlp-mode-switch" role="group" aria-label="What are you tagging?">
@@ -63,24 +63,24 @@ block content %}
 
       <div class="dlp-tag-panel__section" data-mode-panel="passage">
         <p class="dlp-tag-panel__hint">Selected text:</p>
-        <blockquote class="dlp-selected-text dlp-selected-text--empty" id="selected-text-preview">
+        <blockquote class="dlp-selected-text dlp-selected-text--empty" id="selected-text-preview" data-dlp-selected-text>
           Nothing selected yet — highlight some text in the document
         </blockquote>
       </div>
 
       <div class="dlp-tag-panel__section" data-mode-panel="note" hidden>
         <label class="dlp-label" for="note-source-type">What type of note is this?</label>
-        <select class="dlp-select" id="note-source-type">
+        <select class="dlp-select" id="note-source-type" data-dlp-note-source-type>
           {% for sourceType in noteSourceTypes %}
           <option value="{{ sourceType.value }}">{{ sourceType.label }}</option>
           {% endfor %}
         </select>
 
         <label class="dlp-label govuk-!-margin-top-3" for="note-text">Note</label>
-        <textarea class="dlp-textarea" id="note-text" rows="4" placeholder="Add a note about a conversation or meeting"></textarea>
+        <textarea class="dlp-textarea" id="note-text" rows="4" data-dlp-note-text placeholder="Add a note about a conversation or meeting"></textarea>
       </div>
 
-      <form action="/evidence/document-tagging" method="post" id="save-tags-form">
+      <form action="/evidence/document-tagging" method="post" id="save-tags-form" data-dlp-form>
         <input type="hidden" name="entryType" id="entry-type-input" value="passage">
         <input type="hidden" name="selectedText" id="selected-text-input">
         <input type="hidden" name="noteText" id="note-text-input">
@@ -90,7 +90,7 @@ block content %}
 
         <fieldset class="dlp-lozenge-group">
           <legend class="dlp-legend">Tags</legend>
-          <div class="dlp-lozenges" id="topic-lozenges">
+          <div class="dlp-lozenges" id="topic-lozenges" data-dlp-topic-lozenges>
             {% for tag in suggestedTags %}
             <button type="button" class="dlp-lozenge" data-tag="{{ tag }}" aria-pressed="false">{{ tag }}</button>
             {% endfor %}
@@ -98,15 +98,15 @@ block content %}
           <div class="dlp-custom-tag">
             <label class="dlp-label" for="custom-tag-input">Add your own tag</label>
             <div class="dlp-custom-tag__row">
-              <input class="dlp-input" id="custom-tag-input" type="text">
-              <button type="button" class="dlp-button dlp-button--secondary" id="add-custom-tag-btn">Add</button>
+              <input class="dlp-input" id="custom-tag-input" type="text" data-dlp-custom-tag-input>
+              <button type="button" class="dlp-button dlp-button--secondary" id="add-custom-tag-btn" data-dlp-custom-tag-add>Add</button>
             </div>
           </div>
         </fieldset>
 
         <fieldset class="dlp-lozenge-group">
           <legend class="dlp-legend">Policy area</legend>
-          <div class="dlp-lozenges" id="policy-area-lozenges">
+          <div class="dlp-lozenges" id="policy-area-lozenges" data-dlp-policy-lozenges>
             {% for area in policyAreas %}
             <button type="button" class="dlp-lozenge dlp-lozenge--policy" data-tag="{{ area }}" aria-pressed="false">{{ area }}</button>
             {% endfor %}
