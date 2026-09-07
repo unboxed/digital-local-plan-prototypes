@@ -1,0 +1,32 @@
+{#
+  Layout for pages that show the left-hand side navigation (step/task sidebar).
+
+  Extends layouts/main.html, so it keeps the unbranded/no-crown-branding setup, but replaces
+  the govuk-width-container wrapper with a full-width sidebar+content grid. Because this
+  overrides `container`, the `beforeContent`/`containerStart` blocks from layouts/main.html
+  do NOT apply on pages using this layout.
+
+  Usage:
+    {% extends "layouts/main-with-sidebar.html" %}
+    {% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+    {% set pageName = "..." %}
+    {% block sideNavigation %}
+      {{ appSideNavigation({ sections: sidebarSections }) }}
+    {% endblock %}
+    {% block content %}
+      ...page content (full-width; add your own govuk-grid-row if you need columns)...
+    {% endblock %}
+#}
+
+{% extends "layouts/main.html" %}
+
+{% block container %}
+  <div class="app-sidebar-layout">
+    <div class="app-sidebar-layout__sidebar">
+      {% block sideNavigation %}{% endblock %}
+    </div>
+    <main class="app-sidebar-layout__main govuk-main-wrapper" id="main-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+{% endblock %}

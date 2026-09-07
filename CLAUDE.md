@@ -31,6 +31,10 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
   `evidence`, `policy-writing`). The kit auto-routes any `app/views/<path>/index.html` to
   `/<path>` — no entry in `app/routes.js` is needed unless a page requires custom server logic
   (form handling, session data, etc.).
+- `app/views/partials/` — shared, non-routable components (e.g. `side-navigation/macro.njk`).
+  Nunjucks macros, not pages — this folder has no `index.html` so the kit doesn't auto-route it.
+- `app/views/layouts/main-with-sidebar.html` — opt-in layout for pages that need the left-hand
+  side navigation (see "Side navigation component" below).
 - `app/routes.js` — custom Express routes, only when file-based routing isn't enough.
 - `app/assets/sass/application.scss` — project-specific Sass, imported alongside GOV.UK
   Frontend's styles.
@@ -74,6 +78,25 @@ fine to use as normal — only the crown crest and GDS Transport typeface are re
    for the pattern: heading, intro paragraph, "User need" statement, back link to `/`).
 2. Add an entry to `app/views/index.html` linking to it, with a short description and a
    "User need:" line, matching the existing entries' format.
+
+## Side navigation component
+
+For prototype journeys with multiple steps/tasks a user needs to jump between (e.g. a case- or
+application-management view), use the shared side navigation component instead of hand-rolling
+one:
+
+1. Extend `layouts/main-with-sidebar.html` instead of `layouts/main.html`.
+2. Import the macro: `{% from "partials/side-navigation/macro.njk" import appSideNavigation %}`.
+3. Build a `sections` array (see `app/views/partials/side-navigation/macro.njk` for the full
+   data shape) and render it in
+   `{% block sideNavigation %}{{ appSideNavigation({ sections: ... }) }}{% endblock %}`.
+4. Page content goes in `{% block content %}` as normal, but note this layout is full-width —
+   don't assume the `govuk-grid-row`/`govuk-width-container` wrapping that `layouts/main.html`
+   pages get for free.
+5. Use `govuk-tag` colours (via each item's `status`/`statusColour`) for task status, not custom
+   icons.
+
+See `app/views/project-management/tasks/index.html` for a worked example.
 
 ## Keeping this file current
 

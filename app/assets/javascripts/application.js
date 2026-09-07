@@ -8,6 +8,16 @@
 // has one for document passages and one for notes). Nothing here assumes a
 // particular page or a single instance.
 window.GOVUKPrototypeKit.documentReady(() => {
+  // Side navigation: mobile collapse/expand toggle
+  document.querySelectorAll('[data-app-side-navigation-toggle]').forEach((button) => {
+    const list = button.closest('.app-side-navigation__section').querySelector('.app-side-navigation__list')
+    button.setAttribute('aria-expanded', 'true')
+    button.addEventListener('click', () => {
+      const isOpen = list.classList.toggle('app-side-navigation__list--open')
+      button.setAttribute('aria-expanded', String(isOpen))
+    })
+  })
+
   document.querySelectorAll('[data-dlp-tagger]').forEach(initTagger)
   document.querySelectorAll('[data-dlp-highlights]').forEach(initSavedHighlights)
   document.querySelectorAll('[data-dlp-search]').forEach(initDocumentSearch)

@@ -1,0 +1,84 @@
+// Layout: sidebar + content grid (used by layouts/main-with-sidebar.html)
+.app-sidebar-layout {
+  @include govuk-media-query($from: tablet) {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+}
+
+.app-sidebar-layout__sidebar {
+  @include govuk-media-query($from: tablet) {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+.app-sidebar-layout__main {
+  padding: govuk-spacing(6) govuk-spacing(4);
+}
+
+// Component: the side navigation itself — independent of the grid layout above, so it
+// could be dropped into a different layout later if needed.
+.app-side-navigation {
+  @include govuk-font($size: 16);
+  background-color: govuk-colour("black", $variant: "tint-95");
+  padding: govuk-spacing(4);
+}
+
+.app-side-navigation__heading {
+  margin: 0;
+
+  li + & {
+    margin-top: govuk-spacing(6);
+  }
+}
+
+.app-side-navigation__toggle {
+  @include govuk-font($size: 19, $weight: bold);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+
+  @include govuk-media-query($from: tablet) {
+    cursor: default; // no collapse behaviour needed above mobile
+  }
+}
+
+.app-side-navigation__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-side-navigation__item {
+  display: flex;
+  align-items: center;
+  gap: govuk-spacing(2);
+  border-bottom: 1px solid govuk-colour("black", $variant: "tint-80");
+  padding: govuk-spacing(2) 0;
+}
+
+.app-side-navigation__item--active .app-side-navigation__link {
+  font-weight: bold;
+}
+
+.app-side-navigation__tag {
+  flex-shrink: 0;
+}
+
+// Mobile collapse (progressive enhancement — see application.js)
+@include govuk-media-query($until: tablet) {
+  .app-side-navigation__list {
+    display: none;
+  }
+
+  .app-side-navigation__list--open {
+    display: block;
+  }
+}
