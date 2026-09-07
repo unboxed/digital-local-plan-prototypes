@@ -6,30 +6,32 @@
 const govukPrototypeKit = require('govuk-prototype-kit')
 const router = govukPrototypeKit.requests.setupRouter()
 
+const {
+  DOCUMENT_SOURCE,
+  DOCUMENT_CHAPTER,
+  DOCUMENT_PARAGRAPHS,
+  getDocument
+} = require('./data/documents.js')
+
 // --- Evidence prototype (E2US3 / E2US4) ---
 //
-// Session-backed evidence tagging flow across three screens:
-//   /evidence                    - evidence library, search and filters
+// Session-backed evidence tagging flow:
+//   /evidence                    - index of the evidence prototypes
+//   /evidence/library            - evidence library, policy areas, filters
 //   /evidence/document-tagging   - document viewing, passage and note tagging
+//   /evidence/review             - review a document: details, tag it by hand
+//                                  or from an AI summary, and take notes
+//   /evidence/document-view      - read-only, PDF-style document preview
 //   /evidence/results            - filtered results and export confirmation
 //
 // Evidence items are stored in req.session.data.evidenceItems. Search and
 // filter state is stored in session too (evidenceSearch, evidenceTagFilter,
 // evidencePolicyAreaFilter, evidencePolicyReferenceFilter) so it persists as
 // a user moves between the library, the document and the results screen.
-
-const DOCUMENT_SOURCE = 'Local Housing Needs Assessment'
-const DOCUMENT_CHAPTER = 'Chapter 3: Housing need'
-
-// Full, uninterrupted document body. Users highlight any part of this text
-// directly rather than selecting from predefined chunks.
-const DOCUMENT_PARAGRAPHS = [
-  'Local population growth has increased demand for homes in the borough over the last decade. Forecasts suggest that households will continue to form at a faster rate than previously expected, leading to pressure on both the private rented and affordable housing markets.',
-  'The council has a strategic objective to provide enough homes for future residents, while also ensuring that new development is delivered in a way that supports transport capacity, local services and environmental protection.',
-  'Projected household growth over the next 15 years will place significant pressure on existing housing supply.',
-  'Existing housing supply is heavily constrained by the availability of brownfield land, infrastructure delivery constraints and limited capacity in some strategic growth areas. These issues are likely to shape the authority\'s future development trajectory and the level of intervention required through the local plan.',
-  'In several parts of the borough, the evidence suggests that housing demand is concentrated in areas with stronger public transport links and better access to services. This means that future growth may need to be planned carefully to maintain the balance between housing provision and local amenity.'
-]
+//
+// Note the kit's session middleware auto-stores both req.body and req.query
+// into req.session.data, and skips any field whose name starts with "_" —
+// which is why transient control fields here are named _returnTo.
 
 const SUGGESTED_TAGS = [
   'Need', 'Capacity', 'Heritage', 'Conservation', 'Green Belt',
@@ -106,6 +108,64 @@ function asArray (value) {
   return Array.isArray(value) ? value : [value]
 }
 
+// Date.now() alone collides when several items are created in the same
+// millisecond (accepting several AI suggestions in one go does exactly
+// that), and duplicate ids would make remove-tag strip a tag off the wrong
+// item.
+let evidenceIdCounter = 0
+function nextEvidenceId () {
+  evidenceIdCounter += 1
+  return 'evidence-' + Date.now() + '-' + evidenceIdCounter
+}
+
+// Only ever redirect back to somewhere inside this prototype.
+function safeReturn (value, fallback) {
+  return typeof value === 'string' && value.indexOf('/evidence') === 0 ? value : fallback
+}
+
+// Builds an evidence item from a submitted tagging form. Tag lozenge
+// selections arrive as a single comma-joined field; anything that isn't a
+// recognised suggested tag is treated as a custom tag. Returns null when
+// there is nothing worth saving.
+function buildEvidenceItem (body, doc) {
+  const submittedTags = parseTagList(body.tags)
+  const tags = submittedTags.filter(tag => SUGGESTED_TAGS.includes(tag))
+  const customTags = submittedTags.filter(tag => !SUGGESTED_TAGS.includes(tag))
+  const policyAreas = parseTagList(body.policyAreas)
+
+  if (!tags.length && !customTags.length && !policyAreas.length) return null
+
+  const isNote = body.entryType === 'note'
+  const text = (isNote ? body.noteText : body.selectedText || '').trim()
+  if (!text) return null
+
+  const sourceType = isNote
+    ? (NOTE_SOURCE_TYPES.some(candidate => candidate.value === body.sourceType) ? body.sourceType : 'note')
+    : 'document'
+
+  return {
+    id: nextEvidenceId(),
+    type: isNote ? 'note' : 'passage',
+    sourceType,
+    text,
+    source: doc.source,
+    chapter: doc.chapter,
+    tags,
+    customTags,
+    policyAreas,
+    policyReference: body.policyReference || ''
+  }
+}
+
+function removeTagFromItem (items, itemId, tag) {
+  const item = items.find(candidate => candidate.id === itemId)
+  if (!item) return
+
+  item.tags = item.tags.filter(candidate => candidate !== tag)
+  item.customTags = item.customTags.filter(candidate => candidate !== tag)
+  item.policyAreas = item.policyAreas.filter(candidate => candidate !== tag)
+}
+
 // Splits a comma-joined string (built client-side from lozenge selections)
 // into a clean list of tag names.
 function parseTagList (value) {
@@ -156,8 +216,15 @@ function filterEvidenceItems (items, filters) {
   })
 }
 
+// Everything a tag search can match: the suggested tags plus the policy
+// references, tagged with their kind so the list can label them.
+const TAG_SEARCH_OPTIONS = SUGGESTED_TAGS
+  .map(tag => ({ value: tag, kind: 'tag' }))
+  .concat(POLICY_REFERENCES.map(reference => ({ value: reference, kind: 'reference' })))
+
 const evidenceViewData = {
   suggestedTags: SUGGESTED_TAGS,
+  tagSearchOptionsJson: JSON.stringify(TAG_SEARCH_OPTIONS),
   tagColours: TAG_COLOURS,
   policyAreas: POLICY_AREAS,
   policyAreaLinks: POLICY_AREA_LINKS,
@@ -168,7 +235,7 @@ const evidenceViewData = {
 // --- Compatibility redirects for earlier prototype URLs ---
 
 router.get('/evidence/selected-evidence', (req, res) => {
-  res.redirect('/evidence')
+  res.redirect('/evidence/library')
 })
 
 router.get('/evidence/tag-insight', (req, res) => {
@@ -193,52 +260,9 @@ router.get('/evidence/document-tagging', (req, res) => {
 
 router.post('/evidence/document-tagging', (req, res) => {
   const items = getEvidenceItems(req)
+  const item = buildEvidenceItem(req.body, getDocument(DOCUMENT_SOURCE))
 
-  // Lozenge selections arrive as a single comma-joined field. Anything that
-  // isn't a recognised suggested tag is treated as a custom tag.
-  const submittedTags = parseTagList(req.body.tags)
-  const tags = submittedTags.filter(tag => SUGGESTED_TAGS.includes(tag))
-  const customTags = submittedTags.filter(tag => !SUGGESTED_TAGS.includes(tag))
-  const policyAreas = parseTagList(req.body.policyAreas)
-  const policyReference = req.body.policyReference || ''
-  const hasTags = tags.length || customTags.length || policyAreas.length
-
-  if (req.body.entryType === 'passage') {
-    const text = (req.body.selectedText || '').trim()
-    if (text && hasTags) {
-      items.push({
-        id: 'evidence-' + Date.now(),
-        type: 'passage',
-        sourceType: 'document',
-        text,
-        source: DOCUMENT_SOURCE,
-        chapter: DOCUMENT_CHAPTER,
-        tags,
-        customTags,
-        policyAreas,
-        policyReference
-      })
-    }
-  } else if (req.body.entryType === 'note') {
-    const text = (req.body.noteText || '').trim()
-    const sourceType = NOTE_SOURCE_TYPES.some(candidate => candidate.value === req.body.sourceType)
-      ? req.body.sourceType
-      : 'note'
-    if (text && hasTags) {
-      items.push({
-        id: 'evidence-' + Date.now(),
-        type: 'note',
-        sourceType,
-        text,
-        source: DOCUMENT_SOURCE,
-        chapter: DOCUMENT_CHAPTER,
-        tags,
-        customTags,
-        policyAreas,
-        policyReference
-      })
-    }
-  }
+  if (item) items.push(item)
 
   res.redirect('/evidence/document-tagging')
 })
@@ -246,16 +270,104 @@ router.post('/evidence/document-tagging', (req, res) => {
 // Removes a single tag (suggested or custom) from a saved item, clicked
 // directly on its chip within the document view.
 router.post('/evidence/document-tagging/remove-tag', (req, res) => {
-  const items = getEvidenceItems(req)
-  const item = items.find(candidate => candidate.id === req.body.itemId)
+  removeTagFromItem(getEvidenceItems(req), req.body.itemId, req.body.tag)
+  res.redirect('/evidence/document-tagging')
+})
 
-  if (item) {
-    item.tags = item.tags.filter(tag => tag !== req.body.tag)
-    item.customTags = item.customTags.filter(tag => tag !== req.body.tag)
-    item.policyAreas = item.policyAreas.filter(area => area !== req.body.tag)
+// --- Review evidence: document details, manual tagging or an AI summary ---
+
+function getReviewReturn (source, fragment) {
+  return '/evidence/review?source=' + encodeURIComponent(source) + (fragment || '')
+}
+
+router.get('/evidence/review', (req, res) => {
+  const items = getEvidenceItems(req)
+  const source = req.query.source || DOCUMENT_SOURCE
+  const doc = getDocument(source)
+  const fromThisDocument = items.filter(item => item.source === source)
+
+  // Whether a suggestion has been accepted is derived from the saved items
+  // rather than stored separately, so the summary's "added" state and the
+  // document's highlights can never disagree.
+  const savedTexts = fromThisDocument.map(item => item.text)
+  const dismissed = asArray(req.session.data.evidenceDismissedSuggestions)
+  const summaryGenerated = asArray(req.session.data.evidenceSummariesGenerated).includes(source)
+
+  const summarySections = (doc.summary ? doc.summary.sections : [])
+    .filter(section => !dismissed.includes(section.id))
+    .map(section => Object.assign({}, section, { saved: savedTexts.includes(section.quote) }))
+
+  res.render('evidence/review/index', Object.assign({}, evidenceViewData, {
+    doc,
+    sourceEncoded: encodeURIComponent(source),
+    returnTo: getReviewReturn(source),
+    summaryGenerated,
+    summarySections,
+    notes: fromThisDocument.filter(item => item.type === 'note').slice().reverse(),
+    passages: fromThisDocument.filter(item => item.type === 'passage').slice().reverse(),
+    savedPassagesJson: JSON.stringify(fromThisDocument.filter(item => item.type === 'passage')),
+    documentParagraphsJson: JSON.stringify(doc.paragraphs)
+  }))
+})
+
+router.post('/evidence/review', (req, res) => {
+  const items = getEvidenceItems(req)
+  const doc = getDocument(req.body.source || DOCUMENT_SOURCE)
+  const item = buildEvidenceItem(req.body, doc)
+
+  if (item) items.push(item)
+
+  res.redirect(safeReturn(req.body._returnTo, getReviewReturn(doc.source)))
+})
+
+router.post('/evidence/review/remove-tag', (req, res) => {
+  removeTagFromItem(getEvidenceItems(req), req.body.itemId, req.body.tag)
+  res.redirect(safeReturn(req.body._returnTo, '/evidence/review'))
+})
+
+router.post('/evidence/review/generate-summary', (req, res) => {
+  const source = req.body.source || DOCUMENT_SOURCE
+  const generated = asArray(req.session.data.evidenceSummariesGenerated)
+
+  if (!generated.includes(source)) {
+    req.session.data.evidenceSummariesGenerated = generated.concat(source)
   }
 
-  res.redirect('/evidence/document-tagging')
+  res.redirect(safeReturn(req.body._returnTo, getReviewReturn(source, '#auto-summarise')))
+})
+
+// Accepts an AI suggestion, turning that section into a real tagged evidence
+// item. The verbatim quote is saved (not the paraphrase) so the passage
+// still matches when the document view draws its highlights.
+router.post('/evidence/review/accept-suggestion', (req, res) => {
+  const items = getEvidenceItems(req)
+  const source = req.body.source || DOCUMENT_SOURCE
+  const doc = getDocument(source)
+  const section = (doc.summary ? doc.summary.sections : [])
+    .find(candidate => candidate.id === req.body.sectionId)
+
+  if (section && !items.some(item => item.source === source && item.text === section.quote)) {
+    items.push(buildEvidenceItem({
+      entryType: 'passage',
+      selectedText: section.quote,
+      tags: section.suggestedTags.join(','),
+      policyAreas: section.suggestedPolicyAreas.join(','),
+      policyReference: section.suggestedPolicyReference
+    }, doc))
+  }
+
+  res.redirect(safeReturn(req.body._returnTo, getReviewReturn(source, '#auto-summarise')))
+})
+
+router.post('/evidence/review/dismiss-suggestion', (req, res) => {
+  const source = req.body.source || DOCUMENT_SOURCE
+  const dismissed = asArray(req.session.data.evidenceDismissedSuggestions)
+
+  if (req.body.sectionId && !dismissed.includes(req.body.sectionId)) {
+    req.session.data.evidenceDismissedSuggestions = dismissed.concat(req.body.sectionId)
+  }
+
+  res.redirect(safeReturn(req.body._returnTo, getReviewReturn(source, '#auto-summarise')))
 })
 
 // A read-only, print/PDF-styled view of a document, opened in a new window
@@ -298,7 +410,7 @@ function getDocumentsForPolicyArea (items, policyArea) {
   return documents
 }
 
-router.get('/evidence', (req, res) => {
+router.get('/evidence/library', (req, res) => {
   const items = getEvidenceItems(req)
   const filters = getFilters(req)
   const documents = getDocumentsForPolicyArea(items, filters.policyArea)
@@ -309,7 +421,7 @@ router.get('/evidence', (req, res) => {
   const filtersApplied = req.query.applied === '1'
   const filteredItems = filtersApplied ? filterEvidenceItems(items, filters) : []
 
-  res.render('evidence/index', Object.assign({}, evidenceViewData, {
+  res.render('evidence/library/index', Object.assign({}, evidenceViewData, {
     documents,
     items: filteredItems.slice().reverse(),
     resultCount: filteredItems.length,

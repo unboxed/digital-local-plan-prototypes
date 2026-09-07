@@ -1,0 +1,88 @@
+
+<div class="dlp-side-panel">
+  <h2 class="dlp-side-panel__heading">Document details</h2>
+
+  <dl class="dlp-doc-meta">
+    <div class="dlp-doc-meta__row">
+      <dt>Document title</dt>
+      <dd>{{ doc.source }}</dd>
+    </div>
+    <div class="dlp-doc-meta__row">
+      <dt>Date</dt>
+      <dd>{{ doc.date }}</dd>
+    </div>
+    <div class="dlp-doc-meta__row">
+      <dt>Author</dt>
+      <dd>{{ doc.author }}</dd>
+    </div>
+    <div class="dlp-doc-meta__row">
+      <dt>Policy area</dt>
+      <dd>{{ doc.policyArea if doc.policyArea else "Not set" }}</dd>
+    </div>
+  </dl>
+
+  <p class="govuk-body-s govuk-!-margin-bottom-0">
+    <a class="govuk-link" href="/evidence/document-view?source={{ sourceEncoded }}" target="_blank" rel="noopener noreferrer">
+      Open in new window
+    </a>
+  </p>
+</div>
+
+<section class="dlp-side-panel govuk-!-margin-top-6" data-dlp-tagger data-dlp-mode="note">
+  <h2 class="dlp-side-panel__heading">Add and tag a note</h2>
+
+  <form action="/evidence/review" method="post" data-dlp-form>
+    <input type="hidden" name="source" value="{{ doc.source }}">
+    <input type="hidden" name="_returnTo" value="{{ returnTo }}">
+    <input type="hidden" name="entryType" value="note">
+    <input type="hidden" name="selectedText">
+    <input type="hidden" name="noteText">
+    <input type="hidden" name="sourceType">
+    <input type="hidden" name="tags">
+    <input type="hidden" name="policyAreas">
+
+    <div class="dlp-form-group">
+      <label class="dlp-label" for="review-note-source-type">What type of note is this?</label>
+      <select class="dlp-select" id="review-note-source-type" data-dlp-note-source-type>
+        {% for sourceType in noteSourceTypes %}
+        <option value="{{ sourceType.value }}">{{ sourceType.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="dlp-form-group">
+      <label class="dlp-label" for="review-note-text">Note</label>
+      <textarea class="dlp-textarea" id="review-note-text" rows="4" placeholder="Add a note about a conversation or meeting" data-dlp-note-text></textarea>
+    </div>
+
+    <input type="hidden" name="policyReference">
+
+    <div class="dlp-form-group">
+      <label class="dlp-label" for="review-note-tag-search">Tags</label>
+      <p class="dlp-hint" id="review-note-tag-hint">
+        Search for a tag or policy reference, then choose it from the list.
+      </p>
+      <input class="dlp-input"
+             id="review-note-tag-search"
+             type="text"
+             autocomplete="off"
+             role="combobox"
+             aria-expanded="false"
+             aria-autocomplete="list"
+             aria-controls="review-note-tag-options"
+             aria-describedby="review-note-tag-hint"
+             data-dlp-tag-search>
+      <ul class="dlp-typeahead" id="review-note-tag-options" role="listbox" data-dlp-tag-options hidden></ul>
+
+      <div class="dlp-lozenges dlp-lozenges--selected" data-dlp-topic-lozenges data-dlp-remove-on-deselect></div>
+
+      <script type="application/json" data-dlp-tag-search-source>{{ tagSearchOptionsJson | safe }}</script>
+    </div>
+
+    <button type="submit" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Save note</button>
+  </form>
+</section>
+
+<p class="govuk-body govuk-!-margin-top-4">
+  <a class="govuk-link" href="#">View all notes</a>
+</p>

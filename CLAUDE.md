@@ -34,7 +34,23 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
 - `app/routes.js` — custom Express routes, only when file-based routing isn't enough.
 - `app/assets/sass/application.scss` — project-specific Sass, imported alongside GOV.UK
   Frontend's styles.
+- `app/data/documents.js` — static document content and metadata (body text, author, date,
+  canned AI summaries). Static reference content belongs here, not in
+  `session-data-defaults.js`, which is deep-cloned into every user session.
 - `app/config.json` — service name and kit-level config.
+
+## Conventions
+
+- **Custom CSS classes are prefixed `dlp-`** and defined in `application.scss`, reusing its
+  existing variables (`$dlp-border-grey`, `$dlp-muted-text`, `$dlp-panel-background`, etc.).
+- **JavaScript is opted into from markup via `data-dlp-*` attributes**, never by hard-coded
+  element ids — a page can carry more than one tag picker, so nothing in
+  `app/assets/javascripts/application.js` may assume a single instance. Guard every optional
+  part, so a screen using only some of the markup can't throw and kill the page's JS.
+- **The kit's session middleware auto-stores both `req.body` and `req.query`** into
+  `req.session.data`, and skips fields whose name starts with `_`. Name transient control
+  fields accordingly (e.g. `_returnTo`), and avoid reusing a field name that another screen
+  relies on (`evidenceSearch` is the library's sticky filter).
 
 ## No crown branding
 

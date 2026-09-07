@@ -235,6 +235,9 @@ $dlp-highlight-background: #fff7bf;
 .dlp-input,
 .dlp-select {
   @include govuk-font($size: 16);
+  // Without this, width:100% plus padding and border overflows the panel
+  // these controls sit in — there is no global box-sizing reset.
+  box-sizing: border-box;
   border: 2px solid govuk-colour("black");
   border-radius: 4px;
   padding: govuk-spacing(1) govuk-spacing(2);
@@ -537,4 +540,281 @@ $dlp-pdf-font: Georgia, "Times New Roman", serif;
 .dlp-pdf-page__note {
   color: $dlp-muted-text;
   font-style: italic;
+}
+
+// Review evidence screen — document details, manual tagging, AI summary
+$dlp-ai-accent: govuk-colour("purple");
+$dlp-confidence-low: govuk-colour("orange");
+
+.dlp-side-panel {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  padding: govuk-spacing(4);
+}
+
+.dlp-side-panel__heading {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: 0 0 govuk-spacing(3);
+}
+
+// Stacked rather than side-by-side: this column is too narrow for the
+// label/value layout used by .dlp-evidence-card__meta-row.
+.dlp-doc-meta {
+  margin: 0 0 govuk-spacing(4);
+}
+
+.dlp-doc-meta__row {
+  @include govuk-font($size: 16);
+  margin-bottom: govuk-spacing(3);
+
+  dt {
+    color: $dlp-muted-text;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.dlp-review-tabs {
+  .govuk-tabs__panel {
+    padding: govuk-spacing(4);
+  }
+}
+
+.dlp-tag-panel--inline {
+  position: static;
+}
+
+// AI summary
+.dlp-summary-intro {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  padding: govuk-spacing(4);
+}
+
+.dlp-ai-banner {
+  background: govuk-colour("white");
+  border-left: 4px solid $dlp-ai-accent;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+.dlp-ai-banner__label {
+  @include govuk-font($size: 16, $weight: bold);
+  color: $dlp-ai-accent;
+  letter-spacing: 0.05em;
+  margin: 0 0 govuk-spacing(1);
+  text-transform: uppercase;
+}
+
+.dlp-ai-banner__text {
+  @include govuk-font($size: 19);
+  margin: 0 0 govuk-spacing(1);
+}
+
+.dlp-ai-banner__meta {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0;
+}
+
+.dlp-summary__section {
+  border: 1px solid $dlp-border-grey;
+  border-left: 4px solid $dlp-ai-accent;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(4);
+}
+
+.dlp-summary__section--saved {
+  border-left-color: govuk-colour("green");
+}
+
+.dlp-summary__header {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+  justify-content: space-between;
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-summary__heading {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: 0;
+}
+
+.dlp-summary__confidence {
+  @include govuk-font($size: 16);
+  border: 1px solid currentcolor;
+  border-radius: 12px;
+  padding: 0 govuk-spacing(2);
+  text-transform: capitalize;
+}
+
+.dlp-summary__confidence--high {
+  color: govuk-colour("green");
+}
+
+.dlp-summary__confidence--medium {
+  color: $dlp-muted-text;
+}
+
+.dlp-summary__confidence--low {
+  color: $dlp-confidence-low;
+}
+
+// Echoes .dlp-highlight so the quote reads as the passage it came from.
+.dlp-summary__quote {
+  background: $dlp-highlight-background;
+  border-left: 4px solid govuk-colour("black", $variant: "tint-50");
+  margin: 0 0 govuk-spacing(3);
+  padding: govuk-spacing(2) govuk-spacing(3);
+}
+
+.dlp-summary__suggested {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-summary__suggested-label {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin-right: govuk-spacing(1);
+}
+
+// Dashed, so a suggestion reads as proposed rather than already applied.
+.dlp-chip--suggested {
+  border-style: dashed;
+}
+
+.dlp-summary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+  margin-bottom: 0;
+}
+
+// Keyword search
+.dlp-search {
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-search__count {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: govuk-spacing(1) 0 0;
+  min-height: 1.2em;
+}
+
+// Separate from .dlp-highlight so search marks don't pick up the saved
+// passage underline.
+.dlp-search-hit {
+  background: $dlp-highlight-background;
+  padding: 0 2px;
+}
+
+.dlp-document-list__actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: govuk-spacing(3);
+}
+
+.dlp-search__results {
+  margin-top: govuk-spacing(2);
+}
+
+.dlp-search__result {
+  @include govuk-font($size: 19);
+  background: govuk-colour("white");
+  border-left: 4px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(2);
+  padding: govuk-spacing(2) govuk-spacing(3);
+}
+
+// Tag search (type to find a tag or policy reference)
+.dlp-hint {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-typeahead {
+  border: 1px solid $dlp-border-grey;
+  border-top: 0;
+  list-style: none;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.dlp-typeahead__option {
+  @include govuk-font($size: 16);
+  background: govuk-colour("white");
+  border: 0;
+  border-bottom: 1px solid $dlp-border-grey;
+  cursor: pointer;
+  display: flex;
+  gap: govuk-spacing(2);
+  justify-content: space-between;
+  padding: govuk-spacing(2) govuk-spacing(3);
+  text-align: left;
+  width: 100%;
+
+  &:hover {
+    background: $dlp-panel-background;
+  }
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+.dlp-typeahead__kind {
+  color: $dlp-muted-text;
+  flex-shrink: 0;
+}
+
+.dlp-typeahead__empty {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  padding: govuk-spacing(2) govuk-spacing(3);
+}
+
+// Chosen tags sit below the search rather than alongside a full list.
+.dlp-lozenges--selected {
+  margin-bottom: 0;
+  margin-top: govuk-spacing(2);
+
+  &:empty {
+    margin-top: 0;
+  }
+}
+
+.dlp-lozenge--reference {
+  border-color: govuk-colour("black");
+  color: govuk-colour("black");
+
+  &[aria-pressed="true"] {
+    background: govuk-colour("black");
+    color: govuk-colour("white");
+  }
+}
+
+// "Add as new tag" sits at the end of the search results, distinguished
+// from the existing tags it's offered alongside.
+.dlp-typeahead__option--new {
+  font-style: italic;
+
+  .dlp-typeahead__kind {
+    font-style: normal;
+    font-weight: bold;
+  }
 }

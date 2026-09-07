@@ -1,0 +1,40 @@
+{% extends "layouts/main.html" %} {% set pageName = "Review evidence" %} {%
+block content %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+
+{% include "evidence/partials/nav.html" %}
+
+<a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+
+<span class="govuk-caption-l">{{ doc.source }}</span>
+<h1 class="govuk-heading-xl">Review evidence</h1>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-one-quarter">
+    {% include "evidence/partials/review-sidebar.html" %}
+  </div>
+
+  <div class="govuk-grid-column-three-quarters">
+    {% set viewAndTagHtml %}{% include "evidence/partials/review-document-tab.html" %}{% endset %}
+    {% set autoSummariseHtml %}{% include "evidence/partials/review-summary-tab.html" %}{% endset %}
+
+    {{ govukTabs({
+      title: "Document views",
+      classes: "dlp-review-tabs",
+      items: [
+        {
+          label: "View and tag document",
+          id: "view-and-tag",
+          panel: { html: viewAndTagHtml }
+        },
+        {
+          label: "Auto summarise",
+          id: "auto-summarise",
+          panel: { html: autoSummariseHtml }
+        }
+      ]
+    }) }}
+  </div>
+</div>
+
+{% endblock %}

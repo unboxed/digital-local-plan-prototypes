@@ -1,0 +1,43 @@
+{#
+  Tag, policy area and policy reference controls for a tag picker.
+
+  Every id is prefixed so a page can carry more than one picker without
+  duplicate ids (which would make <label for> bind to the wrong control).
+  The JS finds its parts by the data-dlp-* attributes, not by id.
+#}
+{% macro tagControls(idPrefix, suggestedTags, policyAreas, policyReferences, preselectedTags, preselectedAreas) %}
+<fieldset class="dlp-lozenge-group">
+  <legend class="dlp-legend">Tags</legend>
+  <div class="dlp-lozenges" data-dlp-topic-lozenges>
+    {% for tag in suggestedTags %}
+    <button type="button" class="dlp-lozenge" data-tag="{{ tag }}" aria-pressed="{{ "true" if preselectedTags and tag in preselectedTags else "false" }}">{{ tag }}</button>
+    {% endfor %}
+  </div>
+  <div class="dlp-custom-tag">
+    <label class="dlp-label" for="{{ idPrefix }}-custom-tag">Add your own tag</label>
+    <div class="dlp-custom-tag__row">
+      <input class="dlp-input" id="{{ idPrefix }}-custom-tag" type="text" data-dlp-custom-tag-input>
+      <button type="button" class="dlp-button dlp-button--secondary" data-dlp-custom-tag-add>Add</button>
+    </div>
+  </div>
+</fieldset>
+
+<fieldset class="dlp-lozenge-group">
+  <legend class="dlp-legend">Policy area</legend>
+  <div class="dlp-lozenges" data-dlp-policy-lozenges>
+    {% for area in policyAreas %}
+    <button type="button" class="dlp-lozenge dlp-lozenge--policy" data-tag="{{ area }}" aria-pressed="{{ "true" if preselectedAreas and area in preselectedAreas else "false" }}">{{ area }}</button>
+    {% endfor %}
+  </div>
+</fieldset>
+
+<div class="dlp-form-group">
+  <label class="dlp-label" for="{{ idPrefix }}-policy-reference">Policy reference</label>
+  <select class="dlp-select" id="{{ idPrefix }}-policy-reference" name="policyReference">
+    <option value="">Choose a reference</option>
+    {% for reference in policyReferences %}
+    <option value="{{ reference }}">{{ reference }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% endmacro %}

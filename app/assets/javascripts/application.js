@@ -10,7 +10,7 @@
 window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-tagger]').forEach(initTagger)
   document.querySelectorAll('[data-dlp-highlights]').forEach(initSavedHighlights)
-  document.querySelectorAll('[data-dlp-summary]').forEach(initSummarySearch)
+  document.querySelectorAll('[data-dlp-search]').forEach(initDocumentSearch)
 })
 
 // A tag picker: lozenges for tags and policy areas, an optional custom tag
@@ -38,8 +38,13 @@ function initTagger (root) {
   const customTagInput = part('custom-tag-input')
   const addCustomTagButton = part('custom-tag-add')
 
+  const tagSearchInput = part('tag-search')
+  const tagOptionsList = part('tag-options')
+  const tagSearchSource = part('tag-search-source')
+
   let mode = root.dataset.dlpMode || 'passage'
   let currentSelectionText = root.dataset.dlpText || ''
+  let selectedReference = ''
   const selectedTags = new Set()
   const selectedPolicyAreas = new Set()
 
@@ -92,6 +97,16 @@ function initTagger (root) {
 
   function toggleLozenge (button, tagSet) {
     const isPressed = button.getAttribute('aria-pressed') === 'true'
+
+    // A lozenge that came from a tag search represents a chosen item rather
+    // than a standing option, so deselecting it takes it off the list.
+    if (isPressed && button.parentElement.hasAttribute('data-dlp-remove-on-deselect')) {
+      if (button.dataset.kind === 'reference') selectedReference = ''
+      tagSet.delete(button.dataset.tag)
+      button.remove()
+      return
+    }
+
     button.setAttribute('aria-pressed', String(!isPressed))
     if (isPressed) {
       tagSet.delete(button.dataset.tag)
@@ -114,17 +129,16 @@ function initTagger (root) {
     })
   }
 
-  function addCustomTag () {
-    const value = customTagInput.value.trim()
-    if (!value) return
-
+  // Presses an existing lozenge for this value, or adds one if the list
+  // doesn't already offer it.
+  function selectTag (value, modifierClass) {
     let button = Array.from(topicLozenges.querySelectorAll('.dlp-lozenge'))
       .find(candidate => candidate.dataset.tag.toLowerCase() === value.toLowerCase())
 
     if (!button) {
       button = document.createElement('button')
       button.type = 'button'
-      button.className = 'dlp-lozenge dlp-lozenge--custom'
+      button.className = 'dlp-lozenge' + (modifierClass ? ' ' + modifierClass : '')
       button.dataset.tag = value
       button.textContent = value
       topicLozenges.appendChild(button)
@@ -132,6 +146,14 @@ function initTagger (root) {
 
     button.setAttribute('aria-pressed', 'true')
     selectedTags.add(button.dataset.tag)
+    return button
+  }
+
+  function addCustomTag () {
+    const value = customTagInput.value.trim()
+    if (!value) return
+
+    selectTag(value, 'dlp-lozenge--custom')
     customTagInput.value = ''
     customTagInput.focus()
   }
@@ -143,6 +165,113 @@ function initTagger (root) {
         event.preventDefault()
         addCustomTag()
       }
+    })
+  }
+
+  // Tag search: instead of listing every tag up front, the user types and
+  // picks from the matches. It searches tags and policy references
+  // together, so one field covers both.
+  if (tagSearchInput && tagOptionsList && tagSearchSource && topicLozenges) {
+    let searchOptions = []
+    try {
+      searchOptions = JSON.parse(tagSearchSource.textContent)
+    } catch (error) {
+      searchOptions = []
+    }
+
+    function closeOptions () {
+      tagOptionsList.innerHTML = ''
+      tagOptionsList.hidden = true
+      tagSearchInput.setAttribute('aria-expanded', 'false')
+    }
+
+    function chooseOption (option) {
+      if (option.kind === 'reference') {
+        const existing = topicLozenges.querySelector('[data-kind="reference"]')
+        if (existing) {
+          selectedTags.delete(existing.dataset.tag)
+          existing.remove()
+        }
+        selectedReference = option.value
+        selectTag(option.value, 'dlp-lozenge--reference').dataset.kind = 'reference'
+        selectedTags.delete(option.value)
+      } else {
+        selectTag(option.value, option.kind === 'custom' ? 'dlp-lozenge--custom' : '')
+      }
+
+      tagSearchInput.value = ''
+      closeOptions()
+      tagSearchInput.focus()
+    }
+
+    tagSearchInput.addEventListener('input', () => {
+      const term = tagSearchInput.value.trim().toLowerCase()
+      tagOptionsList.innerHTML = ''
+
+      if (!term) {
+        closeOptions()
+        return
+      }
+
+      const matches = searchOptions
+        .filter(option => option.value.toLowerCase().indexOf(term) !== -1)
+        .filter(option => option.kind === 'reference' || !selectedTags.has(option.value))
+        .slice(0, 8)
+
+      function addOption (option, kindLabel, modifierClass) {
+        const item = document.createElement('li')
+        item.setAttribute('role', 'option')
+
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'dlp-typeahead__option' + (modifierClass ? ' ' + modifierClass : '')
+        button.addEventListener('click', () => chooseOption(option))
+
+        const label = document.createElement('span')
+        label.textContent = option.value
+        button.appendChild(label)
+
+        const kind = document.createElement('span')
+        kind.className = 'dlp-typeahead__kind'
+        kind.textContent = kindLabel
+        button.appendChild(kind)
+
+        item.appendChild(button)
+        tagOptionsList.appendChild(item)
+      }
+
+      matches.forEach(option => {
+        addOption(option, option.kind === 'reference' ? 'Policy reference' : 'Tag')
+      })
+
+      // Nothing stops an officer needing a tag the list doesn't have yet, so
+      // offer the typed text as a new one.
+      const typed = tagSearchInput.value.trim()
+      const exists = searchOptions.some(option => option.value.toLowerCase() === term) ||
+        selectedTags.has(typed)
+
+      if (!exists) {
+        addOption({ value: typed, kind: 'custom' }, 'Add as new tag', 'dlp-typeahead__option--new')
+      }
+
+      // Everything typed is already chosen — nothing left to offer.
+      if (!tagOptionsList.children.length) {
+        closeOptions()
+        return
+      }
+
+      tagOptionsList.hidden = false
+      tagSearchInput.setAttribute('aria-expanded', 'true')
+    })
+
+    tagSearchInput.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeOptions()
+      // Enter would otherwise submit the note before anything is chosen.
+      if (event.key === 'Enter') event.preventDefault()
+    })
+
+    document.addEventListener('click', event => {
+      if (!root.contains(event.target)) closeOptions()
     })
   }
 
@@ -159,6 +288,9 @@ function initTagger (root) {
     }
     if (fields.tags) fields.tags.value = tags
     if (fields.policyAreas) fields.policyAreas.value = policyAreas
+    // Only when a tag search owns the reference — elsewhere it's a select
+    // the user sets directly.
+    if (tagSearchInput && fields.policyReference) fields.policyReference.value = selectedReference
 
     if (mode === 'passage' && !currentSelectionText) {
       event.preventDefault()
@@ -303,49 +435,47 @@ function hiddenField (name, value) {
   return field
 }
 
-// Keyword search over the AI summary: filters sections and marks matches in
-// place. Client-side so searching never reloads the page, which would reset
-// the tab the user is working in.
-function initSummarySearch (root) {
-  const input = root.querySelector('[data-dlp-summary-search]')
-  const count = root.querySelector('[data-dlp-summary-count]')
-  const sections = Array.from(root.querySelectorAll('[data-dlp-summary-section]'))
-  if (!input || !sections.length) return
+// Keyword search across the full document text, listing the passages that
+// match with the term marked. Client-side, so searching never reloads the
+// page — a reload would drop the user back to the first tab.
+function initDocumentSearch (root) {
+  const input = root.querySelector('[data-dlp-search-input]')
+  const results = root.querySelector('[data-dlp-search-results]')
+  const count = root.querySelector('[data-dlp-search-count]')
+  const dataScript = querySelectorOrNull(root.dataset.dlpSearchSource)
+  if (!input || !results || !dataScript) return
 
-  const entries = sections.map(section => ({
-    section,
-    parts: Array.from(section.querySelectorAll('[data-dlp-searchable]'))
-      .map(element => ({ element, original: element.textContent }))
-  }))
+  let paragraphs = []
+  try {
+    paragraphs = JSON.parse(dataScript.textContent)
+  } catch (error) {
+    paragraphs = []
+  }
 
   input.addEventListener('input', () => {
-    const term = input.value.trim().toLowerCase()
-    let matches = 0
+    const term = input.value.trim()
+    results.innerHTML = ''
 
-    entries.forEach(entry => {
-      let hit = false
+    if (!term) {
+      if (count) count.textContent = ''
+      return
+    }
 
-      entry.parts.forEach(part => {
-        if (!term || part.original.toLowerCase().indexOf(term) === -1) {
-          part.element.textContent = part.original
-          return
-        }
-        hit = true
-        part.element.innerHTML = markMatches(part.original, term)
-      })
+    const matches = paragraphs.filter(paragraph => {
+      return paragraph.toLowerCase().indexOf(term.toLowerCase()) !== -1
+    })
 
-      if (hit) matches += 1
-      entry.section.hidden = Boolean(term) && !hit
+    matches.forEach(paragraph => {
+      const hit = document.createElement('p')
+      hit.className = 'dlp-search__result'
+      hit.innerHTML = markMatches(paragraph, term.toLowerCase())
+      results.appendChild(hit)
     })
 
     if (!count) return
-    if (!term) {
-      count.textContent = ''
-    } else if (matches) {
-      count.textContent = matches + ' of ' + sections.length + ' sections mention “' + input.value.trim() + '”'
-    } else {
-      count.textContent = 'No sections mention “' + input.value.trim() + '”'
-    }
+    count.textContent = matches.length
+      ? matches.length + ' passage' + (matches.length === 1 ? '' : 's') + ' mention “' + term + '”'
+      : 'No passages mention “' + term + '”'
   })
 }
 

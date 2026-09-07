@@ -1,0 +1,97 @@
+{% if not doc.summary %}
+<p class="govuk-body">
+  An automatic summary is not available for this document yet.
+</p>
+
+{% elif not summaryGenerated %}
+<div class="dlp-summary-intro">
+  <h3 class="govuk-heading-s">Summarise this document automatically</h3>
+  <p class="govuk-body">
+    Instead of reading and tagging the document by hand, you can generate a
+    summary of it with suggested tags. You choose which suggestions to keep —
+    nothing is added to your evidence until you accept it.
+  </p>
+
+  <form action="/evidence/review/generate-summary" method="post">
+    <input type="hidden" name="source" value="{{ doc.source }}">
+    <input type="hidden" name="_returnTo" value="{{ returnTo }}#auto-summarise">
+    <button type="submit" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">
+      Generate summary
+    </button>
+  </form>
+</div>
+
+{% else %}
+<div class="dlp-summary">
+  <div class="dlp-ai-banner">
+    <p class="dlp-ai-banner__label">Automatic summary</p>
+    <p class="dlp-ai-banner__text">{{ doc.summary.caveat }}</p>
+    <p class="dlp-ai-banner__meta">{{ doc.summary.generatedLabel }}</p>
+  </div>
+
+  <p class="govuk-body">{{ doc.summary.overview }}</p>
+
+  <ul class="govuk-list govuk-list--bullet">
+    {% for point in doc.summary.keyPoints %}
+    <li>{{ point }}</li>
+    {% endfor %}
+  </ul>
+
+  <div class="dlp-search" data-dlp-search data-dlp-search-source="#review-document-text">
+    <label class="dlp-label" for="review-summary-search">Search the full document by keyword</label>
+    <input class="dlp-input" id="review-summary-search" type="search" autocomplete="off" aria-controls="review-search-results" data-dlp-search-input>
+    <p class="dlp-search__count" role="status" aria-live="polite" data-dlp-search-count></p>
+    <div class="dlp-search__results" id="review-search-results" data-dlp-search-results></div>
+  </div>
+
+  <script type="application/json" id="review-document-text">{{ documentParagraphsJson | safe }}</script>
+
+  {% if summarySections.length %}
+  {% for section in summarySections %}
+  <div class="dlp-summary__section{% if section.saved %} dlp-summary__section--saved{% endif %}">
+    <div class="dlp-summary__header">
+      <h3 class="dlp-summary__heading">{{ section.heading }}</h3>
+      <span class="dlp-summary__confidence dlp-summary__confidence--{{ section.confidence }}">
+        {{ section.confidence }} confidence
+      </span>
+    </div>
+
+    <p class="govuk-body">{{ section.text }}</p>
+
+    <blockquote class="dlp-summary__quote">{{ section.quote }}</blockquote>
+
+    <p class="dlp-summary__suggested">
+      <span class="dlp-summary__suggested-label">Suggested tags</span>
+      {% for tag in section.suggestedTags %}<span class="dlp-chip dlp-chip--suggested">{{ tag }}</span>{% endfor %}
+      {% for area in section.suggestedPolicyAreas %}<span class="dlp-chip dlp-chip--suggested dlp-chip--policy">{{ area }}</span>{% endfor %}
+      {% if section.suggestedPolicyReference %}<span class="dlp-chip dlp-chip--suggested">{{ section.suggestedPolicyReference }}</span>{% endif %}
+    </p>
+
+    {% if section.saved %}
+    <p class="dlp-summary__actions">
+      <strong class="govuk-tag govuk-tag--green">Added to evidence</strong>
+      <a class="govuk-link govuk-!-margin-left-2" href="{{ returnTo }}#view-and-tag">See it in the document</a>
+    </p>
+    {% else %}
+    <div class="dlp-summary__actions">
+      <form action="/evidence/review/accept-suggestion" method="post">
+        <input type="hidden" name="source" value="{{ doc.source }}">
+        <input type="hidden" name="sectionId" value="{{ section.id }}">
+        <input type="hidden" name="_returnTo" value="{{ returnTo }}#auto-summarise">
+        <button type="submit" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Accept tags</button>
+      </form>
+      <form action="/evidence/review/dismiss-suggestion" method="post">
+        <input type="hidden" name="source" value="{{ doc.source }}">
+        <input type="hidden" name="sectionId" value="{{ section.id }}">
+        <input type="hidden" name="_returnTo" value="{{ returnTo }}#auto-summarise">
+        <button type="submit" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">Dismiss</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="govuk-body">Every suggestion from this summary has been accepted or dismissed.</p>
+  {% endif %}
+</div>
+{% endif %}

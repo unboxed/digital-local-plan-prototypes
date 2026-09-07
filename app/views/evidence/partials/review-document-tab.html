@@ -1,0 +1,67 @@
+{% from "evidence/partials/tag-controls.html" import tagControls %}
+{% from "evidence/partials/evidence-card.html" import evidenceCard %}
+
+{% if doc.paragraphs.length %}
+<p class="dlp-document-hint govuk-body-s">
+  Highlight any text in the document below, then apply tags to it.
+</p>
+
+<div class="dlp-document-viewer"
+     id="review-document-viewer"
+     data-dlp-highlights="#review-passages-data"
+     data-dlp-remove-action="/evidence/review/remove-tag"
+     data-dlp-return="{{ returnTo }}#view-and-tag">
+  {% if doc.chapter %}<p class="dlp-document-viewer__chapter">{{ doc.chapter }}</p>{% endif %}
+  {% for paragraph in doc.paragraphs %}
+  <p>{{ paragraph }}</p>
+  {% endfor %}
+</div>
+
+<div class="dlp-tag-panel dlp-tag-panel--inline govuk-!-margin-top-4"
+     data-dlp-tagger
+     data-dlp-mode="passage"
+     data-dlp-viewer="#review-document-viewer">
+  <h3 class="dlp-tag-panel__heading">Tag the selected text</h3>
+
+  <p class="dlp-tag-panel__hint">Selected text:</p>
+  <blockquote class="dlp-selected-text dlp-selected-text--empty" data-dlp-selected-text>
+    Nothing selected yet — highlight some text in the document
+  </blockquote>
+
+  <form action="/evidence/review" method="post" class="govuk-!-margin-top-4" data-dlp-form>
+    <input type="hidden" name="source" value="{{ doc.source }}">
+    <input type="hidden" name="_returnTo" value="{{ returnTo }}#view-and-tag">
+    <input type="hidden" name="entryType" value="passage">
+    <input type="hidden" name="selectedText">
+    <input type="hidden" name="noteText">
+    <input type="hidden" name="sourceType">
+    <input type="hidden" name="tags">
+    <input type="hidden" name="policyAreas">
+
+    {{ tagControls("review-passage", suggestedTags, policyAreas, policyReferences) }}
+
+    <button type="submit" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Save tags</button>
+  </form>
+</div>
+{% else %}
+<p class="govuk-body">
+  The full text of this document is not available in this prototype. The
+  extracts already tagged as evidence from it are listed below.
+</p>
+{% endif %}
+
+<div class="govuk-!-margin-top-6">
+  <h3 class="govuk-heading-s">Tagged evidence from this document</h3>
+
+  {% if passages.length %}
+  <ul class="govuk-list dlp-evidence-summary">
+    {% for item in passages %}
+    <li>{{ evidenceCard(item, tagColours) }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="govuk-body">No passages tagged from this document yet.</p>
+  {% endif %}
+</div>
+
+<script type="application/json" id="review-passages-data">{{ savedPassagesJson | safe }}</script>
