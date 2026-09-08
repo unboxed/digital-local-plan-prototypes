@@ -1,0 +1,33 @@
+{% extends "layouts/main.html" %} {% set pageName = "User stories" %} {% block
+content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/">Back to prototypes</a>
+
+    <h1 class="govuk-heading-xl">User stories</h1>
+
+    <p class="govuk-body">
+      The {{ storyCount }} user stories from the value proposition framework,
+      grouped by theme. These are the needs the prototypes in this project are
+      exploring.
+    </p>
+
+    {% for theme in themes %}
+    <div class="govuk-!-margin-bottom-6">
+      <h2 class="govuk-heading-m">{{ theme.subTheme }}</h2>
+
+      <dl class="dlp-story-list">
+        {% for story in theme.stories %}
+        <div class="dlp-story-list__item">
+          <dt class="dlp-story-list__ref">{{ story.ref }}</dt>
+          <dd class="dlp-story-list__text">{{ story.text }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

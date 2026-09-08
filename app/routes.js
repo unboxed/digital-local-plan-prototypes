@@ -22,6 +22,8 @@ router.use((req, res, next) => {
     res.locals.activeSection = 'policy-writing'
   } else if (req.path.startsWith('/evidence')) {
     res.locals.activeSection = 'evidence'
+  } else if (req.path.startsWith('/user-stories')) {
+    res.locals.activeSection = 'user-stories'
   }
   next()
 })
@@ -35,6 +37,7 @@ const {
 } = require('./data/documents.js')
 
 const { getSearchTerms, getPoliciesForArea, getPolicy } = require('./data/policies.js')
+const { USER_STORY_THEMES, getUserStoryCount } = require('./data/user-stories.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
 //
@@ -451,6 +454,15 @@ router.get('/evidence/library', (req, res) => {
     filtersApplied,
     filters
   }))
+})
+
+// --- User stories from the value proposition framework ---
+
+router.get('/user-stories', (req, res) => {
+  res.render('user-stories/index', {
+    themes: USER_STORY_THEMES,
+    storyCount: getUserStoryCount()
+  })
 })
 
 // --- Policy: view a policy summary ---

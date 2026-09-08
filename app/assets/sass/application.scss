@@ -1034,3 +1034,32 @@ $dlp-confidence-low: govuk-colour("orange");
 .dlp-source-list__item--response {
   border-left-color: $dlp-policy-accent;
 }
+
+// User stories listing
+.dlp-story-list {
+  margin: 0;
+}
+
+.dlp-story-list__item {
+  border-top: 1px solid $dlp-border-grey;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+  padding: govuk-spacing(3) 0;
+
+  &:last-child {
+    border-bottom: 1px solid $dlp-border-grey;
+  }
+}
+
+.dlp-story-list__ref {
+  @include govuk-font($size: 19, $weight: bold);
+  flex: 0 0 auto;
+  width: 5em;
+}
+
+.dlp-story-list__text {
+  @include govuk-font($size: 19);
+  flex: 1 1 16em;
+  margin: 0;
+}
