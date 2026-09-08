@@ -6,6 +6,7 @@
 const govukPrototypeKit = require('govuk-prototype-kit')
 const router = govukPrototypeKit.requests.setupRouter()
 const appConfig = require('./config.json')
+const sessionDataDefaults = require('./data/session-data-defaults.js')
 
 // --- Site-wide service header ---
 //
@@ -541,16 +542,33 @@ router.post('/evidence/results', (req, res) => {
 
 // --- Policy writing prototype ---
 //
-// Session-backed, three-phase journey:
-//   /policy-writing/starting-points/:step   - 7-step "starting points" wizard
-//   /policy-writing/topics/...              - aggregate view + create/review topics
-//   /policy-writing/write/:topicId          - policy writer drafting workspace
+// Session-backed, three-phase journey, in two independent variants (see PW_VARIANTS) so a user
+// can experience either starting from realistic example data ("prefilled") or from a blank
+// slate ("blank") — /policy-writing links to both. Every route below is namespaced under
+// /policy-writing/:variant/... so the two never share state:
+//   /policy-writing/:variant/starting-points/:step   - 7-step "starting points" wizard
+//   /policy-writing/:variant/topics/...              - aggregate view + create/review topics
+//   /policy-writing/:variant/write/:topicId          - policy writer drafting workspace
 //
-// Starting point items are stored in req.session.data.policyStartingPointItems, an object
-// keyed by step slug. Topics are stored in req.session.data.policyTopics. The Sources panel in
-// the writer workspace uses static seed data in req.session.data.policyWriterSources. All three
-// follow the same lazy-deep-clone-on-first-touch pattern as getEvidenceItems above, since the
-// kit merges session-data-defaults.js into a new session with a shallow Object.assign.
+// Starting point items are stored in req.session.data.policyStartingPointItems[variant], an
+// object keyed by step slug. Topics are stored in req.session.data.policyTopics[variant]. The
+// Sources panel in the writer workspace uses static seed data in
+// req.session.data.policyWriterSources — shared across both variants since it's read-only
+// reference data, never mutated by any route, so there's nothing for the two variants to leak
+// into each other. The starting-point-items and topics accessors follow the same
+// lazy-deep-clone-on-first-touch pattern as getEvidenceItems above (one clone per variant,
+// tracked by a per-variant flag), since the kit merges session-data-defaults.js into a new
+// session with a shallow Object.assign.
+
+const PW_VARIANTS = ['prefilled', 'blank']
+
+// Runs before any /policy-writing/:variant/... route, so a mistyped or old-bookmarked variant
+// segment falls back to the prototype's landing page rather than 404ing or reading undefined
+// session data.
+router.param('variant', (req, res, next, variant) => {
+  if (!PW_VARIANTS.includes(variant)) return res.redirect('/policy-writing')
+  next()
+})
 
 const STARTING_POINT_STEPS = [
   {
@@ -620,27 +638,66 @@ function findStartingPointStep (slug) {
   return STARTING_POINT_STEPS.find(step => step.slug === slug)
 }
 
-function getStartingPointItems (req, stepSlug) {
+// The kit merges session-data-defaults.js under any *existing* session data
+// (Object.assign({}, sessionDataDefaults, req.session.data)), so a browser session that started
+// before the policy-writing prototype had prefilled/blank variants still has
+// policyStartingPointItems/policyTopics in the old flat (non-variant) shape — the top-level key
+// already exists, so the fresh nested defaults never get merged in. Detect that legacy/malformed
+// shape here and reseed from the current defaults, rather than silently reading `undefined` off
+// the old shape (which otherwise renders as "no content" for every variant).
+// A structural presence check (e.g. "does .prefilled exist?") isn't reliable here: an earlier,
+// narrower version of this repair could itself leave behind a *truthy but empty* .prefilled/
+// .blank object (e.g. `{}`, added onto an old flat-shaped session by code that blindly did
+// `current[variant] || {}`), which then passes any "does it exist" check forever without ever
+// containing real seed data. An explicit schema version sidesteps that whole class of bug:
+// anything not stamped with the current version is fully reseeded, no structural guessing.
+const POLICY_WRITING_SESSION_SCHEMA_VERSION = 2
+
+function ensureStartingPointItemsShape (req) {
+  if (req.session.data.policyStartingPointItemsSchemaVersion !== POLICY_WRITING_SESSION_SCHEMA_VERSION) {
+    req.session.data.policyStartingPointItems = JSON.parse(JSON.stringify(sessionDataDefaults.policyStartingPointItems))
+    req.session.data.policyStartingPointItemsOwned = { prefilled: true, blank: true }
+    req.session.data.policyStartingPointItemsSchemaVersion = POLICY_WRITING_SESSION_SCHEMA_VERSION
+  }
+}
+
+function ensurePolicyTopicsShape (req) {
+  if (req.session.data.policyTopicsSchemaVersion !== POLICY_WRITING_SESSION_SCHEMA_VERSION) {
+    req.session.data.policyTopics = JSON.parse(JSON.stringify(sessionDataDefaults.policyTopics))
+    req.session.data.policyTopicsOwned = { prefilled: true, blank: true }
+    req.session.data.policyTopicsSchemaVersion = POLICY_WRITING_SESSION_SCHEMA_VERSION
+  }
+}
+
+function getStartingPointItems (req, variant, stepSlug) {
+  ensureStartingPointItemsShape(req)
   if (!req.session.data.policyStartingPointItemsOwned) {
-    req.session.data.policyStartingPointItems = JSON.parse(JSON.stringify(req.session.data.policyStartingPointItems || {}))
-    req.session.data.policyStartingPointItemsOwned = true
+    req.session.data.policyStartingPointItemsOwned = {}
   }
-  if (!req.session.data.policyStartingPointItems[stepSlug]) {
-    req.session.data.policyStartingPointItems[stepSlug] = []
+  if (!req.session.data.policyStartingPointItemsOwned[variant]) {
+    req.session.data.policyStartingPointItems[variant] = JSON.parse(JSON.stringify(req.session.data.policyStartingPointItems[variant] || {}))
+    req.session.data.policyStartingPointItemsOwned[variant] = true
   }
-  return req.session.data.policyStartingPointItems[stepSlug]
+  if (!req.session.data.policyStartingPointItems[variant][stepSlug]) {
+    req.session.data.policyStartingPointItems[variant][stepSlug] = []
+  }
+  return req.session.data.policyStartingPointItems[variant][stepSlug]
 }
 
-function getPolicyTopics (req) {
+function getPolicyTopics (req, variant) {
+  ensurePolicyTopicsShape(req)
   if (!req.session.data.policyTopicsOwned) {
-    req.session.data.policyTopics = JSON.parse(JSON.stringify(req.session.data.policyTopics || []))
-    req.session.data.policyTopicsOwned = true
+    req.session.data.policyTopicsOwned = {}
   }
-  return req.session.data.policyTopics
+  if (!req.session.data.policyTopicsOwned[variant]) {
+    req.session.data.policyTopics[variant] = JSON.parse(JSON.stringify(req.session.data.policyTopics[variant] || []))
+    req.session.data.policyTopicsOwned[variant] = true
+  }
+  return req.session.data.policyTopics[variant]
 }
 
-function getTopic (req, topicId) {
-  return getPolicyTopics(req).find(topic => topic.id === topicId)
+function getTopic (req, variant, topicId) {
+  return getPolicyTopics(req, variant).find(topic => topic.id === topicId)
 }
 
 function getPolicyWriterSources (req) {
@@ -654,10 +711,12 @@ function getPolicyWriterSources (req) {
 // Builds the three-group sidebar (shared status vocabulary: Completed/In progress/Not started,
 // shown via the status icons in partials/icons/status-icon.html) for every page across the
 // starting-points and create-topics phases.
-function buildStartingPointsSidebar (req, activeHref) {
+function buildStartingPointsSidebar (req, variant, activeHref) {
+  const base = '/policy-writing/' + variant
+
   const stepNavItem = step => {
-    const href = '/policy-writing/starting-points/' + step.slug
-    const complete = getStartingPointItems(req, step.slug).length > 0
+    const href = base + '/starting-points/' + step.slug
+    const complete = getStartingPointItems(req, variant, step.slug).length > 0
     return {
       text: step.navLabel,
       href,
@@ -678,9 +737,9 @@ function buildStartingPointsSidebar (req, activeHref) {
     {
       heading: 'Create topics',
       items: [
-        { text: 'Review starting points', href: '/policy-writing/topics/review-starting-points', active: activeHref === '/policy-writing/topics/review-starting-points' },
-        { text: 'Create topics', href: '/policy-writing/topics/new', active: activeHref === '/policy-writing/topics/new' },
-        { text: 'Review topics', href: '/policy-writing/topics', active: activeHref === '/policy-writing/topics' }
+        { text: 'Review starting points', href: base + '/topics/review-starting-points', active: activeHref === base + '/topics/review-starting-points' },
+        { text: 'Create topics', href: base + '/topics/new', active: activeHref === base + '/topics/new' },
+        { text: 'Review topics', href: base + '/topics', active: activeHref === base + '/topics' }
       ]
     }
   ]
@@ -688,26 +747,29 @@ function buildStartingPointsSidebar (req, activeHref) {
 
 // --- Starting points wizard: one shared route pair for all 7 steps ---
 
-router.get('/policy-writing/starting-points/:step', (req, res) => {
+router.get('/policy-writing/:variant/starting-points/:step', (req, res) => {
+  const { variant } = req.params
   const step = findStartingPointStep(req.params.step)
-  if (!step) return res.redirect('/policy-writing/starting-points/' + STARTING_POINT_STEPS[0].slug)
+  if (!step) return res.redirect('/policy-writing/' + variant + '/starting-points/' + STARTING_POINT_STEPS[0].slug)
 
-  const items = getStartingPointItems(req, step.slug)
+  const items = getStartingPointItems(req, variant, step.slug)
   const editItem = req.query.edit ? items.find(item => item.id === req.query.edit) : null
 
   res.render('policy-writing/starting-points/step', {
+    variant,
     step,
     items,
     editItem,
-    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/starting-points/' + step.slug)
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/starting-points/' + step.slug)
   })
 })
 
-router.post('/policy-writing/starting-points/:step', (req, res) => {
+router.post('/policy-writing/:variant/starting-points/:step', (req, res) => {
+  const { variant } = req.params
   const step = findStartingPointStep(req.params.step)
-  if (!step) return res.redirect('/policy-writing/starting-points/' + STARTING_POINT_STEPS[0].slug)
+  if (!step) return res.redirect('/policy-writing/' + variant + '/starting-points/' + STARTING_POINT_STEPS[0].slug)
 
-  const items = getStartingPointItems(req, step.slug)
+  const items = getStartingPointItems(req, variant, step.slug)
   const text = (req.body.itemText || '').trim()
 
   if (text) {
@@ -719,25 +781,27 @@ router.post('/policy-writing/starting-points/:step', (req, res) => {
     }
   }
 
-  res.redirect('/policy-writing/starting-points/' + step.slug)
+  res.redirect('/policy-writing/' + variant + '/starting-points/' + step.slug)
 })
 
-router.post('/policy-writing/starting-points/:step/:itemId/remove', (req, res) => {
+router.post('/policy-writing/:variant/starting-points/:step/:itemId/remove', (req, res) => {
+  const { variant } = req.params
   const step = findStartingPointStep(req.params.step)
   if (step) {
-    const items = getStartingPointItems(req, step.slug)
+    const items = getStartingPointItems(req, variant, step.slug)
     const index = items.findIndex(item => item.id === req.params.itemId)
     if (index !== -1) items.splice(index, 1)
   }
-  res.redirect('/policy-writing/starting-points/' + req.params.step)
+  res.redirect('/policy-writing/' + variant + '/starting-points/' + req.params.step)
 })
 
 // --- Review starting points: aggregate table across all 7 steps ---
 
-router.get('/policy-writing/topics/review-starting-points', (req, res) => {
+router.get('/policy-writing/:variant/topics/review-starting-points', (req, res) => {
+  const { variant } = req.params
   const rows = []
   STARTING_POINT_STEPS.forEach(step => {
-    getStartingPointItems(req, step.slug).forEach(item => {
+    getStartingPointItems(req, variant, step.slug).forEach(item => {
       rows.push({
         id: item.id,
         text: item.text,
@@ -749,44 +813,51 @@ router.get('/policy-writing/topics/review-starting-points', (req, res) => {
   })
 
   res.render('policy-writing/topics/review-starting-points', {
+    variant,
     rows,
-    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/topics/review-starting-points')
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/topics/review-starting-points')
   })
 })
 
-router.post('/policy-writing/topics/review-starting-points/:sourceStep/:itemId/remove', (req, res) => {
+router.post('/policy-writing/:variant/topics/review-starting-points/:sourceStep/:itemId/remove', (req, res) => {
+  const { variant } = req.params
   const step = findStartingPointStep(req.params.sourceStep)
   if (step) {
-    const items = getStartingPointItems(req, step.slug)
+    const items = getStartingPointItems(req, variant, step.slug)
     const index = items.findIndex(item => item.id === req.params.itemId)
     if (index !== -1) items.splice(index, 1)
   }
-  res.redirect('/policy-writing/topics/review-starting-points')
+  res.redirect('/policy-writing/' + variant + '/topics/review-starting-points')
 })
 
 // --- Topics list ---
 
-router.get('/policy-writing/topics', (req, res) => {
+router.get('/policy-writing/:variant/topics', (req, res) => {
+  const { variant } = req.params
   res.render('policy-writing/topics/index', {
-    topics: getPolicyTopics(req),
-    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/topics')
+    variant,
+    topics: getPolicyTopics(req, variant),
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/topics')
   })
 })
 
 // --- Create topics ---
 
-router.get('/policy-writing/topics/new', (req, res) => {
+router.get('/policy-writing/:variant/topics/new', (req, res) => {
+  const { variant } = req.params
   res.render('policy-writing/topics/new', {
+    variant,
     startingPointGroups: STARTING_POINT_STEPS.map(step => ({
       step,
-      items: getStartingPointItems(req, step.slug)
+      items: getStartingPointItems(req, variant, step.slug)
     })),
-    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/topics/new')
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/topics/new')
   })
 })
 
-router.post('/policy-writing/topics/new', (req, res) => {
-  const topics = getPolicyTopics(req)
+router.post('/policy-writing/:variant/topics/new', (req, res) => {
+  const { variant } = req.params
+  const topics = getPolicyTopics(req, variant)
   const name = (req.body.topicName || '').trim()
 
   if (name) {
@@ -794,7 +865,7 @@ router.post('/policy-writing/topics/new', (req, res) => {
     const sources = selectedRefs.map(ref => {
       const [stepSlug, itemId] = ref.split('::')
       const step = findStartingPointStep(stepSlug)
-      const item = step && getStartingPointItems(req, stepSlug).find(candidate => candidate.id === itemId)
+      const item = step && getStartingPointItems(req, variant, stepSlug).find(candidate => candidate.id === itemId)
       if (!step || !item) return null
       return { id: 'src-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), label: item.text + ' (' + step.sourceLabel + ')' }
     }).filter(Boolean)
@@ -818,24 +889,27 @@ router.post('/policy-writing/topics/new', (req, res) => {
     })
   }
 
-  res.redirect(req.body.action === 'add-another' ? '/policy-writing/topics/new' : '/policy-writing/topics')
+  res.redirect('/policy-writing/' + variant + (req.body.action === 'add-another' ? '/topics/new' : '/topics'))
 })
 
 // --- Review topics: single-topic detail ---
 
-router.get('/policy-writing/topics/:topicId', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
-  if (!topic) return res.redirect('/policy-writing/topics')
+router.get('/policy-writing/:variant/topics/:topicId', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
+  if (!topic) return res.redirect('/policy-writing/' + variant + '/topics')
 
   res.render('policy-writing/topics/show', {
+    variant,
     topic,
     existingDocuments: EXISTING_DOCUMENTS,
-    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/topics')
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/topics')
   })
 })
 
-router.post('/policy-writing/topics/:topicId', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/topics/:topicId', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   if (topic) {
     topic.name = (req.body.topicName || topic.name).trim()
     topic.brief = req.body.brief || ''
@@ -843,53 +917,59 @@ router.post('/policy-writing/topics/:topicId', (req, res) => {
     topic.evidenceNotes = req.body.evidenceNotes || ''
     topic.additionalEvidenceNeeds = req.body.additionalEvidenceNeeds || ''
   }
-  res.redirect('/policy-writing/topics/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.get('/policy-writing/topics/:topicId/assigned-to', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
-  if (!topic) return res.redirect('/policy-writing/topics')
-  res.render('policy-writing/topics/assigned-to', { topic })
+router.get('/policy-writing/:variant/topics/:topicId/assigned-to', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
+  if (!topic) return res.redirect('/policy-writing/' + variant + '/topics')
+  res.render('policy-writing/topics/assigned-to', { variant, topic })
 })
 
-router.post('/policy-writing/topics/:topicId/assigned-to', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/topics/:topicId/assigned-to', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   if (topic) topic.assignedTo = (req.body.assignedTo || '').trim()
-  res.redirect('/policy-writing/topics/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.post('/policy-writing/topics/:topicId/sources', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/topics/:topicId/sources', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   const label = (req.body.sourceLabel || '').trim()
   if (topic && label) {
     topic.sources.push({ id: 'src-' + Date.now(), label })
   }
-  res.redirect('/policy-writing/topics/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.post('/policy-writing/topics/:topicId/sources/:sourceId/remove', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/topics/:topicId/sources/:sourceId/remove', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   if (topic) {
     topic.sources = topic.sources.filter(source => source.id !== req.params.sourceId)
   }
-  res.redirect('/policy-writing/topics/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.post('/policy-writing/topics/:topicId/example-policies', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/topics/:topicId/example-policies', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   const label = (req.body.examplePolicyLabel || '').trim()
   if (topic && label) {
     topic.examplePolicies.push({ id: 'ep-' + Date.now(), label })
   }
-  res.redirect('/policy-writing/topics/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.post('/policy-writing/topics/:topicId/example-policies/:policyId/remove', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/topics/:topicId/example-policies/:policyId/remove', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   if (topic) {
     topic.examplePolicies = topic.examplePolicies.filter(policy => policy.id !== req.params.policyId)
   }
-  res.redirect('/policy-writing/topics/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
 // Evidence can be linked either by picking an existing document from the dropdown, or by
@@ -897,26 +977,29 @@ router.post('/policy-writing/topics/:topicId/example-policies/:policyId/remove',
 // uploads, so — consistent with the "Policy writer" workspace's decorative rich-text toolbar —
 // the file input is present but not wired up; only the "link to existing document" path
 // actually records a linked-evidence entry.
-router.post('/policy-writing/topics/:topicId/linked-evidence', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/topics/:topicId/linked-evidence', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   const label = (req.body.existingDocument || '').trim()
   if (topic && label) {
     topic.linkedEvidence.push({ id: 'le-' + Date.now(), label })
   }
-  res.redirect('/policy-writing/topics/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
 // --- Policy writer workspace ---
 
-router.get('/policy-writing/write/:topicId', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
-  if (!topic) return res.redirect('/policy-writing/topics')
+router.get('/policy-writing/:variant/write/:topicId', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
+  if (!topic) return res.redirect('/policy-writing/' + variant + '/topics')
 
   const sources = getPolicyWriterSources(req)
   const requestedKinds = asArray(req.query.sourceType)
   const activeKinds = requestedKinds.length ? requestedKinds : ['policy', 'evidence', 'comment']
 
   res.render('policy-writing/write/index', {
+    variant,
     topic,
     sources: sources.filter(source => activeKinds.includes(source.kind)),
     totalSourceCount: sources.length,
@@ -941,17 +1024,19 @@ function saveWorkspaceFields (topic, body) {
   })
 }
 
-router.post('/policy-writing/write/:topicId', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/write/:topicId', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   if (topic) saveWorkspaceFields(topic, req.body)
-  res.redirect('/policy-writing/write/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/write/' + req.params.topicId)
 })
 
-router.post('/policy-writing/write/:topicId/policy-blocks', (req, res) => {
-  const topic = getTopic(req, req.params.topicId)
+router.post('/policy-writing/:variant/write/:topicId/policy-blocks', (req, res) => {
+  const { variant } = req.params
+  const topic = getTopic(req, variant, req.params.topicId)
   if (topic) {
     saveWorkspaceFields(topic, req.body)
     topic.policyBlocks.push({ id: 'block-' + Date.now(), title: '', detail: '' })
   }
-  res.redirect('/policy-writing/write/' + req.params.topicId)
+  res.redirect('/policy-writing/' + variant + '/write/' + req.params.topicId)
 })

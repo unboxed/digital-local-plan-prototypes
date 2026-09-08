@@ -16,7 +16,7 @@
     <nav class="govuk-breadcrumbs" aria-label="Breadcrumb">
       <ol class="govuk-breadcrumbs__list">
         <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing">Home</a></li>
-        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing/topics/review-starting-points">Starting points</a></li>
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing/{{ variant }}/topics/review-starting-points">Starting points</a></li>
         <li class="govuk-breadcrumbs__list-item">{{ step.navLabel }}</li>
       </ol>
     </nav>
@@ -40,7 +40,7 @@
             <td class="govuk-table__cell">{{ item.text }}</td>
             <td class="govuk-table__cell">
               <a class="govuk-link" href="?edit={{ item.id }}">Edit</a>
-              <form class="dlp-inline-form" action="/policy-writing/starting-points/{{ step.slug }}/{{ item.id }}/remove" method="post">
+              <form class="dlp-inline-form" action="/policy-writing/{{ variant }}/starting-points/{{ step.slug }}/{{ item.id }}/remove" method="post">
                 <button type="submit" class="dlp-link-button">Remove</button>
               </form>
             </td>
@@ -54,7 +54,7 @@
       </tbody>
     </table>
 
-    <form action="/policy-writing/starting-points/{{ step.slug }}" method="post">
+    <form action="/policy-writing/{{ variant }}/starting-points/{{ step.slug }}" method="post">
       {% if editItem %}
         <input type="hidden" name="itemId" value="{{ editItem.id }}">
       {% endif %}
@@ -72,7 +72,7 @@
     <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
 
     <div class="govuk-button-group">
-      <a class="govuk-button" data-module="govuk-button" href="/policy-writing/topics/review-starting-points">Save and continue</a>
+      <a class="govuk-button" data-module="govuk-button" href="/policy-writing/{{ variant }}/topics/review-starting-points">Save and continue</a>
       <a class="govuk-link" href="/policy-writing">Back</a>
     </div>
 

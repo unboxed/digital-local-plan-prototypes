@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<a class="govuk-back-link" href="/policy-writing/topics/{{ topic.id }}">Back to {{ topic.name }}</a>
+<a class="govuk-back-link" href="/policy-writing/{{ variant }}/topics/{{ topic.id }}">Back to {{ topic.name }}</a>
 
 <div class="govuk-grid-row">
 
@@ -14,7 +14,7 @@
     <div class="dlp-policy-panel">
       <h2 class="govuk-heading-s">Sources</h2>
 
-      <form action="/policy-writing/write/{{ topic.id }}" method="get">
+      <form action="/policy-writing/{{ variant }}/write/{{ topic.id }}" method="get">
         <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">
           <div class="govuk-checkboxes__item">
             <input class="govuk-checkboxes__input" id="source-type-policy" name="sourceType" type="checkbox" value="policy" {{ "checked" if "policy" in activeKinds }}>
@@ -43,7 +43,7 @@
   <div class="govuk-grid-column-one-half">
     <h2 class="govuk-heading-m">Working Space</h2>
 
-    <form action="/policy-writing/write/{{ topic.id }}" method="post">
+    <form action="/policy-writing/{{ variant }}/write/{{ topic.id }}" method="post">
       <div class="govuk-form-group">
         <label class="govuk-label govuk-label--s" for="chapter-title">Chapter title</label>
         <input class="govuk-input" id="chapter-title" name="chapterTitle" type="text" value="{{ topic.chapterTitle }}">
@@ -84,7 +84,7 @@
 
       <div class="govuk-button-group">
         <button type="submit" class="govuk-button" data-module="govuk-button">Save</button>
-        <button type="submit" formaction="/policy-writing/write/{{ topic.id }}/policy-blocks" class="govuk-button govuk-button--secondary" data-module="govuk-button">Add policy block</button>
+        <button type="submit" formaction="/policy-writing/{{ variant }}/write/{{ topic.id }}/policy-blocks" class="govuk-button govuk-button--secondary" data-module="govuk-button">Add policy block</button>
       </div>
     </form>
   </div>
@@ -93,7 +93,7 @@
     <div class="dlp-policy-panel">
       <h2 class="govuk-heading-s">Policy history</h2>
 
-      <a class="govuk-button govuk-button--secondary govuk-!-width-full" data-module="govuk-button" href="/policy-writing/topics/{{ topic.id }}" target="_blank" rel="noopener noreferrer">View brief</a>
+      <a class="govuk-button govuk-button--secondary govuk-!-width-full" data-module="govuk-button" href="/policy-writing/{{ variant }}/topics/{{ topic.id }}" target="_blank" rel="noopener noreferrer">View brief</a>
 
       <ul class="dlp-timeline">
         {% for entry in topic.policyHistory %}
