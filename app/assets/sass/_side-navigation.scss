@@ -68,8 +68,13 @@
   font-weight: bold;
 }
 
-.app-side-navigation__tag {
+.app-side-navigation__icon {
+  display: flex;
   flex-shrink: 0;
+}
+
+.app-status-icon {
+  display: block;
 }
 
 // Mobile collapse (progressive enhancement — see application.js)

@@ -1,0 +1,49 @@
+{#
+  Site-wide, non-crown-branded service header (see CLAUDE.md's "No crown branding" rule — this
+  is a custom header, not GOV.UK Frontend's branded header/crest). Shows the organisation and
+  service name, plus a nav row linking to each prototype with the current one highlighted.
+  Rendered from layouts/main.html's `header` block, so it appears on every page automatically.
+
+  Usage:
+    {% from "partials/service-header/macro.njk" import appServiceHeader %}
+    {{ appServiceHeader({ activeSection: activeSection, organisationName: organisationName, serviceName: serviceName }) }}
+
+  Note: organisationName/serviceName must be passed explicitly, not read as bare globals —
+  a Nunjucks macro imported without "with context" (the default, and what we use here) doesn't
+  inherit the calling template's context, only its own explicit parameters.
+
+  params.activeSection: one of "project-management" | "policy-writing" | "evidence" (optional —
+  set automatically by routes.js middleware based on the request path; omit/leave unmatched for
+  no highlighted item)
+  params.organisationName, params.serviceName: string (required) — see app/config.json
+#}
+
+{% macro appServiceHeader(params) %}
+<header class="app-service-header">
+  <div class="app-service-header__inner">
+    <p class="app-service-header__org">{{ params.organisationName }}</p>
+    <div class="app-service-header__service">
+      <p class="app-service-header__service-name">{{ params.serviceName }}</p>
+      <nav class="app-service-header__nav" aria-label="Prototype sections">
+        <ul class="app-service-header__nav-list">
+          <li class="app-service-header__nav-item">
+            <a class="app-service-header__nav-link {%- if params.activeSection == 'project-management' %} app-service-header__nav-link--active{% endif %}"
+               href="/project-management">Project management</a>
+          </li>
+          <li class="app-service-header__nav-item">
+            <a class="app-service-header__nav-link {%- if params.activeSection == 'policy-writing' %} app-service-header__nav-link--active{% endif %}"
+               href="/policy-writing">Policy writing</a>
+          </li>
+          <li class="app-service-header__nav-item">
+            <a class="app-service-header__nav-link {%- if params.activeSection == 'evidence' %} app-service-header__nav-link--active{% endif %}"
+               href="/evidence">Evidence</a>
+          </li>
+          <li class="app-service-header__nav-item">
+            <span class="app-service-header__nav-link app-service-header__nav-link--disabled">Consultations</span>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</header>
+{% endmacro %}

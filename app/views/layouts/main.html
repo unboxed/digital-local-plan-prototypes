@@ -4,11 +4,20 @@ https://prototype-kit.service.gov.uk/docs/how-to-use-layouts
 
 This extends the kit's "unbranded" layout rather than "govuk-branded" so the
 prototype does not display the crown/GOV.UK crest, the GDS Transport typeface,
-or any other crown copyright material. See CLAUDE.md for why.
+or any other crown copyright material. See CLAUDE.md for why. The `header`
+block below fills in our own non-crown service header instead.
 #}
 
 {% extends "govuk-prototype-kit/layouts/unbranded.njk" %}
 
+{% from "partials/service-header/macro.njk" import appServiceHeader %}
+
 {% block pageTitle %}
   {% if pageName %}{{ pageName }} - {% endif %}{{ serviceName }}
+{% endblock %}
+
+{% block header %}
+  {% if activeSection %}
+    {{ appServiceHeader({ activeSection: activeSection, organisationName: organisationName, serviceName: serviceName }) }}
+  {% endif %}
 {% endblock %}

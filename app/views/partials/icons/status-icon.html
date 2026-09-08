@@ -1,0 +1,42 @@
+{#
+  Status icons (adapted from BOPS: https://github.com/unboxed/bops/tree/main/app/views/shared/icons).
+
+  Usage:
+    {% from "partials/icons/status-icon.html" import statusIcon %}
+    {{ statusIcon("Completed") }}
+
+  status: one of "Completed" | "In progress" | "Not started" | "Cannot start" | "Action required"
+  (matched case-sensitively against the same status text already used for task/step statuses
+  elsewhere in this project). Anything else renders nothing.
+#}
+
+{% macro statusIcon(status) %}
+  {% if status == "Completed" %}
+    <svg class="app-status-icon" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Completed">
+      <circle cx="12" cy="12" r="12" fill="#1d70b8" />
+      <path d="M8 12.5 L10.5 15 L16 9.5" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  {% elif status == "In progress" %}
+    <svg class="app-status-icon" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="In progress">
+      <circle cx="12" cy="12" r="12" fill="#dbe6f4" />
+      <path d="M7 12 H16" fill="none" stroke="#1f4d7a" stroke-width="3" stroke-linecap="round" />
+      <path d="M13 8 L17 12 L13 16" fill="none" stroke="#1f4d7a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  {% elif status == "Not started" %}
+    <svg class="app-status-icon" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Not started">
+      <circle cx="12" cy="12" r="12" fill="#bbd4ea" />
+    </svg>
+  {% elif status == "Cannot start" %}
+    <svg class="app-status-icon" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cannot start">
+      <circle cx="12" cy="12" r="11" fill="none" stroke="#AAAAAA" stroke-width="2" stroke-dasharray="4 3" />
+      <rect x="8" y="12" width="8" height="6" rx="1" fill="#888888" />
+      <path d="M9.5 12 C9.5 9 10.5 8 12 8 C13.5 8 14.5 9 14.5 12" stroke="#888888" stroke-width="2" fill="none" stroke-linecap="round" />
+    </svg>
+  {% elif status == "Action required" %}
+    <svg class="app-status-icon" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Action required">
+      <circle cx="12" cy="12" r="12" fill="#fff5c7" />
+      <rect x="10.5" y="5" width="3" height="10" rx="1.5" fill="#6b5e00" />
+      <circle cx="12" cy="18" r="1.5" fill="#6b5e00" />
+    </svg>
+  {% endif %}
+{% endmacro %}

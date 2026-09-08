@@ -1,0 +1,69 @@
+// Site-wide, non-crown-branded service header (see layouts/main.html and CLAUDE.md's "No
+// crown branding" rule — this is a custom header, not GOV.UK Frontend's branded header/crest).
+//
+// Nav link colour is a precise brand value from the Figma design, not one of GOV.UK Frontend's
+// palette tints — hence the literal hex rather than govuk-colour().
+$app-service-header-active-colour: #1d8feb;
+
+.app-service-header {
+  background: govuk-colour("black");
+  color: govuk-colour("white");
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+.app-service-header__inner {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(6);
+  margin: 0 auto;
+  max-width: 1200px;
+}
+
+.app-service-header__org {
+  @include govuk-font($size: 24, $weight: bold);
+  color: govuk-colour("white");
+  margin: 0;
+}
+
+.app-service-header__service-name {
+  @include govuk-font($size: 19, $weight: bold);
+  color: govuk-colour("white");
+  margin: 0 0 govuk-spacing(1);
+}
+
+.app-service-header__nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-service-header__nav-link {
+  @include govuk-font($size: 16);
+  color: govuk-colour("white");
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+.app-service-header__nav-link--active {
+  color: $app-service-header-active-colour;
+  font-weight: bold;
+}
+
+// Still white per the same unselected styling — just not a real link (rendered as a <span>,
+// not <a>) since there's no consultations prototype yet, so no hover/underline affordance.
+.app-service-header__nav-link--disabled {
+  &:hover {
+    text-decoration: none;
+  }
+}

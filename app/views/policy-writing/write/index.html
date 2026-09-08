@@ -1,0 +1,124 @@
+{% extends "layouts/main.html" %}
+
+{% from "policy-writing/partials/source-card.html" import sourceCard %}
+
+{% set pageName = topic.chapterTitle if topic.chapterTitle else "Policy writer" %}
+
+{% block content %}
+
+<a class="govuk-back-link" href="/policy-writing/topics/{{ topic.id }}">Back to {{ topic.name }}</a>
+
+<div class="govuk-grid-row">
+
+  <div class="govuk-grid-column-one-quarter">
+    <div class="dlp-policy-panel">
+      <h2 class="govuk-heading-s">Sources</h2>
+
+      <form action="/policy-writing/write/{{ topic.id }}" method="get">
+        <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">
+          <div class="govuk-checkboxes__item">
+            <input class="govuk-checkboxes__input" id="source-type-policy" name="sourceType" type="checkbox" value="policy" {{ "checked" if "policy" in activeKinds }}>
+            <label class="govuk-label govuk-checkboxes__label" for="source-type-policy">Policies</label>
+          </div>
+          <div class="govuk-checkboxes__item">
+            <input class="govuk-checkboxes__input" id="source-type-evidence" name="sourceType" type="checkbox" value="evidence" {{ "checked" if "evidence" in activeKinds }}>
+            <label class="govuk-label govuk-checkboxes__label" for="source-type-evidence">Evidence</label>
+          </div>
+          <div class="govuk-checkboxes__item">
+            <input class="govuk-checkboxes__input" id="source-type-comment" name="sourceType" type="checkbox" value="comment" {{ "checked" if "comment" in activeKinds }}>
+            <label class="govuk-label govuk-checkboxes__label" for="source-type-comment">Comments</label>
+          </div>
+        </div>
+        <button type="submit" class="govuk-button govuk-button--secondary govuk-!-margin-top-2" data-module="govuk-button">Show</button>
+      </form>
+
+      <p class="govuk-body-s">{{ totalSourceCount }} source{{ "s" if totalSourceCount != 1 }}</p>
+
+      {% for source in sources %}
+        {{ sourceCard(source) }}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="govuk-grid-column-one-half">
+    <h2 class="govuk-heading-m">Working Space</h2>
+
+    <form action="/policy-writing/write/{{ topic.id }}" method="post">
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="chapter-title">Chapter title</label>
+        <input class="govuk-input" id="chapter-title" name="chapterTitle" type="text" value="{{ topic.chapterTitle }}">
+      </div>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="explanatory-text">Explanatory text</label>
+        <div class="dlp-editor-toolbar" aria-hidden="true">
+          <button type="button" class="dlp-editor-toolbar__button"><strong>B</strong></button>
+          <button type="button" class="dlp-editor-toolbar__button"><em>I</em></button>
+          <button type="button" class="dlp-editor-toolbar__button">&#8801;</button>
+          <button type="button" class="dlp-editor-toolbar__button">&#128279;</button>
+          <button type="button" class="dlp-editor-toolbar__button">&#128247;</button>
+          <button type="button" class="dlp-editor-toolbar__button">&hellip;</button>
+        </div>
+        <textarea class="govuk-textarea" id="explanatory-text" name="explanatoryText" rows="10">{{ topic.explanatoryText }}</textarea>
+      </div>
+
+      {% for block in topic.policyBlocks %}
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="policy-title-{{ loop.index0 }}">Policy Title</label>
+        <input class="govuk-input" id="policy-title-{{ loop.index0 }}" name="policyBlocks[{{ loop.index0 }}][title]" type="text" value="{{ block.title }}">
+      </div>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="policy-detail-{{ loop.index0 }}">Policy detail</label>
+        <div class="dlp-editor-toolbar" aria-hidden="true">
+          <button type="button" class="dlp-editor-toolbar__button"><strong>B</strong></button>
+          <button type="button" class="dlp-editor-toolbar__button"><em>I</em></button>
+          <button type="button" class="dlp-editor-toolbar__button">&#8801;</button>
+          <button type="button" class="dlp-editor-toolbar__button">&#128279;</button>
+          <button type="button" class="dlp-editor-toolbar__button">&#128247;</button>
+          <button type="button" class="dlp-editor-toolbar__button">&hellip;</button>
+        </div>
+        <textarea class="govuk-textarea" id="policy-detail-{{ loop.index0 }}" name="policyBlocks[{{ loop.index0 }}][detail]" rows="10">{{ block.detail }}</textarea>
+      </div>
+      {% endfor %}
+
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button" data-module="govuk-button">Save</button>
+        <button type="submit" formaction="/policy-writing/write/{{ topic.id }}/policy-blocks" class="govuk-button govuk-button--secondary" data-module="govuk-button">Add policy block</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="govuk-grid-column-one-quarter">
+    <div class="dlp-policy-panel">
+      <h2 class="govuk-heading-s">Policy history</h2>
+
+      <a class="govuk-button govuk-button--secondary govuk-!-width-full" data-module="govuk-button" href="/policy-writing/topics/{{ topic.id }}" target="_blank" rel="noopener noreferrer">View brief</a>
+
+      <ul class="dlp-timeline">
+        {% for entry in topic.policyHistory %}
+        <li class="dlp-timeline__entry">
+          <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-0">
+            {{ entry.type }}
+            {% if entry.status %}
+              <strong class="govuk-tag govuk-tag--{{ entry.statusColour }} dlp-timeline__status">{{ entry.status }}</strong>
+            {% endif %}
+          </p>
+          <p class="govuk-body-s govuk-!-margin-bottom-0">{{ entry.description }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+
+      {% if topic.latestNote %}
+      <div class="dlp-timeline__latest-note">
+        <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Latest Note</p>
+        <p class="govuk-body-s govuk-!-margin-bottom-1">{{ topic.latestNote.description }}</p>
+        <p class="govuk-body-s govuk-!-margin-bottom-0">{{ topic.latestNote.timestamp }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

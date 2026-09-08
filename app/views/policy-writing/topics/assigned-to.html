@@ -1,0 +1,29 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Change assigned to" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/policy-writing/topics/{{ topic.id }}">Back to {{ topic.name }}</a>
+
+    <h1 class="govuk-heading-xl">Who is this topic assigned to?</h1>
+
+    <form action="/policy-writing/topics/{{ topic.id }}/assigned-to" method="post">
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="assigned-to">Name</label>
+        <input class="govuk-input" id="assigned-to" name="assignedTo" type="text" value="{{ topic.assignedTo }}">
+      </div>
+
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button" data-module="govuk-button">Save</button>
+        <a class="govuk-link" href="/policy-writing/topics/{{ topic.id }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

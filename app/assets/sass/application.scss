@@ -5,6 +5,7 @@
 
 // Add extra styles here
 
+@import "service-header";
 @import "side-navigation";
 
 // Evidence prototype (E2US3 / E2US4)
@@ -542,3 +543,5 @@ $dlp-pdf-font: Georgia, "Times New Roman", serif;
   color: $dlp-muted-text;
   font-style: italic;
 }
+
+@import "policy-writing";
