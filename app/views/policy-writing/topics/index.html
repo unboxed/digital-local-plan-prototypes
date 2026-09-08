@@ -16,7 +16,7 @@
     <nav class="govuk-breadcrumbs" aria-label="Breadcrumb">
       <ol class="govuk-breadcrumbs__list">
         <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing">Home</a></li>
-        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing/topics/new">Create topics</a></li>
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing/{{ variant }}/topics/new">Create topics</a></li>
         <li class="govuk-breadcrumbs__list-item">Review topics</li>
       </ol>
     </nav>
@@ -41,7 +41,7 @@
             <td class="govuk-table__cell">{{ topic.name }}</td>
             <td class="govuk-table__cell">{{ topic.assignedTo if topic.assignedTo else "Not assigned" }}</td>
             <td class="govuk-table__cell">
-              <a class="govuk-link" href="/policy-writing/topics/{{ topic.id }}">Review</a>
+              <a class="govuk-link" href="/policy-writing/{{ variant }}/topics/{{ topic.id }}">Review</a>
             </td>
           </tr>
           {% endfor %}
@@ -54,7 +54,7 @@
     </table>
 
     <div class="govuk-button-group">
-      <a class="govuk-button" data-module="govuk-button" href="/policy-writing/topics/new">Create another topic</a>
+      <a class="govuk-button" data-module="govuk-button" href="/policy-writing/{{ variant }}/topics/new">Create another topic</a>
       <a class="govuk-link" href="/policy-writing">Back</a>
     </div>
 

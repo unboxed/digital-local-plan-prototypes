@@ -178,6 +178,28 @@ template that renders purely from the config object and its data, and one parame
 `app/views/policy-writing/starting-points/step.html` in the policy-writing prototype for a
 worked example covering seven steps from a single template/route pair.
 
+## Parallel journey variants (same routes/templates, different starting state)
+
+The policy-writing journey ships two independent variants — `prefilled` (realistic example
+data already filled in) and `blank` (empty, so a user experiences filling it in themselves) —
+reusing 100% of the same routes and templates rather than duplicating either. The pattern, if
+another prototype needs the same thing:
+
+1. Add a `:variant` segment to every route in the journey (`/policy-writing/:variant/...`).
+   Guard it once with `router.param('variant', ...)`, redirecting anything not in an allowed
+   list back to the prototype's landing page, rather than validating it in every handler.
+2. Session-data accessors take `variant` as a parameter and key both the stored data *and* the
+   deep-clone-on-first-touch "owned" sentinel by variant (an object, not a single flag) — see
+   `getStartingPointItems`/`getPolicyTopics` in `app/routes.js`. Seed data
+   (`session-data-defaults.js`) is nested the same way: `{ prefilled: {...}, blank: {...} }`.
+   Static, never-mutated reference data (like the writer workspace's Sources panel) doesn't
+   need variant-scoping — there's nothing for two variants to leak into each other.
+3. Every template link/form action that points elsewhere in the journey needs
+   `/policy-writing/{{ variant }}/...` — the route passes `variant` into every render call so
+   it's available for this.
+4. Link to each variant's entry point separately from the prototype's landing page, with copy
+   that says what's different (see `app/views/policy-writing/index.html`).
+
 ## Keeping this file current
 
 As conventions evolve (new shared layouts, session data patterns, testing setup, etc.), update
