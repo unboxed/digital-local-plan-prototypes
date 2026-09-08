@@ -79,6 +79,14 @@ prototype" menu.
 3. Adding a fourth prototype that should appear in the nav: add a nav item to the macro and a
    branch to the `activeSection` middleware in `app/routes.js`.
 
+Immediately below it, every page (including the root landing page — unlike the service header
+above, this one is unconditional) shows a GOV.UK "Prototype" phase banner
+(https://design-system.service.gov.uk/components/phase-banner/), rendered via GOV.UK Frontend's
+own `govukPhaseBanner` macro directly in `layouts/main.html`'s `header` block. It's placed there
+rather than in the inherited `beforeContent` block because `layouts/main-with-sidebar.html`
+overrides `container` (which `beforeContent` lives inside) but not `header` — `govukPhaseBanner`
+already wraps itself in `govuk-width-container`, so it sizes itself correctly wherever it sits.
+
 Styling lives in `app/assets/sass/_service-header.scss` (`.app-service-header*`).
 
 ## Adding a new prototype

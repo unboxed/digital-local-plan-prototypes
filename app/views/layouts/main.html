@@ -11,13 +11,24 @@ block below fills in our own non-crown service header instead.
 {% extends "govuk-prototype-kit/layouts/unbranded.njk" %}
 
 {% from "partials/service-header/macro.njk" import appServiceHeader %}
+{% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
 
 {% block pageTitle %}
   {% if pageName %}{{ pageName }} - {% endif %}{{ serviceName }}
 {% endblock %}
 
+{#
+  Placed in the `header` block (rather than `beforeContent`) so it shows on every page,
+  including ones using layouts/main-with-sidebar.html — that layout overrides `container`
+  (which `beforeContent` lives inside) but not `header`. govukPhaseBanner already wraps itself
+  in govuk-width-container, so it sizes itself correctly wherever it's placed.
+#}
 {% block header %}
   {% if activeSection %}
     {{ appServiceHeader({ activeSection: activeSection, organisationName: organisationName, serviceName: serviceName }) }}
   {% endif %}
+  {{ govukPhaseBanner({
+    tag: { text: "Prototype" },
+    text: "This is a prototype – it is not a live service."
+  }) }}
 {% endblock %}
