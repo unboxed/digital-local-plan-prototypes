@@ -21,6 +21,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-tagger]').forEach(initTagger)
   document.querySelectorAll('[data-dlp-highlights]').forEach(initSavedHighlights)
   document.querySelectorAll('[data-dlp-search]').forEach(initDocumentSearch)
+  document.querySelectorAll('[data-dlp-evidence-search]').forEach(initEvidenceSearchModal)
 })
 
 // A tag picker: lozenges for tags and policy areas, an optional custom tag
@@ -486,6 +487,194 @@ function initDocumentSearch (root) {
     count.textContent = matches.length
       ? matches.length + ' passage' + (matches.length === 1 ? '' : 's') + ' mention “' + term + '”'
       : 'No passages mention “' + term + '”'
+  })
+}
+
+// Policy screen: searching evidence by keyword opens the results in a modal,
+// grouped by the document each passage came from. Uses a native <dialog>, so
+// focus trapping and Escape-to-close come for free.
+function initEvidenceSearchModal (root) {
+  const input = root.querySelector('[data-dlp-search-input]')
+  const submit = root.querySelector('[data-dlp-search-submit]')
+  const dataScript = querySelectorOrNull(root.dataset.dlpSearchSource)
+  const modal = document.querySelector('[data-dlp-search-modal]')
+  if (!input || !dataScript || !modal) return
+
+  const title = modal.querySelector('[data-dlp-modal-title]')
+  const body = modal.querySelector('[data-dlp-modal-body]')
+  const close = modal.querySelector('[data-dlp-modal-close]')
+
+  const suggestions = root.querySelector('[data-dlp-search-suggestions]')
+  const termsScript = querySelectorOrNull(root.dataset.dlpTermsSource)
+
+  let passages = []
+  try {
+    passages = JSON.parse(dataScript.textContent)
+  } catch (error) {
+    passages = []
+  }
+
+  let searchTerms = []
+  if (termsScript) {
+    try {
+      searchTerms = JSON.parse(termsScript.textContent)
+    } catch (error) {
+      searchTerms = []
+    }
+  }
+
+  function closeSuggestions () {
+    if (!suggestions) return
+    suggestions.innerHTML = ''
+    suggestions.hidden = true
+    input.setAttribute('aria-expanded', 'false')
+  }
+
+  function groupBySource (matches) {
+    const groups = []
+    matches.forEach(passage => {
+      let group = groups.find(candidate => candidate.source === passage.source)
+      if (!group) {
+        group = { source: passage.source, chapter: passage.chapter, passages: [] }
+        groups.push(group)
+      }
+      group.passages.push(passage)
+    })
+    return groups
+  }
+
+  // Results are a list of the documents the term appears in — the documents
+  // themselves aren't openable yet, so they're shown as links without a
+  // destination.
+  function search (searchTerm) {
+    const term = (searchTerm === undefined ? input.value : searchTerm).trim()
+    if (!term) return
+
+    input.value = term
+    closeSuggestions()
+
+    const matches = passages.filter(passage => {
+      return passage.text.toLowerCase().indexOf(term.toLowerCase()) !== -1
+    })
+    const groups = groupBySource(matches)
+
+    title.textContent = 'All evidence relating to “' + term + '”'
+    body.innerHTML = ''
+
+    if (!groups.length) {
+      const empty = document.createElement('p')
+      empty.className = 'govuk-body'
+      empty.textContent = 'No evidence mentions “' + term + '”.'
+      body.appendChild(empty)
+    } else {
+      const count = document.createElement('p')
+      count.className = 'govuk-body-s dlp-modal__count'
+      count.textContent = groups.length + ' document' + (groups.length === 1 ? '' : 's') +
+        ' mention “' + term + '”'
+      body.appendChild(count)
+
+      const list = document.createElement('ul')
+      list.className = 'govuk-list dlp-doc-results'
+
+      groups.forEach(group => {
+        const item = document.createElement('li')
+        item.className = 'dlp-doc-results__item'
+
+        const link = document.createElement('a')
+        link.className = 'govuk-link dlp-doc-results__title'
+        link.href = '#'
+        link.textContent = group.chapter ? group.source + ' / ' + group.chapter : group.source
+        item.appendChild(link)
+
+        const meta = document.createElement('p')
+        meta.className = 'govuk-body-s dlp-doc-results__meta'
+        meta.textContent = group.passages.length + ' mention' +
+          (group.passages.length === 1 ? '' : 's') + ' in this document'
+        item.appendChild(meta)
+
+        list.appendChild(item)
+      })
+
+      body.appendChild(list)
+    }
+
+    if (typeof modal.showModal === 'function') {
+      modal.showModal()
+    } else {
+      modal.setAttribute('open', 'open')
+    }
+  }
+
+  if (submit) submit.addEventListener('click', () => search())
+
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      closeSuggestions()
+      return
+    }
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    search()
+  })
+
+  // Type-ahead over policy titles and common evidence topics, so officers can
+  // see the kinds of term worth searching for rather than guessing.
+  if (suggestions && searchTerms.length) {
+    input.addEventListener('input', () => {
+      const term = input.value.trim().toLowerCase()
+      suggestions.innerHTML = ''
+
+      if (!term) {
+        closeSuggestions()
+        return
+      }
+
+      const matches = searchTerms
+        .filter(option => option.term.toLowerCase().indexOf(term) !== -1)
+        .slice(0, 8)
+
+      if (!matches.length) {
+        closeSuggestions()
+        return
+      }
+
+      matches.forEach(option => {
+        const item = document.createElement('li')
+        item.setAttribute('role', 'option')
+
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'dlp-typeahead__option'
+        button.addEventListener('click', () => search(option.term))
+
+        const label = document.createElement('span')
+        label.textContent = option.term
+        button.appendChild(label)
+
+        const kind = document.createElement('span')
+        kind.className = 'dlp-typeahead__kind'
+        kind.textContent = option.kind
+        button.appendChild(kind)
+
+        item.appendChild(button)
+        suggestions.appendChild(item)
+      })
+
+      suggestions.hidden = false
+      input.setAttribute('aria-expanded', 'true')
+    })
+
+    document.addEventListener('click', event => {
+      if (!root.contains(event.target)) closeSuggestions()
+    })
+  }
+
+  if (close) close.addEventListener('click', () => modal.close())
+
+  // Clicking the backdrop (i.e. the dialog element itself, outside its
+  // content) closes it, matching what people expect of a modal.
+  modal.addEventListener('click', event => {
+    if (event.target === modal) modal.close()
   })
 }
 

@@ -822,3 +822,211 @@ $dlp-confidence-low: govuk-colour("orange");
     font-weight: bold;
   }
 }
+
+// Policy summary screen
+.dlp-policy-list {
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-policy-list__item {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: 0;
+  padding: govuk-spacing(4) 0;
+
+  &:first-child {
+    border-top: 1px solid $dlp-border-grey;
+  }
+}
+
+.dlp-policy-list__heading {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: 0 0 govuk-spacing(1);
+}
+
+.dlp-policy-summary__tags {
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-policy-section {
+  border-top: 1px solid $dlp-border-grey;
+  margin-top: govuk-spacing(6);
+  padding-top: govuk-spacing(4);
+}
+
+.dlp-policy-section__heading {
+  @include govuk-font($size: 24, $weight: bold);
+  margin: 0 0 govuk-spacing(3);
+}
+
+.dlp-policy-section__subheading {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: govuk-spacing(4) 0 govuk-spacing(2);
+}
+
+.dlp-policy-section__meta {
+  color: $dlp-muted-text;
+}
+
+.dlp-source-list {
+  display: grid;
+  gap: govuk-spacing(3);
+  grid-template-columns: 1fr;
+  margin: 0 0 govuk-spacing(4);
+  padding: 0;
+
+  @include govuk-media-query($from: tablet) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dlp-source-list__item {
+  border-left: 4px solid $dlp-tag-accent;
+  margin-bottom: 0;
+  padding: govuk-spacing(1) govuk-spacing(3);
+}
+
+.dlp-source-list__title {
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-note-list {
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-note-list__item {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(2);
+  padding: govuk-spacing(3);
+}
+
+.dlp-note-list__meta {
+  color: $dlp-muted-text;
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-search__row {
+  align-items: flex-start;
+  display: flex;
+  gap: govuk-spacing(2);
+
+  .dlp-input {
+    flex: 1 1 auto;
+  }
+}
+
+.dlp-search__field {
+  flex: 1 1 auto;
+}
+
+// Evidence search results modal
+.dlp-modal {
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  max-height: 80vh;
+  max-width: 42em;
+  padding: 0;
+  width: 90%;
+
+  &::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+.dlp-modal__header {
+  align-items: flex-start;
+  background: $dlp-panel-background;
+  border-bottom: 1px solid $dlp-border-grey;
+  display: flex;
+  gap: govuk-spacing(3);
+  justify-content: space-between;
+  padding: govuk-spacing(4);
+}
+
+.dlp-modal__title {
+  @include govuk-font($size: 24, $weight: bold);
+  margin: 0;
+}
+
+.dlp-modal__close {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 govuk-spacing(1);
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+.dlp-modal__body {
+  overflow-y: auto;
+  padding: govuk-spacing(4);
+}
+
+.dlp-modal__group {
+  margin-bottom: govuk-spacing(5);
+}
+
+.dlp-modal__group-title {
+  @include govuk-font($size: 16, $weight: bold);
+  border-bottom: 1px solid $dlp-border-grey;
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(2);
+  padding-bottom: govuk-spacing(1);
+}
+
+.dlp-modal__passage {
+  @include govuk-font($size: 19);
+  border-left: 4px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(2);
+  padding: govuk-spacing(1) govuk-spacing(3);
+}
+
+// Policy areas column, set off from the main content
+.dlp-policy-nav {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  padding: govuk-spacing(3);
+}
+
+// Search results: the documents a term appears in
+.dlp-modal__count {
+  color: $dlp-muted-text;
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-doc-results {
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-doc-results__item {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: 0;
+  padding: govuk-spacing(3) 0;
+
+  &:first-child {
+    border-top: 1px solid $dlp-border-grey;
+  }
+}
+
+.dlp-doc-results__title {
+  @include govuk-font($size: 19, $weight: bold);
+}
+
+.dlp-doc-results__meta {
+  color: $dlp-muted-text;
+  margin: govuk-spacing(1) 0 0;
+}
+
+// Consultation responses reuse the source-list layout, in their own accent
+// so the two lists don't read as the same kind of thing.
+.dlp-source-list__item--response {
+  border-left-color: $dlp-policy-accent;
+}

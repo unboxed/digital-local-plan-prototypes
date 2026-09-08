@@ -10,8 +10,11 @@ const {
   DOCUMENT_SOURCE,
   DOCUMENT_CHAPTER,
   DOCUMENT_PARAGRAPHS,
+  DOCUMENTS,
   getDocument
 } = require('./data/documents.js')
+
+const { getSearchTerms, getPoliciesForArea, getPolicy } = require('./data/policies.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
 //
@@ -428,6 +431,52 @@ router.get('/evidence/library', (req, res) => {
     filtersApplied,
     filters
   }))
+})
+
+// --- Policy: view a policy summary ---
+
+// Everything the policy screen's keyword search looks through: the evidence
+// a user has tagged, plus the body text of the documents it came from. Each
+// result carries the document it belongs to, so the modal can group by it.
+function getSearchableEvidence (items) {
+  const passages = items.map(item => ({
+    text: item.text,
+    source: item.source,
+    chapter: item.chapter || '',
+    tagged: true
+  }))
+
+  Object.keys(DOCUMENTS).forEach(source => {
+    DOCUMENTS[source].paragraphs.forEach(paragraph => {
+      if (passages.some(passage => passage.text === paragraph)) return
+      passages.push({
+        text: paragraph,
+        source,
+        chapter: DOCUMENTS[source].chapter || '',
+        tagged: false
+      })
+    })
+  })
+
+  return passages
+}
+
+router.get('/policy-writing/policy-summary', (req, res) => {
+  const items = getEvidenceItems(req)
+  const policyArea = req.query.policyArea || ''
+  const policies = getPoliciesForArea(policyArea)
+  const policy = req.query.ref ? getPolicy(req.query.ref) : null
+
+  res.render('policy-writing/policy-summary/index', {
+    policyAreaLinks: POLICY_AREA_LINKS,
+    tagColours: TAG_COLOURS,
+    policyArea,
+    policyAreaEncoded: encodeURIComponent(policyArea),
+    policies,
+    policy,
+    searchableEvidenceJson: JSON.stringify(getSearchableEvidence(items)),
+    searchTermsJson: JSON.stringify(getSearchTerms())
+  })
 })
 
 // --- Filtered results and export confirmation ---

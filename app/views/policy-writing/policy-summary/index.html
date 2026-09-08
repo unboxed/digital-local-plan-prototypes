@@ -1,0 +1,175 @@
+{% extends "layouts/main.html" %} {% set pageName = "View policy summary" %} {%
+block content %}
+
+<a class="govuk-back-link" href="/policy-writing">Back to Policy</a>
+
+<h1 class="govuk-heading-xl">View policy summary</h1>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-one-quarter">
+    <nav class="dlp-policy-nav" aria-label="Policy areas">
+      <h2 class="dlp-policy-nav__heading">Policy areas</h2>
+      <ul class="dlp-policy-nav__list">
+        {% for area in policyAreaLinks %}
+        <li>
+          <a class="dlp-policy-nav__link{% if policyArea == area.label %} dlp-policy-nav__link--active{% endif %}" href="/policy-writing/policy-summary?policyArea={{ area.encoded }}">
+            {{ area.label }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+
+  <div class="govuk-grid-column-three-quarters">
+    {% if not policyArea %}
+    <p class="govuk-body">
+      Choose a policy area to see the policies in it.
+    </p>
+
+    {% elif policy %}
+    <p class="govuk-body-s">
+      <a class="govuk-link" href="/policy-writing/policy-summary?policyArea={{ policyAreaEncoded }}">
+        Back to {{ policyArea }} policies
+      </a>
+    </p>
+
+    <div class="dlp-policy-summary">
+      <span class="govuk-caption-l">Policy {{ policy.ref }}</span>
+      <h2 class="govuk-heading-l govuk-!-margin-bottom-2">{{ policy.title }}</h2>
+
+      <p class="dlp-policy-summary__tags">
+        {% for tag in policy.tags %}<strong class="govuk-tag{% if tagColours[tag] %} govuk-tag--{{ tagColours[tag] }}{% endif %} dlp-evidence-card__tag">{{ tag }}</strong>{% endfor %}
+      </p>
+
+      <p class="govuk-body">{{ policy.summary }}</p>
+
+      <section class="dlp-policy-section">
+        <h3 class="dlp-policy-section__heading">Evidence</h3>
+        <p class="govuk-body">{{ policy.evidenceSummary }}</p>
+
+        <h4 class="dlp-policy-section__subheading">Evidence sources</h4>
+        <ul class="govuk-list dlp-source-list">
+          {% for source in policy.evidenceSources %}
+          <li class="dlp-source-list__item">
+            <p class="govuk-body-s dlp-source-list__title">
+              {{ source.title }} {{ source.ref }}: {{ source.summary }}
+            </p>
+            <p class="govuk-body-s govuk-!-margin-bottom-0">
+              <a class="govuk-link" href="#">View source</a>
+            </p>
+          </li>
+          {% endfor %}
+        </ul>
+
+        <div class="dlp-search"
+             data-dlp-evidence-search
+             data-dlp-search-source="#policy-evidence-data"
+             data-dlp-terms-source="#policy-search-terms">
+          <label class="dlp-label" for="policy-evidence-search">Search evidence related to this policy</label>
+          <p class="dlp-hint" id="policy-evidence-search-hint">
+            Start typing to see suggested terms, or search for your own keyword.
+          </p>
+          <div class="dlp-search__row">
+            <div class="dlp-search__field">
+              <input class="dlp-input"
+                     id="policy-evidence-search"
+                     type="text"
+                     autocomplete="off"
+                     role="combobox"
+                     aria-expanded="false"
+                     aria-autocomplete="list"
+                     aria-controls="policy-search-suggestions"
+                     aria-describedby="policy-evidence-search-hint"
+                     data-dlp-search-input>
+              <ul class="dlp-typeahead" id="policy-search-suggestions" role="listbox" data-dlp-search-suggestions hidden></ul>
+            </div>
+            <button type="button" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-search-submit>
+              Search
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="dlp-policy-section">
+        <h3 class="dlp-policy-section__heading">Consultation responses</h3>
+        <p class="govuk-body">{{ policy.consultationSummary }}</p>
+        <p class="govuk-body-s dlp-policy-section__meta">
+          {{ policy.consultationResponseCount }} responses received on this policy
+        </p>
+
+        {% if policy.consultationResponses.length %}
+        <ul class="govuk-list dlp-source-list">
+          {% for response in policy.consultationResponses %}
+          <li class="dlp-source-list__item dlp-source-list__item--response">
+            <p class="govuk-body-s dlp-source-list__title">
+              {{ response.respondent }} response, {{ response.ref }}
+            </p>
+            <p class="govuk-body-s">{{ response.comment }}</p>
+            <p class="govuk-body-s govuk-!-margin-bottom-0">
+              <a class="govuk-link" href="#">View response</a>
+            </p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <p class="govuk-body">
+          <a class="govuk-link" href="#">View consultation responses</a>
+        </p>
+      </section>
+
+      <section class="dlp-policy-section">
+        <h3 class="dlp-policy-section__heading">Notes</h3>
+        {% if policy.notes.length %}
+        <ul class="govuk-list dlp-note-list">
+          {% for note in policy.notes %}
+          <li class="dlp-note-list__item">
+            <p class="govuk-body-s dlp-note-list__meta">{{ note.author }} · {{ note.date }}</p>
+            <p class="govuk-body govuk-!-margin-bottom-0">{{ note.text }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="govuk-body">No notes on this policy yet.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    {% else %}
+    <h2 class="govuk-heading-m">{{ policyArea }}</h2>
+
+    {% if policies.length %}
+    <ul class="govuk-list dlp-policy-list">
+      {% for item in policies %}
+      <li class="dlp-policy-list__item">
+        <h3 class="dlp-policy-list__heading">
+          <a class="govuk-link" href="/policy-writing/policy-summary?policyArea={{ policyAreaEncoded }}&ref={{ item.ref }}">
+            {{ item.ref }} {{ item.title }}
+          </a>
+        </h3>
+        <p class="govuk-body-s govuk-!-margin-bottom-0">{{ item.summary }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="govuk-body">There are no policies in this area yet.</p>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% if policy %}
+<dialog class="dlp-modal" id="evidence-search-modal" data-dlp-search-modal aria-labelledby="evidence-search-modal-title">
+  <div class="dlp-modal__header">
+    <h2 class="dlp-modal__title" id="evidence-search-modal-title" data-dlp-modal-title>All evidence</h2>
+    <button type="button" class="dlp-modal__close" data-dlp-modal-close aria-label="Close">×</button>
+  </div>
+  <div class="dlp-modal__body" data-dlp-modal-body></div>
+</dialog>
+
+<script type="application/json" id="policy-evidence-data">{{ searchableEvidenceJson | safe }}</script>
+<script type="application/json" id="policy-search-terms">{{ searchTermsJson | safe }}</script>
+{% endif %}
+
+{% endblock %}
