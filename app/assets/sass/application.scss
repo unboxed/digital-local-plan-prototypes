@@ -5,6 +5,7 @@
 
 // Add extra styles here
 
+@import "service-header";
 @import "side-navigation";
 
 // Evidence prototype (E2US3 / E2US4)
@@ -15,6 +16,9 @@ $dlp-panel-background: govuk-colour("black", $variant: "tint-95");
 $dlp-tag-accent: govuk-colour("blue");
 $dlp-policy-accent: govuk-colour("purple");
 $dlp-highlight-background: #fff7bf;
+
+// Imported after the variables above because it uses them.
+@import "policy-writing";
 
 // Workspace top navigation
 .dlp-workspace-nav {

@@ -5,6 +5,26 @@
 
 const govukPrototypeKit = require('govuk-prototype-kit')
 const router = govukPrototypeKit.requests.setupRouter()
+const appConfig = require('./config.json')
+
+// --- Site-wide service header ---
+//
+// setupRouter() mounts this router at "/", ahead of the kit's own auto-view-rendering
+// fallback (see node_modules/govuk-prototype-kit/server.js), so this middleware runs for every
+// request — including pages with no custom route below, like the plain app/views/*/index.html
+// prototype landing pages. That makes res.locals.activeSection/organisationName available to
+// every template via layouts/main.html's `header` block, with no per-page wiring needed.
+router.use((req, res, next) => {
+  res.locals.organisationName = appConfig.organisationName
+  if (req.path.startsWith('/project-management')) {
+    res.locals.activeSection = 'project-management'
+  } else if (req.path.startsWith('/policy-writing')) {
+    res.locals.activeSection = 'policy-writing'
+  } else if (req.path.startsWith('/evidence')) {
+    res.locals.activeSection = 'evidence'
+  }
+  next()
+})
 
 const {
   DOCUMENT_SOURCE,
@@ -505,4 +525,421 @@ router.post('/evidence/results', (req, res) => {
   }
 
   res.redirect('/evidence/results?exported=1')
+})
+
+// --- Policy writing prototype ---
+//
+// Session-backed, three-phase journey:
+//   /policy-writing/starting-points/:step   - 7-step "starting points" wizard
+//   /policy-writing/topics/...              - aggregate view + create/review topics
+//   /policy-writing/write/:topicId          - policy writer drafting workspace
+//
+// Starting point items are stored in req.session.data.policyStartingPointItems, an object
+// keyed by step slug. Topics are stored in req.session.data.policyTopics. The Sources panel in
+// the writer workspace uses static seed data in req.session.data.policyWriterSources. All three
+// follow the same lazy-deep-clone-on-first-touch pattern as getEvidenceItems above, since the
+// kit merges session-data-defaults.js into a new session with a shallow Object.assign.
+
+const STARTING_POINT_STEPS = [
+  {
+    slug: 'adopted-plan-chapters',
+    group: 'now',
+    navLabel: 'Add adopted plan chapters',
+    hint: 'Enter in the chapters in your currently adopted plan, these might be called themes or sections. You do not need to enter in each policy now, this will happen later.',
+    itemLabel: 'Adopted plan chapter',
+    sourceLabel: 'Adopted plan'
+  },
+  {
+    slug: 'existing-data-sources',
+    group: 'now',
+    navLabel: 'Add existing data sources',
+    hint: 'Enter the data sources you currently hold that are relevant to this plan.',
+    itemLabel: 'Data source',
+    sourceLabel: 'Existing data source'
+  },
+  {
+    slug: 'current-trends',
+    group: 'now',
+    navLabel: 'Add current trends',
+    hint: 'Enter emerging trends you have identified that may need a new policy response.',
+    itemLabel: 'Trend',
+    sourceLabel: 'New need'
+  },
+  {
+    slug: 'scoping-consultation-themes',
+    group: 'next',
+    navLabel: 'Add scoping consultation themes',
+    hint: 'Enter the themes raised in your scoping consultation.',
+    itemLabel: 'Scoping consultation theme',
+    sourceLabel: 'Scoping consultation theme'
+  },
+  {
+    slug: 'political-priorities',
+    group: 'next',
+    navLabel: 'Add political priorities',
+    hint: 'Enter the political priorities relevant to this plan.',
+    itemLabel: 'Political priority',
+    sourceLabel: 'Political priority'
+  },
+  {
+    slug: 'other-plans-policies-strategies',
+    group: 'next',
+    navLabel: 'Add other plans, policies or strategies',
+    hint: 'Enter other plans, policies or strategies this plan needs to align with.',
+    itemLabel: 'Plan, policy or strategy',
+    sourceLabel: 'Other plan, policy or strategy'
+  },
+  {
+    slug: 'nppf-sds-requirements',
+    group: 'next',
+    navLabel: 'Add NPPF and SDS requirements',
+    hint: 'Enter the NPPF and Spatial Development Strategy requirements relevant to this plan.',
+    itemLabel: 'NPPF or SDS requirement',
+    sourceLabel: 'NPPF/SDS'
+  }
+]
+
+const EXISTING_DOCUMENTS = [
+  'SHLAA 2025', 'Brownfield register v2.0', 'Housing needs assessment study',
+  'Strategic Flood Risk Assessment', 'Employment Land Review'
+]
+
+function findStartingPointStep (slug) {
+  return STARTING_POINT_STEPS.find(step => step.slug === slug)
+}
+
+function getStartingPointItems (req, stepSlug) {
+  if (!req.session.data.policyStartingPointItemsOwned) {
+    req.session.data.policyStartingPointItems = JSON.parse(JSON.stringify(req.session.data.policyStartingPointItems || {}))
+    req.session.data.policyStartingPointItemsOwned = true
+  }
+  if (!req.session.data.policyStartingPointItems[stepSlug]) {
+    req.session.data.policyStartingPointItems[stepSlug] = []
+  }
+  return req.session.data.policyStartingPointItems[stepSlug]
+}
+
+function getPolicyTopics (req) {
+  if (!req.session.data.policyTopicsOwned) {
+    req.session.data.policyTopics = JSON.parse(JSON.stringify(req.session.data.policyTopics || []))
+    req.session.data.policyTopicsOwned = true
+  }
+  return req.session.data.policyTopics
+}
+
+function getTopic (req, topicId) {
+  return getPolicyTopics(req).find(topic => topic.id === topicId)
+}
+
+function getPolicyWriterSources (req) {
+  if (!req.session.data.policyWriterSourcesOwned) {
+    req.session.data.policyWriterSources = JSON.parse(JSON.stringify(req.session.data.policyWriterSources || []))
+    req.session.data.policyWriterSourcesOwned = true
+  }
+  return req.session.data.policyWriterSources
+}
+
+// Builds the three-group sidebar (shared status vocabulary: Completed/In progress/Not started,
+// shown via the status icons in partials/icons/status-icon.html) for every page across the
+// starting-points and create-topics phases.
+function buildStartingPointsSidebar (req, activeHref) {
+  const stepNavItem = step => {
+    const href = '/policy-writing/starting-points/' + step.slug
+    const complete = getStartingPointItems(req, step.slug).length > 0
+    return {
+      text: step.navLabel,
+      href,
+      active: href === activeHref,
+      status: complete ? 'Completed' : 'Not started'
+    }
+  }
+
+  return [
+    {
+      heading: 'Policy starting points - now',
+      items: STARTING_POINT_STEPS.filter(step => step.group === 'now').map(stepNavItem)
+    },
+    {
+      heading: 'Policy starting points - next',
+      items: STARTING_POINT_STEPS.filter(step => step.group === 'next').map(stepNavItem)
+    },
+    {
+      heading: 'Create topics',
+      items: [
+        { text: 'Review starting points', href: '/policy-writing/topics/review-starting-points', active: activeHref === '/policy-writing/topics/review-starting-points' },
+        { text: 'Create topics', href: '/policy-writing/topics/new', active: activeHref === '/policy-writing/topics/new' },
+        { text: 'Review topics', href: '/policy-writing/topics', active: activeHref === '/policy-writing/topics' }
+      ]
+    }
+  ]
+}
+
+// --- Starting points wizard: one shared route pair for all 7 steps ---
+
+router.get('/policy-writing/starting-points/:step', (req, res) => {
+  const step = findStartingPointStep(req.params.step)
+  if (!step) return res.redirect('/policy-writing/starting-points/' + STARTING_POINT_STEPS[0].slug)
+
+  const items = getStartingPointItems(req, step.slug)
+  const editItem = req.query.edit ? items.find(item => item.id === req.query.edit) : null
+
+  res.render('policy-writing/starting-points/step', {
+    step,
+    items,
+    editItem,
+    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/starting-points/' + step.slug)
+  })
+})
+
+router.post('/policy-writing/starting-points/:step', (req, res) => {
+  const step = findStartingPointStep(req.params.step)
+  if (!step) return res.redirect('/policy-writing/starting-points/' + STARTING_POINT_STEPS[0].slug)
+
+  const items = getStartingPointItems(req, step.slug)
+  const text = (req.body.itemText || '').trim()
+
+  if (text) {
+    if (req.body.itemId) {
+      const existing = items.find(item => item.id === req.body.itemId)
+      if (existing) existing.text = text
+    } else {
+      items.push({ id: 'psp-' + Date.now(), text })
+    }
+  }
+
+  res.redirect('/policy-writing/starting-points/' + step.slug)
+})
+
+router.post('/policy-writing/starting-points/:step/:itemId/remove', (req, res) => {
+  const step = findStartingPointStep(req.params.step)
+  if (step) {
+    const items = getStartingPointItems(req, step.slug)
+    const index = items.findIndex(item => item.id === req.params.itemId)
+    if (index !== -1) items.splice(index, 1)
+  }
+  res.redirect('/policy-writing/starting-points/' + req.params.step)
+})
+
+// --- Review starting points: aggregate table across all 7 steps ---
+
+router.get('/policy-writing/topics/review-starting-points', (req, res) => {
+  const rows = []
+  STARTING_POINT_STEPS.forEach(step => {
+    getStartingPointItems(req, step.slug).forEach(item => {
+      rows.push({
+        id: item.id,
+        text: item.text,
+        stepSlug: step.slug,
+        sourceLabel: step.sourceLabel,
+        status: 'Not started'
+      })
+    })
+  })
+
+  res.render('policy-writing/topics/review-starting-points', {
+    rows,
+    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/topics/review-starting-points')
+  })
+})
+
+router.post('/policy-writing/topics/review-starting-points/:sourceStep/:itemId/remove', (req, res) => {
+  const step = findStartingPointStep(req.params.sourceStep)
+  if (step) {
+    const items = getStartingPointItems(req, step.slug)
+    const index = items.findIndex(item => item.id === req.params.itemId)
+    if (index !== -1) items.splice(index, 1)
+  }
+  res.redirect('/policy-writing/topics/review-starting-points')
+})
+
+// --- Topics list ---
+
+router.get('/policy-writing/topics', (req, res) => {
+  res.render('policy-writing/topics/index', {
+    topics: getPolicyTopics(req),
+    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/topics')
+  })
+})
+
+// --- Create topics ---
+
+router.get('/policy-writing/topics/new', (req, res) => {
+  res.render('policy-writing/topics/new', {
+    startingPointGroups: STARTING_POINT_STEPS.map(step => ({
+      step,
+      items: getStartingPointItems(req, step.slug)
+    })),
+    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/topics/new')
+  })
+})
+
+router.post('/policy-writing/topics/new', (req, res) => {
+  const topics = getPolicyTopics(req)
+  const name = (req.body.topicName || '').trim()
+
+  if (name) {
+    const selectedRefs = asArray(req.body.startingPoints)
+    const sources = selectedRefs.map(ref => {
+      const [stepSlug, itemId] = ref.split('::')
+      const step = findStartingPointStep(stepSlug)
+      const item = step && getStartingPointItems(req, stepSlug).find(candidate => candidate.id === itemId)
+      if (!step || !item) return null
+      return { id: 'src-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), label: item.text + ' (' + step.sourceLabel + ')' }
+    }).filter(Boolean)
+
+    topics.push({
+      id: 'topic-' + Date.now(),
+      name,
+      assignedTo: '',
+      brief: (req.body.brief || '').trim(),
+      desiredImpact: '',
+      sources,
+      examplePolicies: [],
+      evidenceNotes: '',
+      linkedEvidence: [],
+      additionalEvidenceNeeds: '',
+      chapterTitle: '',
+      explanatoryText: '',
+      policyBlocks: [],
+      policyHistory: [],
+      latestNote: null
+    })
+  }
+
+  res.redirect(req.body.action === 'add-another' ? '/policy-writing/topics/new' : '/policy-writing/topics')
+})
+
+// --- Review topics: single-topic detail ---
+
+router.get('/policy-writing/topics/:topicId', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (!topic) return res.redirect('/policy-writing/topics')
+
+  res.render('policy-writing/topics/show', {
+    topic,
+    existingDocuments: EXISTING_DOCUMENTS,
+    sidebarSections: buildStartingPointsSidebar(req, '/policy-writing/topics')
+  })
+})
+
+router.post('/policy-writing/topics/:topicId', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (topic) {
+    topic.name = (req.body.topicName || topic.name).trim()
+    topic.brief = req.body.brief || ''
+    topic.desiredImpact = req.body.desiredImpact || ''
+    topic.evidenceNotes = req.body.evidenceNotes || ''
+    topic.additionalEvidenceNeeds = req.body.additionalEvidenceNeeds || ''
+  }
+  res.redirect('/policy-writing/topics/' + req.params.topicId)
+})
+
+router.get('/policy-writing/topics/:topicId/assigned-to', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (!topic) return res.redirect('/policy-writing/topics')
+  res.render('policy-writing/topics/assigned-to', { topic })
+})
+
+router.post('/policy-writing/topics/:topicId/assigned-to', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (topic) topic.assignedTo = (req.body.assignedTo || '').trim()
+  res.redirect('/policy-writing/topics/' + req.params.topicId)
+})
+
+router.post('/policy-writing/topics/:topicId/sources', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  const label = (req.body.sourceLabel || '').trim()
+  if (topic && label) {
+    topic.sources.push({ id: 'src-' + Date.now(), label })
+  }
+  res.redirect('/policy-writing/topics/' + req.params.topicId)
+})
+
+router.post('/policy-writing/topics/:topicId/sources/:sourceId/remove', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (topic) {
+    topic.sources = topic.sources.filter(source => source.id !== req.params.sourceId)
+  }
+  res.redirect('/policy-writing/topics/' + req.params.topicId)
+})
+
+router.post('/policy-writing/topics/:topicId/example-policies', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  const label = (req.body.examplePolicyLabel || '').trim()
+  if (topic && label) {
+    topic.examplePolicies.push({ id: 'ep-' + Date.now(), label })
+  }
+  res.redirect('/policy-writing/topics/' + req.params.topicId)
+})
+
+router.post('/policy-writing/topics/:topicId/example-policies/:policyId/remove', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (topic) {
+    topic.examplePolicies = topic.examplePolicies.filter(policy => policy.id !== req.params.policyId)
+  }
+  res.redirect('/policy-writing/topics/' + req.params.topicId)
+})
+
+// Evidence can be linked either by picking an existing document from the dropdown, or by
+// choosing a file to upload. The prototype kit's default body parser doesn't process file
+// uploads, so — consistent with the "Policy writer" workspace's decorative rich-text toolbar —
+// the file input is present but not wired up; only the "link to existing document" path
+// actually records a linked-evidence entry.
+router.post('/policy-writing/topics/:topicId/linked-evidence', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  const label = (req.body.existingDocument || '').trim()
+  if (topic && label) {
+    topic.linkedEvidence.push({ id: 'le-' + Date.now(), label })
+  }
+  res.redirect('/policy-writing/topics/' + req.params.topicId)
+})
+
+// --- Policy writer workspace ---
+
+router.get('/policy-writing/write/:topicId', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (!topic) return res.redirect('/policy-writing/topics')
+
+  const sources = getPolicyWriterSources(req)
+  const requestedKinds = asArray(req.query.sourceType)
+  const activeKinds = requestedKinds.length ? requestedKinds : ['policy', 'evidence', 'comment']
+
+  res.render('policy-writing/write/index', {
+    topic,
+    sources: sources.filter(source => activeKinds.includes(source.kind)),
+    totalSourceCount: sources.length,
+    activeKinds
+  })
+})
+
+// Shared by both routes below so that clicking "Add policy block" (a submit button with its
+// own formaction, inside the same form) saves whatever the user has already typed before
+// appending a new block, rather than discarding it.
+function saveWorkspaceFields (topic, body) {
+  topic.chapterTitle = body.chapterTitle || ''
+  topic.explanatoryText = body.explanatoryText || ''
+
+  const submittedBlocks = body.policyBlocks || {}
+  topic.policyBlocks.forEach((block, index) => {
+    const submitted = submittedBlocks[index]
+    if (submitted) {
+      block.title = submitted.title || ''
+      block.detail = submitted.detail || ''
+    }
+  })
+}
+
+router.post('/policy-writing/write/:topicId', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (topic) saveWorkspaceFields(topic, req.body)
+  res.redirect('/policy-writing/write/' + req.params.topicId)
+})
+
+router.post('/policy-writing/write/:topicId/policy-blocks', (req, res) => {
+  const topic = getTopic(req, req.params.topicId)
+  if (topic) {
+    saveWorkspaceFields(topic, req.body)
+    topic.policyBlocks.push({ id: 'block-' + Date.now(), title: '', detail: '' })
+  }
+  res.redirect('/policy-writing/write/' + req.params.topicId)
 })

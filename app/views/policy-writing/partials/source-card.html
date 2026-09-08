@@ -1,0 +1,21 @@
+{#
+  A single card in the "Policy writer" workspace's Sources panel.
+
+  Usage:
+    {% from "policy-writing/partials/source-card.html" import sourceCard %}
+    {{ sourceCard(source) }}
+
+  source.kind: "policy" | "evidence" | "comment" — rendered as a small govuk-tag label
+  source.title, source.snippet: string
+#}
+
+{% macro sourceCard(source) %}
+<div class="dlp-source-card">
+  <strong class="govuk-tag govuk-tag--grey dlp-source-card__kind">
+    {% if source.kind == "policy" %}Policy{% elif source.kind == "evidence" %}Evidence{% else %}Comment{% endif %}
+  </strong>
+  <p class="govuk-body-s govuk-!-font-weight-bold dlp-source-card__title">{{ source.title }}</p>
+  <p class="govuk-body-s dlp-source-card__snippet">{{ source.snippet }}</p>
+  <a class="govuk-link govuk-link--no-visited-state" href="#">View in new tab</a>
+</div>
+{% endmacro %}

@@ -1,0 +1,116 @@
+// Policy writing prototype
+//
+// Reuses the $dlp-* variables and .dlp-tag-panel-style sticky-panel technique already
+// established by the evidence prototype (see the "Evidence prototype" block above, which this
+// partial is @import-ed after), but under its own class names — "Sources"/"Policy history" are
+// semantically unrelated to evidence's tag panel, so a small amount of duplicated CSS is
+// accepted here rather than reusing .dlp-tag-panel directly (see CLAUDE.md).
+
+// Wizard "list + add item" tables (starting points steps, review starting points, topics list)
+.dlp-wizard-table {
+  margin-bottom: govuk-spacing(6);
+}
+
+// A <button> styled to read as a govuk-link, for POST-based destructive actions (Remove) that
+// sit inline next to a real link (Edit) in a table row or list item.
+.dlp-inline-form {
+  display: inline;
+}
+
+.dlp-link-button {
+  @include govuk-font($size: 19);
+  background: none;
+  border: 0;
+  color: $govuk-link-colour;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+
+  &:hover {
+    color: $govuk-link-hover-colour;
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+// Sticky side panel — used for the "Create topics" two-column form and the "Policy writer"
+// workspace's Sources/Policy history columns.
+.dlp-policy-panel {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  padding: govuk-spacing(4);
+
+  @include govuk-media-query($from: desktop) {
+    position: sticky;
+    top: govuk-spacing(4);
+  }
+}
+
+// Sources panel cards
+.dlp-source-card {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  margin-bottom: govuk-spacing(3);
+  padding: govuk-spacing(3);
+}
+
+.dlp-source-card__kind {
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-source-card__title {
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-source-card__snippet {
+  color: $dlp-muted-text;
+  margin-bottom: govuk-spacing(1);
+}
+
+// Decorative rich-text-style editor toolbar (no JS behaviour — see CLAUDE.md)
+.dlp-editor-toolbar {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-border-grey;
+  border-bottom: 0;
+  display: flex;
+  gap: govuk-spacing(1);
+  padding: govuk-spacing(1);
+}
+
+.dlp-editor-toolbar__button {
+  background: none;
+  border: 0;
+  cursor: default;
+  padding: govuk-spacing(1);
+}
+
+// Policy history timeline
+.dlp-timeline {
+  list-style: none;
+  margin: govuk-spacing(4) 0;
+  padding: 0;
+}
+
+.dlp-timeline__entry {
+  border-bottom: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(2) 0;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.dlp-timeline__status {
+  margin-left: govuk-spacing(1);
+}
+
+.dlp-timeline__latest-note {
+  background: $dlp-highlight-background;
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  padding: govuk-spacing(3);
+}

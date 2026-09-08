@@ -1,0 +1,82 @@
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+
+{% set pageName = step.navLabel %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ sections: sidebarSections, ariaLabel: "Policy starting points" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <nav class="govuk-breadcrumbs" aria-label="Breadcrumb">
+      <ol class="govuk-breadcrumbs__list">
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing">Home</a></li>
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing/topics/review-starting-points">Starting points</a></li>
+        <li class="govuk-breadcrumbs__list-item">{{ step.navLabel }}</li>
+      </ol>
+    </nav>
+
+    <h1 class="govuk-heading-xl">{{ step.navLabel }}</h1>
+
+    <p class="govuk-body">{{ step.hint }}</p>
+
+    <table class="govuk-table dlp-wizard-table">
+      <caption class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden">{{ step.itemLabel }}s added so far</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th class="govuk-table__header" scope="col">{{ step.itemLabel }}</th>
+          <th class="govuk-table__header" scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% if items.length %}
+          {% for item in items %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">{{ item.text }}</td>
+            <td class="govuk-table__cell">
+              <a class="govuk-link" href="?edit={{ item.id }}">Edit</a>
+              <form class="dlp-inline-form" action="/policy-writing/starting-points/{{ step.slug }}/{{ item.id }}/remove" method="post">
+                <button type="submit" class="dlp-link-button">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell" colspan="2">No {{ step.itemLabel | lower }}s added</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <form action="/policy-writing/starting-points/{{ step.slug }}" method="post">
+      {% if editItem %}
+        <input type="hidden" name="itemId" value="{{ editItem.id }}">
+      {% endif %}
+
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="item-text">{{ step.itemLabel }}</label>
+        <input class="govuk-input" id="item-text" name="itemText" type="text" value="{{ editItem.text if editItem else '' }}">
+      </div>
+
+      <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">
+        {{ "Save" if editItem else "Add" }}
+      </button>
+    </form>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+    <div class="govuk-button-group">
+      <a class="govuk-button" data-module="govuk-button" href="/policy-writing/topics/review-starting-points">Save and continue</a>
+      <a class="govuk-link" href="/policy-writing">Back</a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

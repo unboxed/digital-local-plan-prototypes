@@ -1,0 +1,64 @@
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+
+{% set pageName = "Review topics" %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ sections: sidebarSections, ariaLabel: "Policy starting points" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <nav class="govuk-breadcrumbs" aria-label="Breadcrumb">
+      <ol class="govuk-breadcrumbs__list">
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing">Home</a></li>
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing/topics/new">Create topics</a></li>
+        <li class="govuk-breadcrumbs__list-item">Review topics</li>
+      </ol>
+    </nav>
+
+    <h1 class="govuk-heading-xl">Review topics</h1>
+
+    <p class="govuk-body">Open a topic to review its brief, sources and evidence, or to start writing its policy.</p>
+
+    <table class="govuk-table dlp-wizard-table">
+      <caption class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden">Topics</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th class="govuk-table__header" scope="col">Topic</th>
+          <th class="govuk-table__header" scope="col">Assigned to</th>
+          <th class="govuk-table__header" scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% if topics.length %}
+          {% for topic in topics %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">{{ topic.name }}</td>
+            <td class="govuk-table__cell">{{ topic.assignedTo if topic.assignedTo else "Not assigned" }}</td>
+            <td class="govuk-table__cell">
+              <a class="govuk-link" href="/policy-writing/topics/{{ topic.id }}">Review</a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell" colspan="3">No topics created yet.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <div class="govuk-button-group">
+      <a class="govuk-button" data-module="govuk-button" href="/policy-writing/topics/new">Create another topic</a>
+      <a class="govuk-link" href="/policy-writing">Back</a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

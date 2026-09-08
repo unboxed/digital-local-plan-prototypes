@@ -31,17 +31,21 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
   `evidence`, `policy-writing`). The kit auto-routes any `app/views/<path>/index.html` to
   `/<path>` — no entry in `app/routes.js` is needed unless a page requires custom server logic
   (form handling, session data, etc.).
-- `app/views/partials/` — shared, non-routable components (e.g. `side-navigation/macro.njk`).
-  Nunjucks macros, not pages — this folder has no `index.html` so the kit doesn't auto-route it.
+- `app/views/partials/` — shared, non-routable components (e.g. `side-navigation/macro.njk`,
+  `service-header/macro.njk`, `icons/status-icon.html`). Nunjucks macros, not pages — this
+  folder has no `index.html` so the kit doesn't auto-route it.
 - `app/views/layouts/main-with-sidebar.html` — opt-in layout for pages that need the left-hand
   side navigation (see "Side navigation component" below).
-- `app/routes.js` — custom Express routes, only when file-based routing isn't enough.
+- `app/routes.js` — custom Express routes, only when file-based routing isn't enough. Also
+  carries the site-wide middleware that powers the service header (see "Service header" below).
 - `app/assets/sass/application.scss` — project-specific Sass, imported alongside GOV.UK
   Frontend's styles.
 - `app/data/documents.js` — static document content and metadata (body text, author, date,
   canned AI summaries). Static reference content belongs here, not in
   `session-data-defaults.js`, which is deep-cloned into every user session.
-- `app/config.json` — service name and kit-level config.
+- `app/data/policies.js` — example policies with their evidence sources, consultation
+  responses and notes.
+- `app/config.json` — organisation name, service name, and kit-level config.
 
 ## Conventions
 
@@ -61,16 +65,47 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
 This project is **not entitled to use the crown/GOV.UK crest, the "GDS Transport" typeface, or
 any other crown copyright material**, and it must not display or reintroduce them. That's why
 `app/views/layouts/main.html` extends the kit's `unbranded.njk` layout (not
-`govuk-branded.njk`) — it has no header, no footer, no crest, and no GDS Transport font. Do
-not:
+`govuk-branded.njk`) — the inherited `header`/`footer` blocks start out blank, with no crest and
+no GDS Transport font. `layouts/main.html` fills the `header` block back in with our own,
+non-crown service header (see "Service header" below) — that's fine; only the crown crest and
+GDS Transport typeface are restricted. Do not:
 - switch the layout back to `govuk-branded.njk` (or extend `govuk/template.njk` directly),
-- add the crown/crest SVG, GOV.UK header/footer components, or GDS Transport font, back into
-  any page,
+- add the crown/crest SVG, GOV.UK Frontend's own header/footer components (`govukHeader`,
+  `govukFooter`, `govukServiceNavigation`), or GDS Transport font, back into any page,
 - set `useServiceNavigation` in `app/config.json` in a way that reintroduces the branded
   header.
 
 GOV.UK Frontend's other components (buttons, forms, layout grid, typography scale, etc.) are
 fine to use as normal — only the crown crest and GDS Transport typeface are restricted.
+
+## Service header
+
+Every page *within a prototype flow* gets a site-wide, non-crown-branded header automatically,
+via `layouts/main.html`'s `header` block. It's deliberately hidden on the root `app/views/index.html`
+landing page (no `activeSection` there — see point 2) so that page stays the plain "pick a
+prototype" menu.
+
+1. `app/views/partials/service-header/macro.njk` (`appServiceHeader({ activeSection })`) renders
+   the organisation name (`app/config.json`'s `organisationName`), the service name
+   (`serviceName`, already a global in every template), and a nav row linking to each prototype.
+   The active nav item is `#1d8feb` (a precise brand blue, not a `govuk-colour()` tint);
+   everything else is white — see `app/assets/sass/_service-header.scss`.
+2. `activeSection` (`"project-management"` | `"policy-writing"` | `"evidence"`) is set
+   automatically by a `router.use` middleware at the top of `app/routes.js`, based on the
+   request path — no per-page wiring needed, since that middleware runs for every request
+   (including plain `app/views/*/index.html` pages with no custom route).
+3. Adding a fourth prototype that should appear in the nav: add a nav item to the macro and a
+   branch to the `activeSection` middleware in `app/routes.js`.
+
+Immediately below it, every page (including the root landing page — unlike the service header
+above, this one is unconditional) shows a GOV.UK "Prototype" phase banner
+(https://design-system.service.gov.uk/components/phase-banner/), rendered via GOV.UK Frontend's
+own `govukPhaseBanner` macro directly in `layouts/main.html`'s `header` block. It's placed there
+rather than in the inherited `beforeContent` block because `layouts/main-with-sidebar.html`
+overrides `container` (which `beforeContent` lives inside) but not `header` — `govukPhaseBanner`
+already wraps itself in `govuk-width-container`, so it sizes itself correctly wherever it sits.
+
+Styling lives in `app/assets/sass/_service-header.scss` (`.app-service-header*`).
 
 ## Adding a new prototype
 
@@ -93,10 +128,49 @@ one:
 4. Page content goes in `{% block content %}` as normal, but note this layout is full-width —
    don't assume the `govuk-grid-row`/`govuk-width-container` wrapping that `layouts/main.html`
    pages get for free.
-5. Use `govuk-tag` colours (via each item's `status`/`statusColour`) for task status, not custom
-   icons.
+5. Set each item's `status` to one of `Completed` | `In progress` | `Not started` | `Cannot
+   start` | `Action required` — the macro renders the matching status icon automatically (see
+   below), so don't hand-roll `govuk-tag`s or other icons for step status.
 
 See `app/views/project-management/tasks/index.html` for a worked example.
+
+The status vocabulary above is standardised across prototypes — reuse this wording rather than
+inventing new status terms. Status icons (`app/views/partials/icons/status-icon.html`,
+`statusIcon(status)`) are adapted from BOPS
+(https://github.com/unboxed/bops/tree/main/app/views/shared/icons): five inline SVGs, one per
+status, selected by matching the `status` text exactly. Reuse this macro for status icons
+anywhere else in the project rather than copying the SVGs again.
+
+## Session data & routes.js conventions
+
+For a prototype journey with real state (forms that save, filter, or persist across pages), use
+`req.session.data` as the "database" and `app/routes.js` for the logic, following the pattern
+established by `evidence` and `policy-writing`:
+
+- Seed example data in `app/data/session-data-defaults.js`.
+- **Deep-clone on first touch.** The prototype kit merges `session-data-defaults.js` into a new
+  session with a shallow `Object.assign`, so a fresh session's array/object starts out as the
+  *same reference* as the seed data. Add a `get<Thing>(req)` accessor that deep-clones
+  (`JSON.parse(JSON.stringify(...))`) the data on first access, guarded by a sentinel flag (e.g.
+  `<thing>Owned`) stored in session data, so it only clones once per session. Never mutate
+  `req.session.data.<thing>` directly without going through this accessor — see
+  `getEvidenceItems`/`getPolicyTopics` in `app/routes.js` for the pattern.
+- **POST-redirect-GET.** Forms that change session data `POST` to a route that mutates state and
+  then `res.redirect`s back to a `GET` route that renders it — never render directly from a
+  `POST` handler.
+- Filter/search state is stored directly in `req.session.data` (not just passed through the
+  URL), read via `req.query` on `GET` routes, so it persists as a user moves between pages in
+  the same journey.
+
+## Config-driven wizard steps
+
+When a prototype needs several near-identical step pages (e.g. a series of "add items to a
+list" steps), don't write a template and a route per step. Instead: define one config array
+(one entry per step, e.g. `{ slug, navLabel, hint, itemLabel, ... }`), one shared Nunjucks
+template that renders purely from the config object and its data, and one parameterised route
+(`/prefix/:step`) that looks up the step by slug. See `STARTING_POINT_STEPS` and
+`app/views/policy-writing/starting-points/step.html` in the policy-writing prototype for a
+worked example covering seven steps from a single template/route pair.
 
 ## Keeping this file current
 

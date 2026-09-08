@@ -12,11 +12,14 @@
   params.sections[].items[].text: string (required) — link text
   params.sections[].items[].href: string (required) — link destination
   params.sections[].items[].active: boolean (optional) — marks the current page
-  params.sections[].items[].status: string (optional) — rendered as a govuk-tag
-  params.sections[].items[].statusColour: string (optional) — a govuk-tag--* modifier, default "grey"
+  params.sections[].items[].status: string (optional) — one of "Completed" | "In progress" |
+    "Not started" | "Cannot start" | "Action required", rendered as the matching status icon
+    (see partials/icons/status-icon.html — adapted from BOPS). Anything else renders no icon.
   params.ariaLabel: string (optional) — defaults to "Task navigation"
   params.classes: string (optional) — extra classes on the outer <nav>
 #}
+
+{% from "partials/icons/status-icon.html" import statusIcon %}
 
 {% macro appSideNavigation(params) %}
 <nav class="app-side-navigation {%- if params.classes %} {{ params.classes }}{% endif %}"
@@ -37,9 +40,7 @@
         {% for item in section.items %}
           <li class="app-side-navigation__item {%- if item.active %} app-side-navigation__item--active{% endif %}">
             {% if item.status %}
-              <strong class="govuk-tag app-side-navigation__tag govuk-tag--{{ item.statusColour | default('grey') }}">
-                {{ item.status }}
-              </strong>
+              <span class="app-side-navigation__icon">{{ statusIcon(item.status) }}</span>
             {% endif %}
             <a class="govuk-link govuk-link--no-visited-state app-side-navigation__link"
                href="{{ item.href }}"

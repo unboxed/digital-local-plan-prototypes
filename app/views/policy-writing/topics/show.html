@@ -1,0 +1,155 @@
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+
+{% set pageName = "Review topics" %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ sections: sidebarSections, ariaLabel: "Policy starting points" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <nav class="govuk-breadcrumbs" aria-label="Breadcrumb">
+      <ol class="govuk-breadcrumbs__list">
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing">Home</a></li>
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/policy-writing/topics">Review topics</a></li>
+        <li class="govuk-breadcrumbs__list-item">{{ topic.name }}</li>
+      </ol>
+    </nav>
+
+    <h1 class="govuk-heading-xl">Review topics</h1>
+
+    <form action="/policy-writing/topics/{{ topic.id }}" method="post">
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="topic-name">Topic</label>
+        <input class="govuk-input" id="topic-name" name="topicName" type="text" value="{{ topic.name }}">
+      </div>
+
+      <p class="govuk-body">
+        Assigned to: <strong>{{ topic.assignedTo if topic.assignedTo else "Not assigned" }}</strong>
+        <a class="govuk-link" href="/policy-writing/topics/{{ topic.id }}/assigned-to">Change</a>
+      </p>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="topic-brief">Brief</label>
+        <textarea class="govuk-textarea" id="topic-brief" name="brief" rows="5">{{ topic.brief }}</textarea>
+      </div>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="topic-desired-impact">Desired Impact</label>
+        <textarea class="govuk-textarea" id="topic-desired-impact" name="desiredImpact" rows="5">{{ topic.desiredImpact }}</textarea>
+      </div>
+
+      <h2 class="govuk-heading-m">Sources</h2>
+      {% if topic.sources.length %}
+      <ul class="govuk-list">
+        {% for source in topic.sources %}
+        <li>
+          {{ source.label }}
+          <form class="dlp-inline-form" action="/policy-writing/topics/{{ topic.id }}/sources/{{ source.id }}/remove" method="post">
+            <button type="submit" class="dlp-link-button">Remove</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="govuk-body">No sources added yet.</p>
+      {% endif %}
+
+      <h2 class="govuk-heading-m">Example policies</h2>
+      {% if topic.examplePolicies.length %}
+      <ul class="govuk-list">
+        {% for policy in topic.examplePolicies %}
+        <li>
+          {{ policy.label }}
+          <form class="dlp-inline-form" action="/policy-writing/topics/{{ topic.id }}/example-policies/{{ policy.id }}/remove" method="post">
+            <button type="submit" class="dlp-link-button">Remove</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="govuk-body">No example policies added yet.</p>
+      {% endif %}
+
+      <h2 class="govuk-heading-m">Evidence</h2>
+
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="evidence-notes">Current evidence notes</label>
+        <div class="govuk-hint">Describe current evidence to help stakeholders understand progress to date. This will be shared.</div>
+        <textarea class="govuk-textarea" id="evidence-notes" name="evidenceNotes" rows="4">{{ topic.evidenceNotes }}</textarea>
+      </div>
+
+      <h3 class="govuk-heading-s">Current linked evidence</h3>
+      {% if topic.linkedEvidence.length %}
+      <ul class="govuk-list">
+        {% for evidence in topic.linkedEvidence %}
+        <li>{{ evidence.label }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="govuk-body">No evidence linked yet.</p>
+      {% endif %}
+
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="additional-evidence-needs">Additional evidence needs</label>
+        <div class="govuk-hint">Describe additional needs for evidence to help stakeholders understand progress to date. This will be shared.</div>
+        <textarea class="govuk-textarea" id="additional-evidence-needs" name="additionalEvidenceNeeds" rows="4">{{ topic.additionalEvidenceNeeds }}</textarea>
+      </div>
+
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button" data-module="govuk-button">Save</button>
+        <a class="govuk-link" href="/policy-writing/topics">Back</a>
+      </div>
+    </form>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+    <h2 class="govuk-heading-m">Add another source</h2>
+    <form action="/policy-writing/topics/{{ topic.id }}/sources" method="post">
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="source-label">Source</label>
+        <input class="govuk-input" id="source-label" name="sourceLabel" type="text">
+      </div>
+      <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">Add another source</button>
+    </form>
+
+    <h2 class="govuk-heading-m">Add an example policy</h2>
+    <form action="/policy-writing/topics/{{ topic.id }}/example-policies" method="post">
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="example-policy-label">Example policy</label>
+        <input class="govuk-input" id="example-policy-label" name="examplePolicyLabel" type="text" placeholder="e.g. Manchester - City centre homes - H2.1">
+      </div>
+      <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">Add an example policy</button>
+    </form>
+
+    <h2 class="govuk-heading-m">Link evidence</h2>
+    <form action="/policy-writing/topics/{{ topic.id }}/linked-evidence" method="post">
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="upload-document">Upload related documents</label>
+        <input class="govuk-file-upload" id="upload-document" name="uploadDocument" type="file">
+      </div>
+      <div class="govuk-form-group">
+        <label class="govuk-label" for="existing-document">Link to existing document</label>
+        <select class="govuk-select" id="existing-document" name="existingDocument">
+          <option value="">Select existing document</option>
+          {% for document in existingDocuments %}
+          <option value="{{ document }}">{{ document }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">Link document</button>
+    </form>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+    <a class="govuk-button" data-module="govuk-button" href="/policy-writing/write/{{ topic.id }}">Start writing this policy</a>
+
+  </div>
+</div>
+
+{% endblock %}
