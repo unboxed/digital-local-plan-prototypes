@@ -1,6 +1,9 @@
 {
   "name": "digital-local-plan-prototypes",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "govuk-prototype-kit dev",
     "serve": "govuk-prototype-kit serve",
