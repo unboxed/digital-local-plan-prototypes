@@ -43,8 +43,14 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
 - `app/data/documents.js` — static document content and metadata (body text, author, date,
   canned AI summaries). Static reference content belongs here, not in
   `session-data-defaults.js`, which is deep-cloned into every user session.
-- `app/data/policies.js` — example policies with their evidence sources, consultation
-  responses and notes.
+- `app/data/policies.js` — every policy in the plan, in contents order, grouped by policy
+  area. Most carry only a ref, title and one-line summary for the policy area list; the
+  worked examples also have evidence sources, consultation responses and notes, and
+  `hasFullSummary()` is what decides which of the two a policy is.
+- `app/data/evidence-excerpts.js` — paragraph-level excerpts of the evidence base, each
+  tagged with the policy refs it supports. This is the corpus the policy summary's evidence
+  search ranks and returns; keep it broad enough that every term the type-ahead offers
+  returns something.
 - `app/config.json` — organisation name, service name, and kit-level config.
 
 ## Conventions

@@ -36,7 +36,13 @@ const {
   getDocument
 } = require('./data/documents.js')
 
-const { getSearchTerms, getPoliciesForArea, getPolicy } = require('./data/policies.js')
+const {
+  getSearchTerms,
+  getPoliciesForArea,
+  getPolicy,
+  getPolicyRefsForSource
+} = require('./data/policies.js')
+const { EVIDENCE_EXCERPTS } = require('./data/evidence-excerpts.js')
 const { USER_STORY_THEMES, getUserStoryCount } = require('./data/user-stories.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
@@ -467,24 +473,65 @@ router.get('/user-stories', (req, res) => {
 
 // --- Policy: view a policy summary ---
 
-// Everything the policy screen's keyword search looks through: the evidence
-// a user has tagged, plus the body text of the documents it came from. Each
-// result carries the document it belongs to, so the modal can group by it.
+// Everything the policy screen's keyword search looks through: the excerpts
+// held against the evidence base, the evidence a user has tagged, and the body
+// text of the documents that evidence came from. Results are shown as
+// excerpts, so each passage carries where it came from (`source`/`ref`) and
+// the policies it relates to (`policyRefs`), which the modal shows against it.
+//
+// Excerpts state their own policy refs; for the other two, the refs are the
+// policies that cite the document, capped so a widely cited document doesn't
+// swamp the result with refs.
+const MAX_DERIVED_POLICY_REFS = 3
+
 function getSearchableEvidence (items) {
-  const passages = items.map(item => ({
-    text: item.text,
-    source: item.source,
-    chapter: item.chapter || '',
-    tagged: true
+  const passages = EVIDENCE_EXCERPTS.map(excerpt => ({
+    text: excerpt.text,
+    source: excerpt.source,
+    ref: excerpt.ref,
+    policyRefs: excerpt.policyRefs,
+    tagged: false
   }))
 
+  // A tagged item's own policyReference is deliberately not used here: the
+  // Evidence prototype tags against its own reference set (H1, T2, EN1), not
+  // the City Plan refs the policy screen shows, and mixing the two vocabularies
+  // in one result list would be misleading.
+  items.forEach(item => {
+    if (passages.some(passage => passage.text === item.text)) return
+    passages.push({
+      text: item.text,
+      source: item.source,
+      ref: item.chapter || '',
+      policyRefs: getPolicyRefsForSource(item.source).slice(0, MAX_DERIVED_POLICY_REFS),
+      tagged: true
+    })
+  })
+
   Object.keys(DOCUMENTS).forEach(source => {
+    const derivedRefs = getPolicyRefsForSource(source).slice(0, MAX_DERIVED_POLICY_REFS)
+
     DOCUMENTS[source].paragraphs.forEach(paragraph => {
+      // A tagged extract is usually a sentence lifted out of a paragraph that
+      // is also in the corpus, which would otherwise show up as two near
+      // identical results. Keep one: the full paragraph, because it reads
+      // better as an excerpt, still marked as tagged.
+      const tagged = passages.find(passage => {
+        return passage.tagged && passage.source === source && paragraph.indexOf(passage.text) !== -1
+      })
+
+      if (tagged) {
+        tagged.text = paragraph
+        return
+      }
+
       if (passages.some(passage => passage.text === paragraph)) return
+
       passages.push({
         text: paragraph,
         source,
-        chapter: DOCUMENTS[source].chapter || '',
+        ref: DOCUMENTS[source].chapter || '',
+        policyRefs: derivedRefs,
         tagged: false
       })
     })

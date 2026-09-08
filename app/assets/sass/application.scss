@@ -848,6 +848,11 @@ $dlp-confidence-low: govuk-colour("orange");
   margin: 0 0 govuk-spacing(1);
 }
 
+.dlp-policy-list__note {
+  color: $dlp-muted-text;
+  margin-bottom: 0;
+}
+
 .dlp-policy-summary__tags {
   margin-bottom: govuk-spacing(3);
 }
@@ -930,9 +935,16 @@ $dlp-confidence-low: govuk-colour("orange");
   border: 1px solid $dlp-border-grey;
   border-radius: 4px;
   max-height: 80vh;
-  max-width: 42em;
+  max-width: 46em;
   padding: 0;
   width: 90%;
+
+  // Only a shown dialog is laid out, so the header/body/footer stack is set up
+  // on [open] rather than on the element itself.
+  &[open] {
+    display: flex;
+    flex-direction: column;
+  }
 
   &::backdrop {
     background: rgba(0, 0, 0, 0.5);
@@ -968,6 +980,7 @@ $dlp-confidence-low: govuk-colour("orange");
 }
 
 .dlp-modal__body {
+  flex: 1 1 auto;
   overflow-y: auto;
   padding: govuk-spacing(4);
 }
@@ -999,34 +1012,164 @@ $dlp-confidence-low: govuk-colour("orange");
   padding: govuk-spacing(3);
 }
 
-// Search results: the documents a term appears in
+// Evidence sources, alongside the summary rather than inside it
+.dlp-evidence-panel {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  border-radius: 4px;
+  padding: govuk-spacing(3);
+}
+
+.dlp-evidence-panel__heading {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: 0 0 govuk-spacing(1);
+}
+
+.dlp-evidence-panel__count {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(3);
+}
+
+.dlp-evidence-panel__list {
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-evidence-panel__item {
+  border-top: 1px solid $dlp-border-grey;
+  margin-bottom: 0;
+  padding: govuk-spacing(2) 0;
+}
+
+.dlp-evidence-panel__title {
+  @include govuk-font($size: 16, $weight: bold);
+  margin: 0;
+}
+
+.dlp-evidence-panel__ref {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0;
+}
+
+.dlp-evidence-panel__summary {
+  @include govuk-font($size: 16);
+  margin: govuk-spacing(1) 0 0;
+}
+
+// Search results: the excerpts a term appears in, ranked most relevant first
 .dlp-modal__count {
   color: $dlp-muted-text;
   margin-bottom: govuk-spacing(3);
 }
 
-.dlp-doc-results {
+.dlp-excerpt-list {
   margin: 0;
   padding: 0;
 }
 
-.dlp-doc-results__item {
-  border-bottom: 1px solid $dlp-border-grey;
-  margin-bottom: 0;
-  padding: govuk-spacing(3) 0;
+.dlp-excerpt {
+  align-items: flex-start;
+  border: 1px solid $dlp-border-grey;
+  display: flex;
+  gap: govuk-spacing(2);
+  margin-bottom: govuk-spacing(2);
+  padding: govuk-spacing(3);
 
-  &:first-child {
-    border-top: 1px solid $dlp-border-grey;
+  &:hover {
+    border-color: govuk-colour("black");
   }
 }
 
-.dlp-doc-results__title {
-  @include govuk-font($size: 19, $weight: bold);
+// The whole excerpt is the click target, so selecting one doesn't depend on
+// hitting the checkbox itself.
+.dlp-excerpt__label {
+  cursor: pointer;
+  display: block;
 }
 
-.dlp-doc-results__meta {
+.dlp-excerpt__checkbox {
+  flex: 0 0 auto;
+  height: 24px;
+  margin: 2px 0 0;
+  width: 24px;
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+.dlp-excerpt--selected {
+  background: govuk-colour("light-grey");
+  border-color: govuk-colour("black");
+}
+
+.dlp-excerpt__text {
+  @include govuk-font($size: 19);
+  display: block;
+}
+
+.dlp-excerpt__meta {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+  margin-top: govuk-spacing(2);
+}
+
+.dlp-excerpt__source {
+  @include govuk-font($size: 16);
   color: $dlp-muted-text;
-  margin: govuk-spacing(1) 0 0;
+}
+
+.dlp-excerpt__refs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+}
+
+.dlp-excerpt__ref {
+  @include govuk-font($size: 16, $weight: bold);
+  background: govuk-colour("light-grey");
+  border: 1px solid $dlp-border-grey;
+  border-radius: 3px;
+  padding: 0 govuk-spacing(1);
+}
+
+// The policy the officer is reading, so it stands out among the refs
+.dlp-excerpt__ref--current {
+  background: $dlp-policy-accent;
+  border-color: $dlp-policy-accent;
+  color: govuk-colour("white");
+}
+
+// Selection and copying stay in view as the results scroll
+.dlp-modal__footer {
+  align-items: center;
+  background: $dlp-panel-background;
+  border-top: 1px solid $dlp-border-grey;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+  justify-content: space-between;
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+.dlp-modal__selection {
+  @include govuk-font($size: 16, $weight: bold);
+  margin: 0;
+}
+
+.dlp-modal__copied {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0;
+}
+
+.dlp-modal__actions {
+  display: flex;
+  gap: govuk-spacing(2);
 }
 
 // Consultation responses reuse the source-list layout, in their own accent

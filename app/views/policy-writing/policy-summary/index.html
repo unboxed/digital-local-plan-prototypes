@@ -21,7 +21,7 @@ block content %}
     </nav>
   </div>
 
-  <div class="govuk-grid-column-three-quarters">
+  <div class="govuk-grid-column-{% if policy %}one-half{% else %}three-quarters{% endif %}">
     {% if not policyArea %}
     <p class="govuk-body">
       Choose a policy area to see the policies in it.
@@ -46,26 +46,12 @@ block content %}
 
       <section class="dlp-policy-section">
         <h3 class="dlp-policy-section__heading">Evidence</h3>
-        <p class="govuk-body">{{ policy.evidenceSummary }}</p>
-
-        <h4 class="dlp-policy-section__subheading">Evidence sources</h4>
-        <ul class="govuk-list dlp-source-list">
-          {% for source in policy.evidenceSources %}
-          <li class="dlp-source-list__item">
-            <p class="govuk-body-s dlp-source-list__title">
-              {{ source.title }} {{ source.ref }}: {{ source.summary }}
-            </p>
-            <p class="govuk-body-s govuk-!-margin-bottom-0">
-              <a class="govuk-link" href="#">View source</a>
-            </p>
-          </li>
-          {% endfor %}
-        </ul>
 
         <div class="dlp-search"
              data-dlp-evidence-search
              data-dlp-search-source="#policy-evidence-data"
-             data-dlp-terms-source="#policy-search-terms">
+             data-dlp-terms-source="#policy-search-terms"
+             data-dlp-current-policy="{{ policy.ref }}">
           <label class="dlp-label" for="policy-evidence-search">Search evidence related to this policy</label>
           <p class="dlp-hint" id="policy-evidence-search-hint">
             Start typing to see suggested terms, or search for your own keyword.
@@ -89,6 +75,8 @@ block content %}
             </button>
           </div>
         </div>
+
+        <p class="govuk-body">{{ policy.evidenceSummary }}</p>
       </section>
 
       <section class="dlp-policy-section">
@@ -144,11 +132,18 @@ block content %}
       {% for item in policies %}
       <li class="dlp-policy-list__item">
         <h3 class="dlp-policy-list__heading">
+          {% if item.hasSummary %}
           <a class="govuk-link" href="/policy-writing/policy-summary?policyArea={{ policyAreaEncoded }}&ref={{ item.ref }}">
             {{ item.ref }} {{ item.title }}
           </a>
+          {% else %}
+          {{ item.ref }} {{ item.title }}
+          {% endif %}
         </h3>
-        <p class="govuk-body-s govuk-!-margin-bottom-0">{{ item.summary }}</p>
+        <p class="govuk-body-s{% if item.hasSummary %} govuk-!-margin-bottom-0{% endif %}">{{ item.summary }}</p>
+        {% if not item.hasSummary %}
+        <p class="govuk-body-s dlp-policy-list__note">No summary in this prototype yet</p>
+        {% endif %}
       </li>
       {% endfor %}
     </ul>
@@ -157,6 +152,28 @@ block content %}
     {% endif %}
     {% endif %}
   </div>
+
+  {% if policy %}
+  <div class="govuk-grid-column-one-quarter">
+    <aside class="dlp-evidence-panel" aria-labelledby="evidence-sources-heading">
+      <h3 class="dlp-evidence-panel__heading" id="evidence-sources-heading">Evidence sources</h3>
+      <p class="dlp-evidence-panel__count">
+        {{ policy.evidenceSources.length }} document{% if policy.evidenceSources.length != 1 %}s{% endif %} behind this policy
+      </p>
+      <ul class="govuk-list dlp-evidence-panel__list">
+        {% for source in policy.evidenceSources %}
+        <li class="dlp-evidence-panel__item">
+          <p class="dlp-evidence-panel__title">
+            <a class="govuk-link" href="#">{{ source.title }}</a>
+          </p>
+          <p class="dlp-evidence-panel__ref">{{ source.ref }}</p>
+          <p class="dlp-evidence-panel__summary">{{ source.summary }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+    </aside>
+  </div>
+  {% endif %}
 </div>
 
 {% if policy %}
@@ -166,6 +183,20 @@ block content %}
     <button type="button" class="dlp-modal__close" data-dlp-modal-close aria-label="Close">×</button>
   </div>
   <div class="dlp-modal__body" data-dlp-modal-body></div>
+  <div class="dlp-modal__footer" data-dlp-modal-footer hidden>
+    <div class="dlp-modal__status">
+      <p class="dlp-modal__selection" data-dlp-selection-count>No excerpts selected</p>
+      <p class="dlp-modal__copied" role="status" data-dlp-copy-status></p>
+    </div>
+    <div class="dlp-modal__actions">
+      <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-clear-selection>
+        Clear selection
+      </button>
+      <button type="button" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-copy-selected disabled>
+        Copy selected
+      </button>
+    </div>
+  </div>
 </dialog>
 
 <script type="application/json" id="policy-evidence-data">{{ searchableEvidenceJson | safe }}</script>

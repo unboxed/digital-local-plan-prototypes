@@ -490,9 +490,65 @@ function initDocumentSearch (root) {
   })
 }
 
-// Policy screen: searching evidence by keyword opens the results in a modal,
-// grouped by the document each passage came from. Uses a native <dialog>, so
-// focus trapping and Escape-to-close come for free.
+// Policy screen: searching the evidence base opens the matching passages in a
+// modal as excerpts, ranked most relevant first. Each excerpt can be selected
+// and the selection copied out, which is how an officer gets evidence from the
+// search into whatever they're drafting. Uses a native <dialog>, so focus
+// trapping and Escape-to-close come for free.
+
+// Dropped when scoring, so a multi-word search isn't dominated by the words
+// every passage contains.
+const SEARCH_STOP_WORDS = [
+  'and', 'the', 'of', 'for', 'in', 'on', 'to', 'with', 'from', 'by', 'at',
+  'its', 'their', 'including'
+]
+
+function tokeniseSearch (term) {
+  return term.toLowerCase()
+    .split(/[^a-z0-9-]+/)
+    .filter(word => word.length > 2 && SEARCH_STOP_WORDS.indexOf(word) === -1)
+}
+
+function countOccurrences (haystack, needle) {
+  let count = 0
+  let index = haystack.indexOf(needle)
+
+  while (index !== -1) {
+    count += 1
+    index = haystack.indexOf(needle, index + needle.length)
+  }
+
+  return count
+}
+
+// Relevance, most significant signal first: the whole phrase in the passage,
+// then the phrase in the document title, then each separate word. A passage
+// already linked to the policy on screen, or already tagged into the evidence
+// base, edges ahead of an equally good match that isn't.
+function scorePassage (passage, phrase, words, currentPolicyRef) {
+  const text = passage.text.toLowerCase()
+  const source = (passage.source || '').toLowerCase()
+  let score = countOccurrences(text, phrase) * 10
+
+  // A document whose title carries the term is about the term, which beats a
+  // passage that happens to repeat it — hence a title match outweighing a
+  // second and third mention in the body.
+  if (source.indexOf(phrase) !== -1) score += 12
+
+  words.forEach(word => {
+    const count = countOccurrences(text, word)
+    if (count) score += 3 + Math.min(count - 1, 3)
+    if (source.indexOf(word) !== -1) score += 4
+  })
+
+  if (!score) return 0
+
+  if (currentPolicyRef && (passage.policyRefs || []).indexOf(currentPolicyRef) !== -1) score += 4
+  if (passage.tagged) score += 2
+
+  return score
+}
+
 function initEvidenceSearchModal (root) {
   const input = root.querySelector('[data-dlp-search-input]')
   const submit = root.querySelector('[data-dlp-search-submit]')
@@ -503,9 +559,15 @@ function initEvidenceSearchModal (root) {
   const title = modal.querySelector('[data-dlp-modal-title]')
   const body = modal.querySelector('[data-dlp-modal-body]')
   const close = modal.querySelector('[data-dlp-modal-close]')
+  const footer = modal.querySelector('[data-dlp-modal-footer]')
+  const selectionCount = modal.querySelector('[data-dlp-selection-count]')
+  const copyButton = modal.querySelector('[data-dlp-copy-selected]')
+  const clearButton = modal.querySelector('[data-dlp-clear-selection]')
+  const copyStatus = modal.querySelector('[data-dlp-copy-status]')
 
   const suggestions = root.querySelector('[data-dlp-search-suggestions]')
   const termsScript = querySelectorOrNull(root.dataset.dlpTermsSource)
+  const currentPolicyRef = root.dataset.dlpCurrentPolicy || ''
 
   let passages = []
   try {
@@ -523,6 +585,10 @@ function initEvidenceSearchModal (root) {
     }
   }
 
+  // The excerpts currently ticked, in the order they appear in the results.
+  let results = []
+  let selected = []
+
   function closeSuggestions () {
     if (!suggestions) return
     suggestions.innerHTML = ''
@@ -530,22 +596,134 @@ function initEvidenceSearchModal (root) {
     input.setAttribute('aria-expanded', 'false')
   }
 
-  function groupBySource (matches) {
-    const groups = []
-    matches.forEach(passage => {
-      let group = groups.find(candidate => candidate.source === passage.source)
-      if (!group) {
-        group = { source: passage.source, chapter: passage.chapter, passages: [] }
-        groups.push(group)
-      }
-      group.passages.push(passage)
-    })
-    return groups
+  function setCopyStatus (message) {
+    if (copyStatus) copyStatus.textContent = message || ''
   }
 
-  // Results are a list of the documents the term appears in — the documents
-  // themselves aren't openable yet, so they're shown as links without a
-  // destination.
+  function updateSelection () {
+    if (selectionCount) {
+      selectionCount.textContent = selected.length
+        ? selected.length + ' excerpt' + (selected.length === 1 ? '' : 's') + ' selected'
+        : 'No excerpts selected'
+    }
+    if (copyButton) copyButton.disabled = selected.length === 0
+    if (clearButton) clearButton.hidden = selected.length === 0
+  }
+
+  function clearSelection () {
+    selected = []
+    modal.querySelectorAll('[data-dlp-excerpt-checkbox]').forEach(checkbox => {
+      checkbox.checked = false
+      checkbox.closest('.dlp-excerpt').classList.remove('dlp-excerpt--selected')
+    })
+    setCopyStatus('')
+    updateSelection()
+  }
+
+  function excerptAsText (passage) {
+    const where = [passage.source, passage.ref].filter(Boolean).join(', ')
+    const refs = (passage.policyRefs || []).length
+      ? ' (Policy ' + passage.policyRefs.join(', ') + ')'
+      : ''
+
+    return '"' + passage.text + '"\n— ' + where + refs
+  }
+
+  // navigator.clipboard needs a secure context, which localhost is; the
+  // textarea fallback covers anything served over plain http.
+  function copyToClipboard (text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text)
+    }
+
+    return new Promise((resolve, reject) => {
+      const area = document.createElement('textarea')
+      area.value = text
+      area.setAttribute('readonly', 'readonly')
+      area.style.position = 'fixed'
+      area.style.opacity = '0'
+      document.body.appendChild(area)
+      area.select()
+
+      let copied = false
+      try {
+        copied = document.execCommand('copy')
+      } catch (error) {
+        copied = false
+      }
+
+      document.body.removeChild(area)
+      if (copied) resolve()
+      else reject(new Error('Copying is not available in this browser'))
+    })
+  }
+
+  function renderExcerpt (passage, index, terms) {
+    const item = document.createElement('li')
+    item.className = 'dlp-excerpt'
+
+    const checkbox = document.createElement('input')
+    checkbox.type = 'checkbox'
+    checkbox.className = 'dlp-excerpt__checkbox'
+    checkbox.id = 'dlp-excerpt-' + index
+    checkbox.setAttribute('data-dlp-excerpt-checkbox', '')
+
+    const label = document.createElement('label')
+    label.className = 'dlp-excerpt__label'
+    label.setAttribute('for', checkbox.id)
+
+    const text = document.createElement('span')
+    text.className = 'dlp-excerpt__text'
+    text.innerHTML = markTerms(passage.text, terms)
+    label.appendChild(text)
+
+    const meta = document.createElement('span')
+    meta.className = 'dlp-excerpt__meta'
+
+    const source = document.createElement('span')
+    source.className = 'dlp-excerpt__source'
+    source.textContent = [passage.source, passage.ref].filter(Boolean).join(', ')
+    meta.appendChild(source)
+
+    if ((passage.policyRefs || []).length) {
+      const refs = document.createElement('span')
+      refs.className = 'dlp-excerpt__refs'
+
+      const refLabel = document.createElement('span')
+      refLabel.className = 'govuk-visually-hidden'
+      refLabel.textContent = 'Supports policy '
+      refs.appendChild(refLabel)
+
+      passage.policyRefs.forEach(ref => {
+        const tag = document.createElement('span')
+        tag.className = 'dlp-excerpt__ref'
+        if (ref === currentPolicyRef) tag.classList.add('dlp-excerpt__ref--current')
+        tag.textContent = ref
+        refs.appendChild(tag)
+      })
+
+      meta.appendChild(refs)
+    }
+
+    label.appendChild(meta)
+
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        selected.push(passage)
+        item.classList.add('dlp-excerpt--selected')
+      } else {
+        selected = selected.filter(candidate => candidate !== passage)
+        item.classList.remove('dlp-excerpt--selected')
+      }
+      setCopyStatus('')
+      updateSelection()
+    })
+
+    item.appendChild(checkbox)
+    item.appendChild(label)
+    return item
+  }
+
   function search (searchTerm) {
     const term = (searchTerm === undefined ? input.value : searchTerm).trim()
     if (!term) return
@@ -553,50 +731,44 @@ function initEvidenceSearchModal (root) {
     input.value = term
     closeSuggestions()
 
-    const matches = passages.filter(passage => {
-      return passage.text.toLowerCase().indexOf(term.toLowerCase()) !== -1
-    })
-    const groups = groupBySource(matches)
+    const phrase = term.toLowerCase()
+    const words = tokeniseSearch(term)
+    const terms = [phrase].concat(words.filter(word => word !== phrase))
 
-    title.textContent = 'All evidence relating to “' + term + '”'
+    results = passages
+      .map(passage => ({ passage, score: scorePassage(passage, phrase, words, currentPolicyRef) }))
+      .filter(result => result.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(result => result.passage)
+
+    title.textContent = 'Evidence relating to “' + term + '”'
     body.innerHTML = ''
+    selected = []
+    setCopyStatus('')
+    updateSelection()
 
-    if (!groups.length) {
+    if (!results.length) {
       const empty = document.createElement('p')
       empty.className = 'govuk-body'
       empty.textContent = 'No evidence mentions “' + term + '”.'
       body.appendChild(empty)
+      if (footer) footer.hidden = true
     } else {
       const count = document.createElement('p')
       count.className = 'govuk-body-s dlp-modal__count'
-      count.textContent = groups.length + ' document' + (groups.length === 1 ? '' : 's') +
-        ' mention “' + term + '”'
+      count.textContent = results.length + ' excerpt' + (results.length === 1 ? '' : 's') +
+        ', most relevant first. Select the ones you want, then copy them.'
       body.appendChild(count)
 
       const list = document.createElement('ul')
-      list.className = 'govuk-list dlp-doc-results'
-
-      groups.forEach(group => {
-        const item = document.createElement('li')
-        item.className = 'dlp-doc-results__item'
-
-        const link = document.createElement('a')
-        link.className = 'govuk-link dlp-doc-results__title'
-        link.href = '#'
-        link.textContent = group.chapter ? group.source + ' / ' + group.chapter : group.source
-        item.appendChild(link)
-
-        const meta = document.createElement('p')
-        meta.className = 'govuk-body-s dlp-doc-results__meta'
-        meta.textContent = group.passages.length + ' mention' +
-          (group.passages.length === 1 ? '' : 's') + ' in this document'
-        item.appendChild(meta)
-
-        list.appendChild(item)
-      })
-
+      list.className = 'govuk-list dlp-excerpt-list'
+      results.forEach((passage, index) => list.appendChild(renderExcerpt(passage, index, terms)))
       body.appendChild(list)
+
+      if (footer) footer.hidden = false
     }
+
+    body.scrollTop = 0
 
     if (typeof modal.showModal === 'function') {
       modal.showModal()
@@ -604,6 +776,23 @@ function initEvidenceSearchModal (root) {
       modal.setAttribute('open', 'open')
     }
   }
+
+  if (copyButton) {
+    copyButton.addEventListener('click', () => {
+      if (!selected.length) return
+
+      const text = selected.map(excerptAsText).join('\n\n')
+      const copied = selected.length
+
+      copyToClipboard(text).then(() => {
+        setCopyStatus(copied + ' excerpt' + (copied === 1 ? '' : 's') + ' copied to your clipboard')
+      }).catch(() => {
+        setCopyStatus('Could not copy — your browser blocked access to the clipboard')
+      })
+    })
+  }
+
+  if (clearButton) clearButton.addEventListener('click', clearSelection)
 
   if (submit) submit.addEventListener('click', () => search())
 
@@ -676,6 +865,37 @@ function initEvidenceSearchModal (root) {
   modal.addEventListener('click', event => {
     if (event.target === modal) modal.close()
   })
+
+  updateSelection()
+}
+
+// Marks every search term in a passage, taking the earliest match each time so
+// overlapping terms (the whole phrase and the words within it) can't nest.
+function markTerms (original, terms) {
+  const lower = original.toLowerCase()
+  let result = ''
+  let index = 0
+
+  for (;;) {
+    let at = -1
+    let length = 0
+
+    terms.forEach(term => {
+      const found = lower.indexOf(term, index)
+      if (found === -1) return
+      if (at === -1 || found < at || (found === at && term.length > length)) {
+        at = found
+        length = term.length
+      }
+    })
+
+    if (at === -1) break
+    result += escapeHtml(original.slice(index, at))
+    result += '<mark class="dlp-search-hit">' + escapeHtml(original.slice(at, at + length)) + '</mark>'
+    index = at + length
+  }
+
+  return result + escapeHtml(original.slice(index))
 }
 
 function markMatches (original, term) {
