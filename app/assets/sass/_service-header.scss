@@ -41,7 +41,12 @@ $app-service-header-active-colour: #1d8feb;
   padding: 0;
 }
 
-.app-service-header__nav-link {
+// :visited is repeated alongside the plain selector on purpose — a browser's default
+// `a:visited` rule (element + pseudo-class) is slightly higher specificity than a single class
+// selector, so without this, a clicked nav link reverts to the browser's default visited
+// colour (typically purple) instead of staying white/blue.
+.app-service-header__nav-link,
+.app-service-header__nav-link:visited {
   @include govuk-font($size: 16);
   color: govuk-colour("white");
   text-decoration: none;
@@ -55,7 +60,8 @@ $app-service-header-active-colour: #1d8feb;
   }
 }
 
-.app-service-header__nav-link--active {
+.app-service-header__nav-link--active,
+.app-service-header__nav-link--active:visited {
   color: $app-service-header-active-colour;
   font-weight: bold;
 }
