@@ -1,0 +1,14 @@
+services:
+  - name: digital-local-plan-prototypes
+    type: web
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: PORT
+        value: "3000"
+      - key: PASSWORD
+        sync: false

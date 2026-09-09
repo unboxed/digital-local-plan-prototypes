@@ -2,7 +2,7 @@
   "name": "digital-local-plan-prototypes",
   "private": true,
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0 <25.0.0"
   },
   "scripts": {
     "dev": "govuk-prototype-kit dev",
