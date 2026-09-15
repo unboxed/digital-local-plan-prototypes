@@ -1,0 +1,1134 @@
+// Policy writer v2
+//
+// A wider drafting workspace: evidence and the policy draft side by side, with a draggable
+// divider between them. See CLAUDE.md ("Wide layout" and "Resizable split pane").
+//
+// Imported at the END of application.scss because it uses $dlp-ai-accent and
+// $dlp-confidence-low, which aren't declared until partway down that file.
+
+// The GOV.UK font family and weight WITHOUT its type scale, for the handful of places that sit
+// below the scale's 16px minimum on purpose (the sidebar tags and notes). Using this rather than
+// `font-family: inherit` keeps one family across the whole prototype — an inherited family
+// silently picks up whatever an ancestor happens to set, which is how the drafting box ended up
+// rendering the policy text in a different face from the review that replaces it.
+@mixin dlp-pw2-small-text($size) {
+  @include govuk-font($size: false);
+  font-size: $size;
+}
+
+// --- Zone layout -------------------------------------------------------------------------
+//
+// Arrangement lives here and in policy-writing-v2/chapter/index.html, and nowhere else:
+// every zone is a self-contained macro, and the JS is opted in by data-dlp-* attributes
+// rather than by position, so moving a zone is a change to these two files only.
+
+// The chapter title and its explanatory text run the full width of the content area. They are
+// a header for everything below, not a column in the layout, so they are not held to the
+// measure the drafting and evidence panes use.
+.dlp-pw2-top {
+  margin-bottom: govuk-spacing(6);
+}
+
+.dlp-pw2-chapter__title-input {
+  @include govuk-font($size: 24, $weight: bold);
+  height: auto;
+  padding: govuk-spacing(2);
+}
+
+.dlp-pw2-chapter__text {
+  @include govuk-font($size: 19);
+  line-height: 1.4;
+  max-width: none;
+}
+
+// Sources and notes moved to the sidebar, so the content area is one column and the split
+// gets the whole width.
+.dlp-pw2-sidebar-panels {
+  // Same ground and padding as .app-side-navigation above it, so the sidebar column reads as
+  // one surface rather than a nav with two cards stuck underneath.
+  background-color: govuk-colour("black", $variant: "tint-95");
+  border-top: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(4);
+}
+
+.dlp-pw2-main {
+  min-width: 0;
+}
+
+.dlp-pw2-rail__caption {
+  @include dlp-pw2-small-text(0.6875rem);
+  color: $dlp-muted-text;
+  font-style: italic;
+  margin: 0;
+}
+
+// Long measure is hard to read, so widening the window widens the LAYOUT, not the line
+// length. Applied to prose and to the editable fields that hold it.
+.dlp-pw2-prose {
+  max-width: 46em;
+}
+
+// --- Chapter header and policy list ------------------------------------------------------
+
+.dlp-pw2-chapter__details {
+  margin-bottom: govuk-spacing(3);
+}
+
+// --- Sources rail -----------------------------------------------------------------------
+//
+// Sources are compact tags rather than cards: the rail is narrow on purpose so the evidence
+// and drafting panes get the room, and a source only needs to be identifiable here — the full
+// excerpt and reference are shown in the evidence viewer once one is selected.
+//
+// This deliberately steps outside the GOV.UK type scale (whose smallest size is 16px): at tag
+// size these labels are long enough to wrap onto several lines even in the sidebar's 320px.
+
+.dlp-pw2-rail__panel {
+  margin-bottom: govuk-spacing(4);
+
+  // A rule between each panel, so sources, notes and history read as separate things rather
+  // than one long column.
+  + .dlp-pw2-rail__panel {
+    border-top: 1px solid $dlp-border-grey;
+    padding-top: govuk-spacing(4);
+  }
+}
+
+.dlp-pw2-rail__heading {
+  @include govuk-font($size: 16, $weight: bold);
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-pw2-rail__empty {
+  color: $dlp-muted-text;
+  @include dlp-pw2-small-text(0.8125rem);
+  margin: 0 0 govuk-spacing(2);
+}
+
+// A plain, compact trigger — a full-size govuk-button is wider than the rail it sits in.
+.dlp-pw2-rail__action {
+  background: none;
+  border: 0;
+  color: $dlp-tag-accent;
+  cursor: pointer;
+  @include dlp-pw2-small-text(0.8125rem);
+  font-weight: bold;
+  padding: 0;
+  text-align: left;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+.dlp-pw2-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: govuk-spacing(1);
+  list-style: none;
+  margin: 0 0 govuk-spacing(2);
+  padding: 0;
+}
+
+.dlp-pw2-source {
+  align-items: center;
+  background: govuk-colour("white");
+  border: 1px solid $dlp-tag-accent;
+  border-radius: 12px;
+  display: flex;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 1px 1px 1px govuk-spacing(2);
+}
+
+.dlp-pw2-source--current {
+  background: $dlp-tag-accent;
+  border-color: $dlp-tag-accent;
+}
+
+.dlp-pw2-source__link {
+  color: $dlp-tag-accent;
+  flex: 1 1 auto;
+  @include dlp-pw2-small-text(0.8125rem);
+  line-height: 1.6;
+  min-width: 0;
+  // The label is clipped, not removed: the full "document, paragraph" text is still in the
+  // DOM for assistive tech, and in the title attribute for anyone hovering.
+  overflow: hidden;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+
+  .dlp-pw2-source--current & {
+    color: govuk-colour("white");
+    font-weight: bold;
+  }
+}
+
+.dlp-pw2-source__form {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.dlp-pw2-source__remove {
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  color: $dlp-tag-accent;
+  cursor: pointer;
+  @include dlp-pw2-small-text(0.6875rem);
+  line-height: 1;
+  padding: govuk-spacing(1);
+
+  &:hover {
+    background: $dlp-tag-accent;
+    color: govuk-colour("white");
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+
+  .dlp-pw2-source--current & {
+    color: govuk-colour("white");
+
+    &:hover {
+      background: govuk-colour("white");
+      color: $dlp-tag-accent;
+    }
+  }
+}
+
+// --- Evidence and draft panes ------------------------------------------------------------
+
+.dlp-pw2-pane {
+  border: 1px solid $dlp-border-grey;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dlp-pw2-pane__heading {
+  align-items: baseline;
+  background: $dlp-panel-background;
+  border-bottom: 1px solid $dlp-border-grey;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+  justify-content: space-between;
+  margin: 0;
+  padding: govuk-spacing(3);
+}
+
+.dlp-pw2-pane__title {
+  margin: 0;
+}
+
+.dlp-pw2-pane__link {
+  @include dlp-pw2-small-text(0.8125rem);
+}
+
+.dlp-pw2-pane__body {
+  flex: 1 1 auto;
+  overflow-wrap: break-word;
+  padding: govuk-spacing(4);
+}
+
+.dlp-pw2-evidence__title {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: 0 0 govuk-spacing(1);
+}
+
+.dlp-pw2-evidence__section {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(4);
+}
+
+// A numbered extract from an evidence document. The numbers are in the margin, as they are in
+// the real thing, so the prose stays a single readable column.
+.dlp-pw2-doc {
+  list-style: none;
+  margin: 0 0 govuk-spacing(4);
+  padding: 0;
+}
+
+.dlp-pw2-doc__para {
+  display: flex;
+  gap: govuk-spacing(3);
+  margin-bottom: govuk-spacing(3);
+  padding-left: govuk-spacing(2);
+
+  // Every paragraph carries the border so the cited one does not shift when it gains its own.
+  border-left: 4px solid transparent;
+}
+
+// The paragraph the source actually cites. Marked with a rule and a tint rather than a
+// highlight, so it reads as "this is the bit" without looking like an error.
+.dlp-pw2-doc__para--cited {
+  background: $dlp-highlight-background;
+  border-left-color: $dlp-tag-accent;
+  padding-bottom: govuk-spacing(2);
+  padding-right: govuk-spacing(2);
+  padding-top: govuk-spacing(2);
+}
+
+.dlp-pw2-doc__number {
+  @include dlp-pw2-small-text(0.8125rem);
+  color: $dlp-muted-text;
+  flex: 0 0 auto;
+  padding-top: 0.25em;
+  text-align: right;
+  width: 2.5em;
+}
+
+.dlp-pw2-doc__para--cited .dlp-pw2-doc__number {
+  color: govuk-colour("black");
+  font-weight: bold;
+}
+
+.dlp-pw2-doc__text {
+  @include govuk-font($size: 19);
+  margin: 0;
+  max-width: 44em;
+}
+
+.dlp-pw2-evidence__refs {
+  margin: 0;
+}
+
+.dlp-pw2-draft__identity {
+  display: flex;
+  gap: govuk-spacing(3);
+}
+
+.dlp-pw2-draft__ref {
+  max-width: 6em;
+}
+
+.dlp-pw2-draft__title-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+// govuk-textarea sets line-height 1.25 while the type scale's 19px sets ~1.32, so without
+// pinning both the text shifts as the check swaps one for the other.
+.dlp-pw2-draft__textarea,
+.dlp-pw2-draft__para {
+  @include govuk-font($size: 19);
+  line-height: 1.4;
+}
+
+// --- Chapter history timeline --------------------------------------------------------------
+//
+// A marker per entry on a connecting line. The line is drawn behind the markers and stopped
+// short of the last one, so it reads as a sequence rather than a bordered list.
+
+$dlp-pw2-timeline-marker: 12px;
+$dlp-pw2-timeline-gutter: 22px;
+
+.dlp-pw2-timeline {
+  list-style: none;
+  margin: 0 0 govuk-spacing(3);
+  padding: 0;
+}
+
+.dlp-pw2-timeline__entry {
+  padding: 0 0 govuk-spacing(4) $dlp-pw2-timeline-gutter;
+  position: relative;
+
+  // The connecting line, drawn from this marker down to the next one.
+  &::before {
+    background: $dlp-border-grey;
+    bottom: 0;
+    content: "";
+    left: ($dlp-pw2-timeline-marker / 2) - 1px;
+    position: absolute;
+    top: $dlp-pw2-timeline-marker;
+    width: 2px;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+
+    &::before {
+      display: none;
+    }
+  }
+}
+
+.dlp-pw2-timeline__marker {
+  background: govuk-colour("white");
+  border: 2px solid $dlp-border-grey;
+  border-radius: 50%;
+  height: $dlp-pw2-timeline-marker;
+  left: 0;
+  position: absolute;
+  top: 4px;
+  width: $dlp-pw2-timeline-marker;
+}
+
+.dlp-pw2-timeline__entry--done .dlp-pw2-timeline__marker {
+  background: $dlp-tag-accent;
+  border-color: $dlp-tag-accent;
+}
+
+.dlp-pw2-timeline__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+  justify-content: space-between;
+  margin: 0;
+}
+
+.dlp-pw2-timeline__type {
+  @include govuk-font($size: 16, $weight: bold);
+}
+
+.dlp-pw2-timeline__status {
+  @include dlp-pw2-small-text(0.6875rem);
+  color: $dlp-muted-text;
+  flex: 0 0 auto;
+}
+
+.dlp-pw2-timeline__text {
+  @include dlp-pw2-small-text(0.8125rem);
+  color: $dlp-muted-text;
+  margin: 0;
+}
+
+.dlp-pw2-timeline__meta {
+  @include dlp-pw2-small-text(0.6875rem);
+  color: $dlp-muted-text;
+  margin: 0;
+}
+
+// --- Read-only chapter preview -----------------------------------------------------------
+
+.dlp-pw2-preview__policy {
+  border-top: 1px solid $dlp-border-grey;
+  margin-top: govuk-spacing(6);
+  padding-top: govuk-spacing(4);
+}
+
+.dlp-pw2-preview__heading {
+  font-family: $dlp-pdf-font;
+  font-size: 1.4rem;
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-pw2-preview__status {
+  align-items: center;
+  color: $dlp-muted-text;
+  display: flex;
+  gap: govuk-spacing(2);
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-pw2-preview__sources-heading {
+  font-family: $dlp-pdf-font;
+  font-size: 1.05rem;
+  margin: govuk-spacing(4) 0 govuk-spacing(2);
+}
+
+.dlp-pw2-preview__sources {
+  color: $dlp-muted-text;
+}
+
+// Renders the seeded "\n\n" paragraph breaks without splitting the string in a route or
+// adding a filter — one declaration, and no escaping risk.
+.dlp-pw2-preview__body {
+  white-space: pre-wrap;
+}
+
+// --- Resizable split pane ----------------------------------------------------------------
+//
+// A general two-pane splitter, not specific to evidence/draft — hence the neutral class and
+// attribute names. The column widths come from a custom property that initSplitPane sets, so
+// dragging touches one declaration rather than restyling either pane.
+//
+// Below desktop the panes simply stack and the divider disappears: there isn't room for two
+// columns, and there's nothing to trade.
+
+.dlp-split {
+  display: grid;
+  gap: govuk-spacing(3);
+
+  @include govuk-media-query($from: desktop) {
+    align-items: stretch;
+    gap: 0;
+    grid-template-columns: var(--dlp-split-fraction, 50%) govuk-spacing(3) minmax(0, 1fr);
+  }
+}
+
+// Without this, a long unbroken word in either pane forces its track wider than the
+// fraction and the divider stops tracking the pointer.
+.dlp-split > * {
+  min-width: 0;
+}
+
+.dlp-split__divider {
+  display: none;
+
+  @include govuk-media-query($from: desktop) {
+    align-self: stretch;
+    background: $dlp-border-grey;
+    border: 0;
+    cursor: col-resize;
+    display: block;
+    margin: 0 govuk-spacing(1);
+    padding: 0;
+    position: relative;
+    width: govuk-spacing(1);
+
+    &:focus {
+      @include govuk-focused-box;
+      outline: 3px solid govuk-colour("black");
+      outline-offset: 0;
+    }
+
+    &:hover {
+      background: govuk-colour("black");
+    }
+  }
+}
+
+// While dragging, stop the pointer selecting text in either pane.
+.dlp-split--dragging {
+  user-select: none;
+}
+
+// --- Evidence search modal ---------------------------------------------------------------
+//
+// The search row sits between the modal header and its scrolling body, so it stays in place
+// while results scroll underneath it.
+
+.dlp-pw2-modal {
+  max-width: 52em;
+}
+
+.dlp-pw2-modal__search {
+  border-bottom: 1px solid $dlp-border-grey;
+  flex: 0 0 auto;
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+// --- Notes rail --------------------------------------------------------------------------
+//
+// Same reasoning as the sources tags: small type, because the rail is narrow on purpose.
+
+.dlp-pw2-note-list {
+  list-style: none;
+  margin: 0 0 govuk-spacing(2);
+  padding: 0;
+}
+
+.dlp-pw2-note {
+  border-left: 2px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(2);
+  padding-left: govuk-spacing(2);
+}
+
+.dlp-pw2-note__meta {
+  color: $dlp-muted-text;
+  @include dlp-pw2-small-text(0.6875rem);
+  margin: 0;
+}
+
+.dlp-pw2-note__text {
+  @include dlp-pw2-small-text(0.8125rem);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.dlp-pw2-note__form {
+  margin: 0;
+}
+
+.dlp-pw2-note__remove {
+  background: none;
+  border: 0;
+  color: $dlp-muted-text;
+  cursor: pointer;
+  @include dlp-pw2-small-text(0.6875rem);
+  padding: 0;
+  text-decoration: underline;
+
+  &:hover {
+    color: govuk-colour("black");
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+.dlp-pw2-note-add {
+  // The summary carries .dlp-pw2-rail__action, so strip the default disclosure marker.
+  summary {
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+}
+
+.dlp-pw2-note-add__input {
+  border: 1px solid $dlp-border-grey;
+  box-sizing: border-box;
+  @include dlp-pw2-small-text(0.8125rem);
+  margin-top: govuk-spacing(1);
+  padding: govuk-spacing(1);
+  width: 100%;
+}
+
+.dlp-pw2-note-add__submit {
+  background: $dlp-tag-accent;
+  border: 0;
+  color: govuk-colour("white");
+  cursor: pointer;
+  @include dlp-pw2-small-text(0.8125rem);
+  padding: govuk-spacing(1) govuk-spacing(2);
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+// --- "Try an example" demo ---------------------------------------------------------------
+
+.dlp-pw2-example {
+  margin-top: govuk-spacing(4);
+}
+
+.dlp-pw2-example--active {
+  background: $dlp-highlight-background;
+  border-left: 4px solid $dlp-ai-accent;
+  padding: govuk-spacing(3);
+}
+
+.dlp-pw2-example__title {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-pw2-example__text {
+  @include govuk-font($size: 16);
+  margin: 0 0 govuk-spacing(3);
+}
+
+.dlp-pw2-example__steps {
+  @include govuk-font($size: 16);
+  margin: 0 0 govuk-spacing(3);
+  padding-left: govuk-spacing(4);
+
+  li {
+    margin-bottom: govuk-spacing(1);
+  }
+}
+
+// --- The marked-up review, shown in the editing box ----------------------------------------
+//
+// The review replaces the textarea in place, so it is sized and bordered to match: you are
+// reading your own draft back, not a report about it.
+
+$dlp-pw2-placeholder: #fff2cc;
+$dlp-pw2-placeholder-edge: #d9a400;
+$dlp-pw2-wording: #fde5e5;
+$dlp-pw2-wording-edge: govuk-colour("red");
+$dlp-pw2-cited: #e8f4ec;
+$dlp-pw2-cited-edge: govuk-colour("green");
+
+.dlp-pw2-draft__review {
+  background: govuk-colour("white");
+  border: 2px solid $govuk-input-border-colour;
+  border-top: 0;
+  cursor: text;
+  min-height: 20em;
+  overflow-y: auto;
+  padding: govuk-spacing(2);
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+.dlp-pw2-draft__para {
+  margin: 0 0 govuk-spacing(4);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// A sentence that draws on one of the policy's sources.
+.dlp-pw2-cited {
+  background: $dlp-pw2-cited;
+  box-shadow: inset 0 -2px 0 $dlp-pw2-cited-edge;
+}
+
+.dlp-pw2-refnum {
+  @include govuk-font($size: 16, $weight: bold);
+  color: govuk-colour("green");
+  padding-left: 2px;
+  vertical-align: super;
+}
+
+.dlp-pw2-mark {
+  background: none;
+  color: inherit;
+  padding: 1px 2px;
+}
+
+.dlp-pw2-mark--placeholder {
+  background: $dlp-pw2-placeholder;
+  border-bottom: 2px solid $dlp-pw2-placeholder-edge;
+}
+
+.dlp-pw2-mark--wording {
+  background: $dlp-pw2-wording;
+  border-bottom: 2px dotted $dlp-pw2-wording-edge;
+}
+
+// Offered at the point in the text where the reference would go.
+.dlp-pw2-suggest {
+  display: block;
+  margin: govuk-spacing(2) 0;
+}
+
+.dlp-pw2-suggest__button {
+  background: govuk-colour("white");
+  border: 1px dashed $dlp-ai-accent;
+  border-radius: 3px;
+  color: $dlp-ai-accent;
+  cursor: pointer;
+  @include dlp-pw2-small-text(0.8125rem);
+  padding: govuk-spacing(1) govuk-spacing(2);
+  text-align: left;
+
+  &:hover {
+    background: $dlp-ai-accent;
+    color: govuk-colour("white");
+  }
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+// --- The numbered key under the editing box ------------------------------------------------
+
+.dlp-pw2-key {
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-pw2-key__heading {
+  @include govuk-font($size: 16, $weight: bold);
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-pw2-key__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-pw2-key__item {
+  align-items: baseline;
+  border-bottom: 1px solid $dlp-border-grey;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+  padding: govuk-spacing(1) 0;
+}
+
+.dlp-pw2-key__number {
+  @include govuk-font($size: 16, $weight: bold);
+  flex: 0 0 auto;
+  width: 2.5em;
+}
+
+.dlp-pw2-key__label {
+  @include govuk-font($size: 16);
+  flex: 1 1 12em;
+}
+
+.dlp-pw2-key__state {
+  border-radius: 3px;
+  flex: 0 0 auto;
+  @include dlp-pw2-small-text(0.75rem);
+  padding: 0 govuk-spacing(1);
+}
+
+.dlp-pw2-key__item--named .dlp-pw2-key__state,
+.dlp-pw2-key__item--paraphrased .dlp-pw2-key__state {
+  background: $dlp-pw2-cited;
+  border: 1px solid $dlp-pw2-cited-edge;
+}
+
+.dlp-pw2-key__item--weak .dlp-pw2-key__state {
+  background: $dlp-pw2-placeholder;
+  border: 1px solid $dlp-pw2-placeholder-edge;
+}
+
+.dlp-pw2-key__item--missing .dlp-pw2-key__state {
+  background: $dlp-pw2-wording;
+  border: 1px solid $dlp-pw2-wording-edge;
+}
+
+// Both forms are full-width blocks. An earlier version made them inline-block so the two
+// buttons could share a row, which collapsed each form to its content width and dragged the
+// title and explanatory text boxes narrow with it — the fields inside are width: 100% of the
+// form, so the form must be the full width for them to be.
+.dlp-pw2-chapter__add {
+  margin-top: govuk-spacing(3);
+}
+
+// --- Closable evidence panel ---------------------------------------------------------------
+
+.dlp-pw2-pane__actions {
+  align-items: baseline;
+  display: flex;
+  flex: 0 0 auto;
+  gap: govuk-spacing(3);
+}
+
+.dlp-pw2-pane__close {
+  background: none;
+  border: 0;
+  border-radius: 3px;
+  color: $dlp-muted-text;
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1;
+  padding: govuk-spacing(1);
+
+  &:hover {
+    background: $dlp-border-grey;
+    color: govuk-colour("black");
+  }
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+.dlp-pw2-pane__reopen {
+  background: none;
+  border: 0;
+  color: $dlp-tag-accent;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+// With one pane hidden the remaining one takes the whole row.
+.dlp-split--collapsed {
+  @include govuk-media-query($from: desktop) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// --- Dragging a source into the evidence panel ---------------------------------------------
+
+.dlp-pw2-source {
+  cursor: grab;
+}
+
+.dlp-pw2-source--dragging {
+  cursor: grabbing;
+  opacity: 0.5;
+}
+
+// The panel revealed mid-drag purely to catch the drop: empty, outlined, and captioned, so it
+// reads as a target rather than as the panel having opened on its own.
+.dlp-pw2-pane--dropzone {
+  border-style: dashed;
+
+  .dlp-pw2-pane__body::before {
+    align-items: center;
+    border: 2px dashed $dlp-tag-accent;
+    border-radius: 4px;
+    color: $dlp-tag-accent;
+    content: "Drop a source here to read it";
+    display: flex;
+    justify-content: center;
+    min-height: 8em;
+    padding: govuk-spacing(3);
+    text-align: center;
+  }
+
+  // Whatever was in the panel stays out of the way while it is acting as a target.
+  .dlp-pw2-pane__body > * {
+    display: none;
+  }
+}
+
+.dlp-pw2-pane--dragover {
+  background: $dlp-panel-background;
+  outline: 3px solid $dlp-tag-accent;
+  outline-offset: -3px;
+}
+
+// On the standalone source page the extract sits inside the printed-page styling, which
+// already sets its own serif face and measure.
+.dlp-pw2-doc--page {
+  .dlp-pw2-doc__text {
+    font-family: $dlp-pdf-font;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  .dlp-pw2-doc__number {
+    font-family: $dlp-pdf-font;
+  }
+}
+
+// --- Chapter brief -------------------------------------------------------------------------
+//
+// Read-only, and set apart from the editable explanatory text above it so the difference is
+// visible before anyone tries to type in it.
+
+.dlp-pw2-brief {
+  background: $dlp-panel-background;
+  border-left: 4px solid $dlp-border-grey;
+  margin-top: govuk-spacing(4);
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+.dlp-pw2-brief__heading {
+  @include govuk-font($size: 16, $weight: bold);
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-pw2-brief__intro {
+  @include govuk-font($size: 19);
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-pw2-brief__list {
+  margin: 0 0 govuk-spacing(3);
+  padding-left: govuk-spacing(4);
+}
+
+.dlp-pw2-brief__item {
+  @include govuk-font($size: 19);
+  margin-bottom: govuk-spacing(1);
+  max-width: 46em;
+}
+
+.dlp-pw2-brief__ref {
+  color: $dlp-tag-accent;
+  font-weight: bold;
+}
+
+.dlp-pw2-brief__note {
+  @include dlp-pw2-small-text(0.8125rem);
+  color: $dlp-muted-text;
+  font-style: italic;
+  margin: 0;
+}
+
+// A <button> that has to read as a link — used where a control belongs in a pane header but
+// must submit a form (see the "Add new policy block" control).
+.dlp-pw2-pane__button {
+  background: none;
+  border: 0;
+  color: $dlp-tag-accent;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+
+  &:hover {
+    color: govuk-colour("black");
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+// Sits between the policy navigation and the sources panel, matching the navigation's padding
+// so it reads as the last item in that list rather than the first of the panels below.
+.dlp-pw2-sidebar-add {
+  background-color: govuk-colour("black", $variant: "tint-95");
+  padding: 0 govuk-spacing(4) govuk-spacing(4);
+}
+
+// --- Inserting a reference by pointing at the paragraph -------------------------------------
+
+.dlp-pw2-cite-button {
+  @include dlp-pw2-small-text(0.8125rem);
+  width: auto;
+
+  &[aria-pressed="true"] {
+    background: $dlp-tag-accent;
+    border-color: $dlp-tag-accent;
+    color: govuk-colour("white");
+  }
+}
+
+.dlp-pw2-cite-status {
+  @include govuk-font($size: 16);
+  background: $dlp-highlight-background;
+  border-left: 4px solid $dlp-tag-accent;
+  margin: 0 0 govuk-spacing(3);
+  padding: govuk-spacing(2) govuk-spacing(3);
+}
+
+// While the flow is armed the draft is the thing to aim at next, so it says so.
+.dlp-pw2-main--citing {
+  .dlp-pw2-draft__textarea:focus,
+  .dlp-pw2-draft__textarea {
+    outline: 3px dashed $dlp-tag-accent;
+    outline-offset: -3px;
+  }
+}
+
+// Paragraphs are only interactive while armed — see initReferenceFlow.
+.dlp-pw2-doc__para--citable {
+  cursor: pointer;
+
+  &:hover,
+  &:focus {
+    background: $dlp-panel-background;
+    border-left-color: $dlp-tag-accent;
+    outline: none;
+  }
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+// --- Suggestions toggle --------------------------------------------------------------------
+//
+// Sits at the right-hand end of the drafting toolbar. A switch rather than a button, because
+// the marked-up review is a state the draft is in, not a one-off action.
+
+.dlp-pw2-toggle {
+  @include dlp-pw2-small-text(0.8125rem);
+  align-items: center;
+  background: none;
+  border: 0;
+  color: $dlp-muted-text;
+  cursor: pointer;
+  display: flex;
+  gap: govuk-spacing(1);
+  // Pushed to the far end of the toolbar row.
+  margin-left: auto;
+  padding: govuk-spacing(1) govuk-spacing(2);
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+
+  &[aria-pressed="true"] {
+    color: govuk-colour("black");
+    font-weight: bold;
+  }
+}
+
+.dlp-pw2-toggle__switch {
+  background: govuk-colour("white");
+  border: 2px solid $dlp-muted-text;
+  border-radius: 10px;
+  display: inline-block;
+  height: 1.1em;
+  position: relative;
+  width: 2em;
+
+  &::after {
+    background: $dlp-muted-text;
+    border-radius: 50%;
+    content: "";
+    height: 0.6em;
+    left: 0.15em;
+    position: absolute;
+    top: 0.15em;
+    transition: left 0.1s ease-in-out;
+    width: 0.6em;
+  }
+}
+
+.dlp-pw2-toggle[aria-pressed="true"] .dlp-pw2-toggle__switch {
+  background: $dlp-tag-accent;
+  border-color: $dlp-tag-accent;
+
+  &::after {
+    background: govuk-colour("white");
+    left: calc(100% - 0.75em);
+  }
+}
+
+// The toolbar has to be a flex row for margin-left: auto to push the toggle over.
+.dlp-editor-toolbar {
+  align-items: center;
+  display: flex;
+}
+
+// What the banner used to carry, now sitting with the references it describes.
+.dlp-pw2-review-notes {
+  border-top: 1px solid $dlp-border-grey;
+  margin-top: govuk-spacing(3);
+  padding-top: govuk-spacing(3);
+}
+
+.dlp-pw2-review-notes__caveat {
+  @include dlp-pw2-small-text(0.8125rem);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(1);
+}
+
+// --- Drafting box fills its frame ----------------------------------------------------------
+//
+// The pane is a column and the panes are stretched to equal height by the split grid, so
+// without this the drafting box sits at its `rows` height and leaves a gap underneath whenever
+// the evidence document beside it is taller. Each link in the chain has to pass the height on:
+// pane body → form → the draft's form group → the box itself.
+//
+// The box is deliberately NOT held to the ~46em prose measure the rest of the prototype uses.
+// It is a frame to fill, and a drafter sizing the panes with the divider has already chosen how
+// wide they want to write.
+
+[data-dlp-split-pane="draft"] {
+  .dlp-pw2-pane__body,
+  .dlp-pw2-draft__form,
+  .dlp-pw2-draft__field {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    // Lets the children shrink inside the flex column rather than overflowing it.
+    min-height: 0;
+  }
+
+  .dlp-pw2-draft__textarea,
+  .dlp-pw2-draft__review {
+    flex: 1 1 auto;
+    max-width: none;
+    min-height: 22em;
+  }
+
+  .dlp-pw2-draft__review {
+    overflow-y: auto;
+  }
+}

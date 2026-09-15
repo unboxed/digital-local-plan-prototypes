@@ -323,6 +323,51 @@ const EVIDENCE_EXCERPTS = [
     ref: 'Paragraph 7.4',
     policyRefs: ['DE4', 'DE3', 'HL1']
   }
+,
+
+  // --- National and regional policy ------------------------------------------------------
+  //
+  // Unlike everything above, the National Planning Policy Framework and the London Plan are
+  // REAL published documents. The paragraph and policy references below are genuine and the
+  // substance is accurate, but the wording is summarised for this prototype rather than quoted
+  // — do not treat it as the text of either document, and check the source before relying on
+  // any of it.
+  {
+    text: 'Plans should provide for objectively assessed needs for housing and other development, with a presumption in favour of sustainable development applying unless the policies most important for determining the application provide a clear reason for refusal.',
+    source: 'National Planning Policy Framework',
+    ref: 'Paragraph 11',
+    policyRefs: ['S1', 'S3', 'HS1']
+  },
+  {
+    text: 'The minimum number of homes needed should be determined using the standard method, unless exceptional circumstances justify an alternative approach that also reflects current and future demographic trends and market signals.',
+    source: 'National Planning Policy Framework',
+    ref: 'Paragraph 61',
+    policyRefs: ['S3', 'HS1']
+  },
+  {
+    text: 'The size, type and tenure of housing needed for different groups in the community should be assessed and reflected in planning policies, including families with children, older people and people with disabilities.',
+    source: 'National Planning Policy Framework',
+    ref: 'Paragraph 63',
+    policyRefs: ['S3', 'HS4']
+  },
+  {
+    text: 'Ten-year targets for net housing completions are set for each borough, and boroughs should optimise the potential for housing delivery on all suitable and available brownfield sites.',
+    source: 'London Plan',
+    ref: 'Policy H1',
+    policyRefs: ['S3', 'HS1', 'S1']
+  },
+  {
+    text: 'A strategic target is set for 50 per cent of all new homes to be genuinely affordable, with a threshold approach applying to applications that meet or exceed 35 per cent affordable housing by habitable room without public subsidy.',
+    source: 'London Plan',
+    ref: 'Policy H4',
+    policyRefs: ['S3', 'HS4']
+  },
+  {
+    text: 'Schemes should determine the appropriate mix of housing sizes with regard to local need, the requirement for affordable family housing, and the character and accessibility of the location.',
+    source: 'London Plan',
+    ref: 'Policy H10',
+    policyRefs: ['S3', 'HS4', 'HS1']
+  }
 ]
 
 module.exports = { EVIDENCE_EXCERPTS }

@@ -213,6 +213,271 @@ module.exports = {
     { id: 'pws-4', kind: 'evidence', title: 'Housing Needs Assessment', snippet: 'Statistical analysis of housing demand 2020-2040' },
     { id: 'pws-5', kind: 'evidence', title: 'Site Allocation - Graveney estate', snippet: 'Proposed development sites and green belt boundaries' },
     { id: 'pws-6', kind: 'evidence', title: 'Transport Strategy - Sec 3.4', snippet: 'Connectivity and infrastructure planning report' }
-  ]
+  ],
+
+  // --- Policy writer v2 prototype ---
+  //
+  // A second take on the drafting workspace (/policy-writing-v2), carrying on from the
+  // "Spatial Strategy for Wollington" chapter seeded in policyTopics.prefilled above. It uses
+  // its own top-level key rather than extending policyTopics so both prototypes can run side
+  // by side in one browser session without touching each other's state. Prefilled only —
+  // there is no blank variant here.
+  //
+  // The drafts are seeded to give the "Check references" review something real to find:
+  // S1 keeps its "circa X homes" placeholders, S3 quotes one of its two sources and ignores
+  // the other, S9 is empty, and S15 is deliberately vague. See initDraftCheck in
+  // app/assets/javascripts/application.js.
+
+  policyWriterV2Chapter: {
+    id: 'pw2-chapter-1',
+    title: 'Spatial Strategy for Wollington',
+    explanatoryText: 'The Spatial Strategy for Wollington sets a clear and co-ordinated approach to managing growth over the plan period (2029–2044).\n\nIt responds to the city’s unique challenges and opportunities—from addressing housing needs which includes acute housing affordability needs and infrastructure deficits to environmental protection and heritage conservation—and provides a framework for delivering high-quality, sustainable places.\n\nThe strategy makes sufficient provision of homes, employment, retail, infrastructure and community facilities by promoting development which will primarily be focused on the city centre, town, district and local centres and transport corridors and hubs.',
+
+    // Read-only example history. This prototype does NOT record what the user does — the
+    // panel is captioned to say so. Wiring it up would be a push() in each POST handler.
+    // The brief that was agreed when the chapter was scoped. Read-only in the workspace — it
+    // is what the drafting is measured against, so it is not something to revise while
+    // drafting against it. The bracketed numbers are the references as written in the brief.
+    brief: {
+      intro: 'We need to:',
+      items: [
+        { text: 'Meet housing needs as set-out in SHLAA', refs: ['1', '3'] },
+        { text: 'Ensure we comply with the changes to the calculations in the new NPPF', refs: ['2'] },
+        { text: 'Reassess our housing mix against London Plan goals given the specific nature of City’s current housing stock', refs: ['1'] }
+      ]
+    },
+
+    // An entry with no status is still open, and renders with a hollow marker and no tag.
+    history: [
+      { id: 'pw2-h-1', type: 'Chapter created', description: 'Chapter created and S1 Strategic Growth Areas drafted', status: 'Done', date: '2 September 2025', actor: 'Pauline Perrot' },
+      { id: 'pw2-h-2', type: 'Evidence linked', description: 'S3 Meeting Housing Need added, with two housing evidence sources', status: 'Done', date: '9 September 2025', actor: 'Pauline Perrot' },
+      { id: 'pw2-h-3', type: 'Comment', description: 'Explanatory text reviewed, note left on S1', status: 'Done', date: '15 September 2025', actor: 'Jomo Adeyemi' },
+      { id: 'pw2-h-4', type: 'Draft', description: 'S15 Climate Resilience and Flood Risk started', status: '', date: '23 September 2025', actor: 'Pauline Perrot' }
+    ],
+
+    policies: [
+      {
+        id: 'pw2-policy-s1',
+        ref: 'S1',
+        title: 'Housing Growth and Spatial Distribution',
+        status: 'In progress',
+        draft: "Over the plan period (2026–2041), provision will be made for the delivery of at least [Total Number, e.g., 12,500] new net additional dwellings.\n\nTo promote sustainable development patterns and maximise infrastructure investment, housing growth will be focused within the designated Strategic Growth Area (SGA) as defined on the Policies Map. The distribution of housing completions will be managed in accordance with the following hierarchy:\n\nStrategic Growth Area: Approximately [e.g., 70-75%] of all new residential development will be focused within the SGA corridor, comprising a minimum of [Number] dwellings.\n\nMarket Towns / Local Service Centres: Up to [e.g., 20%] of total growth will be directed to established settlements to support local services and meet rural housing needs.\n\nRural Settlements / Village Clusters: Development outwith the SGA and Market Towns will be strictly restricted to small-scale windfall, community-led schemes, or rural exception sites to meet proven local affordable needs.",
+        sources: [
+          {
+            id: 'pw2-src-s1-1',
+            text: 'Housing demand is concentrated where public transport access is strongest, which is also where the network is closest to capacity at peak times. Planning growth around those locations will require capacity to be increased in step.',
+            source: 'Transport Capacity Study',
+            ref: 'Paragraph 2.7',
+            policyRefs: ['HS1', 'S9', 'VT1']
+          },
+          {
+            id: 'pw2-src-s1-2',
+            text: 'Network headroom varies sharply across the area, and the tightest constraints coincide with the places where the most growth is planned. Infrastructure capacity assessments more than two years old should not be relied on.',
+            source: 'Utilities Capacity Study',
+            ref: 'Paragraph 5.1',
+            policyRefs: ['IN2', 'IN1', 'S7']
+          }
+        ,
+          {
+            id: 'pw2-src-s1-x1',
+            text: "Demand for high quality, well connected office floorspace has held up, while a surplus of older stock is proving difficult to let without substantial upgrade. The gap between the two is widening.",
+            source: 'Employment Land Review',
+            ref: 'Paragraph 3.7',
+            policyRefs: ['OF1', 'S4', 'OF2']
+          },
+          {
+            id: 'pw2-src-s1-x2',
+            text: "Meanwhile uses in long-term vacant units raised footfall on the surrounding street for as long as they ran, and in four of the nine cases the unit was let permanently within a year of the temporary use ending.",
+            source: 'Town Centre Health Check 2024',
+            ref: 'Paragraph 6.5',
+            policyRefs: ['OF3', 'RE1', 'S5']
+          },
+          {
+            id: 'pw2-src-s1-x3',
+            text: "Connections are routinely retrofitted late in the development process, at greater cost and with more disruption to the street than if they had been designed in from the start.",
+            source: 'Infrastructure Delivery Plan 2024',
+            ref: 'Paragraph 5.2',
+            policyRefs: ['IN1', 'S7']
+          }
+        ,
+          {
+            id: 'pw2-src-s1-p1',
+            text: "Plans should provide for objectively assessed needs for housing and other development, with a presumption in favour of sustainable development applying unless the policies most important for determining the application provide a clear reason for refusal.",
+            source: 'National Planning Policy Framework',
+            ref: 'Paragraph 11',
+            policyRefs: ['S1', 'S3', 'HS1']
+          },
+          {
+            id: 'pw2-src-s1-p2',
+            text: "Ten-year targets for net housing completions are set for each borough, and boroughs should optimise the potential for housing delivery on all suitable and available brownfield sites.",
+            source: 'London Plan',
+            ref: 'Policy H1',
+            policyRefs: ['S3', 'HS1', 'S1']
+          }
+        ],
+        notes: [
+          { id: 'pw2-note-s1-1', author: 'Pauline Perrot', date: '3 September 2025', text: 'Growth figures still to come from the SHLAA refresh — the placeholders in this draft are deliberate, do not remove them yet.' },
+          { id: 'pw2-note-s1-2', author: 'Jomo Adeyemi', date: '15 September 2025', text: 'Check the wording on mixed-use against the Design chapter before this goes to the joint session.' }
+        ]
+      },
+      {
+        id: 'pw2-policy-s3',
+        ref: 'S3',
+        title: 'Meeting Housing Need',
+        status: 'In progress',
+        draft: 'The Council will make provision for at least [X] new homes over the plan period, with at least 35% of homes on qualifying sites delivered as affordable housing.\n\nThe Local Housing Needs Assessment finds that household formation is projected to outpace completions in every year of the plan period, with the gap widest in the first five years. Provision is therefore front-loaded towards sites that are deliverable within the first five years.\n\nProposals will be expected to demonstrate a mix of dwelling sizes that responds to identified need, with particular weight given to family-sized homes.',
+        sources: [
+          {
+            id: 'pw2-src-s3-1',
+            text: 'Household formation is projected to outpace completions in every year of the plan period, with the gap widest in the first five years. The shortfall falls most heavily on households needing affordable housing.',
+            source: 'Local Housing Needs Assessment',
+            ref: 'Chapter 3',
+            policyRefs: ['HS1', 'S3']
+          },
+          {
+            id: 'pw2-src-s3-2',
+            text: 'The assessment identifies a need for affordable housing across all size categories, with the sharpest need for family-sized homes. Delivery against that need has fallen short in each of the last five years.',
+            source: 'Strategic Housing Market Assessment',
+            ref: 'Paragraph 4.2',
+            policyRefs: ['S3', 'HS1', 'HS4']
+          }
+        ,
+          {
+            id: 'pw2-src-s3-x1',
+            text: "Supply depends almost entirely on brownfield land, and the sites remaining are smaller and more constrained than those already developed. Assumptions about delivery rates carried over from earlier plans are unlikely to hold.",
+            source: 'Housing Topic Paper',
+            ref: 'Paragraph 2.8',
+            policyRefs: ['HS1', 'S3']
+          },
+          {
+            id: 'pw2-src-s3-x2',
+            text: "Purpose-built student accommodation has taken pressure off the private rented sector where it has been delivered in accessible locations. Where it has displaced sites suitable for conventional housing, the net effect on need has been negative.",
+            source: 'Strategic Housing Market Assessment',
+            ref: 'Paragraph 8.6',
+            policyRefs: ['HS6', 'S3']
+          },
+          {
+            id: 'pw2-src-s3-x3',
+            text: "The cost of meeting accessibility requirements above the national minimum is small relative to total development cost in every tested typology, and viability is not the binding constraint in any of them.",
+            source: 'Viability Assessment',
+            ref: 'Paragraph 5.2',
+            policyRefs: ['HL1', 'S1']
+          }
+        ,
+          {
+            id: 'pw2-src-s3-p1',
+            text: "The minimum number of homes needed should be determined using the standard method, unless exceptional circumstances justify an alternative approach that also reflects current and future demographic trends and market signals.",
+            source: 'National Planning Policy Framework',
+            ref: 'Paragraph 61',
+            policyRefs: ['S3', 'HS1']
+          },
+          {
+            id: 'pw2-src-s3-p2',
+            text: "A strategic target is set for 50 per cent of all new homes to be genuinely affordable, with a threshold approach applying to applications that meet or exceed 35 per cent affordable housing by habitable room without public subsidy.",
+            source: 'London Plan',
+            ref: 'Policy H4',
+            policyRefs: ['S3', 'HS4']
+          },
+          {
+            id: 'pw2-src-s3-p3',
+            text: "Schemes should determine the appropriate mix of housing sizes with regard to local need, the requirement for affordable family housing, and the character and accessibility of the location.",
+            source: 'London Plan',
+            ref: 'Policy H10',
+            policyRefs: ['S3', 'HS4', 'HS1']
+          }
+        ],
+        notes: [
+          { id: 'pw2-note-s3-1', author: 'Pauline Perrot', date: '9 September 2025', text: 'The 35% figure needs checking against the viability evidence before we consult on it.' }
+        ]
+      },
+      {
+        id: 'pw2-policy-s9',
+        ref: 'S9',
+        title: 'Sustainable Transport and Connectivity',
+        status: 'Not started',
+        draft: '',
+        sources: [
+          {
+            id: 'pw2-src-s9-1',
+            text: 'Housing demand is concentrated where public transport access is strongest, which is also where the network is closest to capacity at peak times. Planning growth around those locations will require capacity to be increased in step.',
+            source: 'Transport Capacity Study',
+            ref: 'Paragraph 2.7',
+            policyRefs: ['HS1', 'S9', 'VT1']
+          }
+        ,
+          {
+            id: 'pw2-src-s9-x1',
+            text: "Pedestrian comfort levels on several key routes already fall below the standard at peak times, with footways carrying more people than their effective width allows. Development that adds movement without adding width will make this worse.",
+            source: 'Healthy Streets and Active Travel Study',
+            ref: 'Paragraph 4.5',
+            policyRefs: ['VT1', 'S10', 'AT1']
+          },
+          {
+            id: 'pw2-src-s9-x2',
+            text: "Servicing activity is the fastest growing source of kerbside conflict, driven by smaller and more frequent deliveries. Consolidation reduces the number of trips but requires space that is rarely designed into schemes from the outset.",
+            source: 'Freight and Servicing Study',
+            ref: 'Paragraph 2.8',
+            policyRefs: ['VT2', 'VT1', 'S9']
+          },
+          {
+            id: 'pw2-src-s9-x3',
+            text: "Wayfinding on the busiest pedestrian routes is inconsistent, with three separate signage systems in use within a quarter of a mile. Legibility matters most where routes are indirect, and it is these routes that are currently the least well signed.",
+            source: 'Public Realm and Wayfinding Study',
+            ref: 'Paragraph 2.3',
+            policyRefs: ['AT1', 'DE3', 'HL1']
+          }
+        ],
+        notes: []
+      },
+      {
+        id: 'pw2-policy-s15',
+        ref: 'S15',
+        title: 'Climate Resilience and Flood Risk',
+        status: 'In progress',
+        draft: 'Development must be resilient to climate change. Where possible, schemes should consider measures to reduce overheating and manage surface water run-off.\n\nFurther detail TBC once the surface water modelling is complete.',
+        sources: [
+          {
+            id: 'pw2-src-s15-1',
+            text: 'Surface water is the dominant flood risk across most of the area, and the areas at greatest risk do not align with the fluvial flood zones. The most vulnerable uses should be directed away from both.',
+            source: 'Strategic Flood Risk Assessment',
+            ref: 'Paragraph 3.5',
+            policyRefs: ['CR2', 'S15', 'CR4']
+          },
+          {
+            id: 'pw2-src-s15-2',
+            text: 'Days exceeding the overheating threshold are projected to more than double by 2050, with the increase most pronounced in the densest and least vegetated parts of the area. Buildings designed to today\'s conditions will not perform acceptably over their lifetime.',
+            source: 'Climate Risk and Overheating Study',
+            ref: 'Paragraph 5.6',
+            policyRefs: ['CR1', 'S15']
+          }
+        ,
+          {
+            id: 'pw2-src-s15-x1',
+            text: "Sewer capacity in the areas of highest planned growth is already exceeded in heavy rainfall. Sustainable drainage that reduces run-off at source is the only measure identified that scales with the growth proposed.",
+            source: 'Surface Water Management Plan',
+            ref: 'Paragraph 6.7',
+            policyRefs: ['CR3', 'CR2', 'IN2']
+          },
+          {
+            id: 'pw2-src-s15-x2',
+            text: "Urban greening delivers most where it connects existing habitat rather than adding isolated planting. A green infrastructure requirement applied at concept stage produces markedly better outcomes than one applied at the end of design.",
+            source: 'Biodiversity and Urban Greening Study',
+            ref: 'Paragraph 3.9',
+            policyRefs: ['OS2', 'OS3', 'S14']
+          },
+          {
+            id: 'pw2-src-s15-x3',
+            text: "Canopy cover ranges from under two per cent to over twenty per cent between wards, and the lowest cover coincides with the highest projected heat risk. Replacement planting has not kept pace with losses over the last decade.",
+            source: 'Tree Canopy Survey',
+            ref: 'Paragraph 2.2',
+            policyRefs: ['OS5', 'CR1', 'S14']
+          }
+        ],
+        notes: [
+          { id: 'pw2-note-s15-1', author: 'Pauline Perrot', date: '23 September 2025', text: 'Placeholder draft — rewrite once the surface water modelling lands. The wording is far too soft to be enforceable as it stands.' }
+        ]
+      }
+    ]
+  }
 
 }

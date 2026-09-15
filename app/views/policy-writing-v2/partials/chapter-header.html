@@ -1,0 +1,79 @@
+{#
+  Chapter title and explanatory text, as an editable form.
+
+  The explanatory text sits inside a <details> so the chapter header stays compact while a
+  drafter works on a policy, and expands when they want to read or change it.
+
+  Usage:
+    {% from "policy-writing-v2/partials/chapter-header.html" import chapterHeader %}
+    {{ chapterHeader(chapter, policy) }}
+#}
+
+{% macro chapterHeader(chapter, policy) %}
+<form class="dlp-pw2-chapter" action="/policy-writing-v2/chapter/{{ policy.id }}/details" method="post">
+
+  <div class="govuk-form-group govuk-!-margin-bottom-3">
+    <label class="govuk-label govuk-label--s" for="pw2-chapter-title">Chapter title</label>
+    <input class="govuk-input dlp-pw2-chapter__title-input" id="pw2-chapter-title" name="chapterTitleV2" type="text" value="{{ chapter.title }}">
+  </div>
+
+  <details class="govuk-details dlp-pw2-chapter__details">
+    <summary class="govuk-details__summary">
+      <span class="govuk-details__summary-text">Explanatory text and chapter brief</span>
+    </summary>
+    <div class="govuk-details__text">
+      <div class="govuk-form-group govuk-!-margin-bottom-3">
+        <label class="govuk-label govuk-visually-hidden" for="pw2-explanatory-text">Explanatory text</label>
+        <div class="dlp-editor-toolbar" aria-hidden="true">
+          <button type="button" class="dlp-editor-toolbar__button"><strong>B</strong></button>
+          <button type="button" class="dlp-editor-toolbar__button"><em>I</em></button>
+          <button type="button" class="dlp-editor-toolbar__button">&#8801;</button>
+          <button type="button" class="dlp-editor-toolbar__button">&#128279;</button>
+          <button type="button" class="dlp-editor-toolbar__button">&hellip;</button>
+        </div>
+        <textarea class="govuk-textarea dlp-pw2-chapter__text" id="pw2-explanatory-text" name="explanatoryTextV2" rows="14">{{ chapter.explanatoryText }}</textarea>
+      </div>
+
+      {#
+        The brief is read-only here: it is what the drafting is measured against, so it is not
+        something to revise while drafting against it. The bracketed numbers are references as
+        written in the brief itself.
+      #}
+      {% if chapter.brief %}
+        <section class="dlp-pw2-brief" aria-labelledby="pw2-brief-heading">
+          <h3 class="dlp-pw2-brief__heading" id="pw2-brief-heading">Chapter brief</h3>
+
+          {% if chapter.brief.intro %}
+            <p class="dlp-pw2-brief__intro">{{ chapter.brief.intro }}</p>
+          {% endif %}
+
+          <ul class="dlp-pw2-brief__list">
+            {% for item in chapter.brief.items %}
+              <li class="dlp-pw2-brief__item">
+                {{ item.text }}{% for ref in item.refs %}<sup class="dlp-pw2-brief__ref">[{{ ref }}]</sup>{% endfor %}
+              </li>
+            {% endfor %}
+          </ul>
+
+          <p class="dlp-pw2-brief__note">Agreed when the chapter was scoped. Not editable here.</p>
+        </section>
+      {% endif %}
+    </div>
+  </details>
+
+  <div class="govuk-button-group govuk-!-margin-bottom-0">
+    <button type="submit" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">
+      Save chapter details
+    </button>
+
+    {# A link, not a submit — it opens the read-only preview rather than changing anything. #}
+    <a class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
+       data-module="govuk-button"
+       href="/policy-writing-v2/chapter-preview"
+       target="_blank" rel="noopener noreferrer">
+      View chapter in new window<span class="govuk-visually-hidden"> (opens in a new tab)</span>
+    </a>
+  </div>
+</form>
+
+{% endmacro %}

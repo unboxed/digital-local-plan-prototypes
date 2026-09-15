@@ -1,0 +1,60 @@
+{#
+  The Sources rail: every source attached to this policy, as compact tags.
+
+  Each tag is a link that selects that source into the evidence viewer, and carries its own
+  one-field form for the ✕, so removing a source needs no JavaScript.
+
+  The tag shows the document name only — the rail is deliberately narrow, and the full
+  reference is shown in the evidence viewer once a source is selected. The `title` attribute
+  carries document + reference for anyone hovering, and a visually hidden span carries it for
+  screen readers, so truncating the visible label loses nothing.
+
+  Usage:
+    {% from "policy-writing-v2/partials/sources-panel.html" import sourcesPanel %}
+    {{ sourcesPanel(policy, selectedSource) }}
+#}
+
+{% macro sourcesPanel(policy, selectedSource) %}
+<section class="dlp-pw2-rail__panel" aria-labelledby="pw2-sources-heading">
+  <h2 class="dlp-pw2-rail__heading" id="pw2-sources-heading">Sources</h2>
+
+  {% if policy.sources | length %}
+    <ul class="dlp-pw2-source-list">
+      {% for source in policy.sources %}
+        {% set where = source.source + (", " + source.ref if source.ref else "") %}
+        {#
+          draggable on the <li>, and draggable="false" on the link inside it, so the browser
+          drags the source rather than the link's URL. Dragging is only ever an accelerator —
+          clicking the link does the same thing and stays the keyboard route.
+        #}
+        <li class="dlp-pw2-source{% if selectedSource and source.id == selectedSource.id %} dlp-pw2-source--current{% endif %}"
+            draggable="true"
+            data-dlp-evidence-draggable
+            data-dlp-source-id="{{ source.id }}"
+            data-dlp-evidence-target="#pw2-evidence-pane">
+          <a class="dlp-pw2-source__link" draggable="false"
+             href="/policy-writing-v2/chapter/{{ policy.id }}?source={{ source.id }}"
+             title="{{ where }}"
+             {% if selectedSource and source.id == selectedSource.id %}aria-current="true"{% endif %}>
+            <span aria-hidden="true">{{ source.source or "Untitled source" }}</span>
+            <span class="govuk-visually-hidden">{{ where }}</span>
+          </a>
+          <form class="dlp-pw2-source__form" action="/policy-writing-v2/chapter/{{ policy.id }}/sources/{{ source.id }}/remove" method="post">
+            <button type="submit" class="dlp-pw2-source__remove" title="Remove">
+              <span aria-hidden="true">&#10005;</span>
+              <span class="govuk-visually-hidden">Remove {{ where }} from this policy</span>
+            </button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="dlp-pw2-rail__empty">No sources yet.</p>
+  {% endif %}
+
+  <button type="button" class="dlp-pw2-rail__action"
+          data-dlp-open-evidence-search="#pw2-evidence-modal">
+    + Add source
+  </button>
+</section>
+{% endmacro %}
