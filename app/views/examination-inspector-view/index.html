@@ -1,6 +1,12 @@
-{% extends "layouts/main.html" %}
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
 
 {% set pageName="Examination - inspector view" %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ title: organisationName + " Local Plan", sections: sidebarSections }) }}
+{% endblock %}
 
 {% block content %}
 
@@ -26,7 +32,8 @@
     </div>
 
     <p class="govuk-body">
-      This is a starting point — add pages and journeys here to explore this user need.
+      Choose a chapter and policy from the sidebar to start reading the plan paragraph by
+      paragraph, alongside the evidence, comments and national policy references related to it.
     </p>
 
   </div>

@@ -1,0 +1,108 @@
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+
+{% set pageName = paragraph.policyRef + " " + paragraph.policyTitle %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ title: organisationName + " Local Plan", sections: sidebarSections }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <nav class="govuk-breadcrumbs" aria-label="Breadcrumb">
+      <ol class="govuk-breadcrumbs__list">
+        <li class="govuk-breadcrumbs__list-item">
+          <a class="govuk-breadcrumbs__link" href="/examination-inspector-view">{{ organisationName }} Local Plan</a>
+        </li>
+        <li class="govuk-breadcrumbs__list-item">{{ paragraph.policyArea }}</li>
+        <li class="govuk-breadcrumbs__list-item">
+          <a class="govuk-breadcrumbs__link" href="/examination-inspector-view/paragraphs/{{ paragraph.policyRef | lower }}-1">{{ paragraph.policyRef }} {{ paragraph.policyTitle }}</a>
+        </li>
+        <li class="govuk-breadcrumbs__list-item">{{ paragraph.sectionTitle }}</li>
+      </ol>
+    </nav>
+
+    {% set previousLink = { href: "/examination-inspector-view/paragraphs/" + previousParagraph.id, labelText: previousParagraph.policyRef + " " + previousParagraph.policyTitle } if previousParagraph else null %}
+    {% set nextLink = { href: "/examination-inspector-view/paragraphs/" + nextParagraph.id, labelText: nextParagraph.policyRef + " " + nextParagraph.policyTitle } if nextParagraph else null %}
+
+    {% if previousLink or nextLink %}
+      {{ govukPagination({ previous: previousLink, next: nextLink }) }}
+    {% endif %}
+
+    <div class="dlp-document-viewer">
+      <p>{{ paragraph.text }}</p>
+    </div>
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-6">Related to this paragraph</h2>
+
+    <h3 class="govuk-heading-m">Evidence</h3>
+    {% if relatedResources.evidence.length %}
+      <ul class="dlp-resource-list">
+        {% for item in relatedResources.evidence %}
+          <li>
+            <button type="button" class="dlp-resource-trigger" data-dlp-resource-trigger data-resource-target="{{ item.id }}" aria-pressed="false">
+              <span class="dlp-resource-trigger__title">{{ item.title }}</span>
+              <span class="dlp-resource-trigger__meta">{{ item.meta }}</span>
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No evidence for this policy in this prototype yet.</p>
+    {% endif %}
+
+    <h3 class="govuk-heading-m">Comments</h3>
+    {% if relatedResources.comments.length %}
+      <ul class="dlp-resource-list">
+        {% for item in relatedResources.comments %}
+          <li>
+            <button type="button" class="dlp-resource-trigger" data-dlp-resource-trigger data-resource-target="{{ item.id }}" aria-pressed="false">
+              <span class="dlp-resource-trigger__title">{{ item.title }}</span>
+              <span class="dlp-resource-trigger__meta">{{ item.meta }}</span>
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No comments for this policy in this prototype yet.</p>
+    {% endif %}
+
+    <h3 class="govuk-heading-m">NPPF and SDS policies</h3>
+    {% if relatedResources.nationalPolicy.length %}
+      <ul class="dlp-resource-list">
+        {% for item in relatedResources.nationalPolicy %}
+          <li>
+            <button type="button" class="dlp-resource-trigger" data-dlp-resource-trigger data-resource-target="{{ item.id }}" aria-pressed="false">
+              <span class="dlp-resource-trigger__title">{{ item.title }}</span>
+              <span class="dlp-resource-trigger__meta">{{ item.meta }}</span>
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No NPPF or SDS policies for this policy in this prototype yet.</p>
+    {% endif %}
+
+  </div>
+
+  <div class="govuk-grid-column-one-third">
+    <div class="dlp-tag-panel" data-dlp-resource-panel>
+      <p class="govuk-body dlp-document-hint" data-dlp-resource-panel-empty>Select a resource to view it here.</p>
+
+      {% for item in relatedResources.all %}
+        <div class="dlp-resource-viewer__item" data-dlp-resource-panel-item data-resource-id="{{ item.id }}" hidden>
+          <h2 class="govuk-heading-m">{{ item.title }}</h2>
+          <p class="govuk-body-s dlp-document-hint">{{ item.meta }}</p>
+          <p class="govuk-body">{{ item.text }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

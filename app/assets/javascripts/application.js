@@ -22,7 +22,32 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-highlights]').forEach(initSavedHighlights)
   document.querySelectorAll('[data-dlp-search]').forEach(initDocumentSearch)
   document.querySelectorAll('[data-dlp-evidence-search]').forEach(initEvidenceSearchModal)
+  document.querySelectorAll('[data-dlp-resource-panel]').forEach(initResourcePanel)
 })
+
+// Examination - inspector view: clicking a related-resource snippet shows its full text in the
+// panel alongside it, replacing the "select a resource" empty state. Triggers live outside the
+// panel itself, so they're found from the document rather than scoped to the panel.
+function initResourcePanel (panel) {
+  const emptyState = panel.querySelector('[data-dlp-resource-panel-empty]')
+  const items = panel.querySelectorAll('[data-dlp-resource-panel-item]')
+  const triggers = document.querySelectorAll('[data-dlp-resource-trigger]')
+
+  triggers.forEach(trigger => {
+    trigger.addEventListener('click', () => {
+      const targetId = trigger.dataset.resourceTarget
+
+      triggers.forEach(candidate => {
+        candidate.setAttribute('aria-pressed', String(candidate === trigger))
+      })
+
+      if (emptyState) emptyState.hidden = true
+      items.forEach(item => {
+        item.hidden = item.dataset.resourceId !== targetId
+      })
+    })
+  })
+}
 
 // A tag picker: lozenges for tags and policy areas, an optional custom tag
 // field, and a form whose hidden inputs are filled in on submit. It works in

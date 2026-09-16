@@ -38,6 +38,7 @@ const {
 } = require('./data/documents.js')
 
 const {
+  POLICIES,
   getSearchTerms,
   getPoliciesForArea,
   getPolicy,
@@ -45,6 +46,7 @@ const {
 } = require('./data/policies.js')
 const { EVIDENCE_EXCERPTS } = require('./data/evidence-excerpts.js')
 const { USER_STORY_THEMES, getUserStoryCount } = require('./data/user-stories.js')
+const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES } = require('./data/plan-paragraphs.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
 //
@@ -106,6 +108,23 @@ const POLICY_AREA_LINKS = POLICY_AREAS.map(area => ({
   label: area,
   encoded: encodeURIComponent(area)
 }))
+
+// The Local Plan's paragraphs, flattened into plan order (chapter, then policy, then
+// paragraph within that policy) for the Examination - inspector view prototype. Computed once
+// at startup since none of this is session data — array order *is* plan order, so moving to
+// the previous/next paragraph is just stepping to the neighbouring array index.
+const PLAN_PARAGRAPHS = POLICY_AREAS.flatMap(area =>
+  getPoliciesForArea(area).flatMap(policy =>
+    getParagraphsForPolicy(policy).map((paragraph, index) => ({
+      id: policy.ref.toLowerCase() + '-' + (index + 1),
+      policyRef: policy.ref,
+      policyTitle: policy.title,
+      policyArea: area,
+      sectionTitle: paragraph.sectionTitle,
+      text: paragraph.text
+    }))
+  )
+)
 
 const POLICY_REFERENCES = [
   'H1', 'H2', 'H3', 'T1', 'T2', 'EN1', 'EN2',
@@ -1086,4 +1105,88 @@ router.post('/policy-writing/:variant/write/:topicId/policy-blocks', (req, res) 
     topic.policyBlocks.push({ id: 'block-' + Date.now(), title: '', detail: '' })
   }
   res.redirect('/policy-writing/' + variant + '/write/' + req.params.topicId)
+})
+
+// --- Examination - inspector view prototype ---
+//
+// An external (non-LPA-staff) view of the submitted Local Plan for an independent planning
+// inspector: a sidebar showing the plan's chapters (policy areas) and policies, and a
+// paragraph-by-paragraph viewer for each policy's text with its related evidence, consultation
+// comments and NPPF/SDS policy references. See app/data/plan-paragraphs.js for the paragraph
+// and NPPF/SDS content this prototype adds on top of policies.js and evidence-excerpts.js.
+
+// One sidebar section per chapter (policy area), each policy in it linking to its first
+// paragraph. activePolicyRef highlights whichever policy the current page belongs to.
+function buildLocalPlanSidebarSections (activePolicyRef) {
+  return POLICY_AREAS.map(area => ({
+    heading: area,
+    items: getPoliciesForArea(area).map(policy => ({
+      text: policy.ref + ' ' + policy.title,
+      href: '/examination-inspector-view/paragraphs/' + policy.ref.toLowerCase() + '-1',
+      active: policy.ref === activePolicyRef
+    }))
+  }))
+}
+
+// Related evidence, consultation comments and NPPF/SDS references for a policy, normalised
+// into one shape so the right-hand resource panel doesn't need to know which kind it's
+// showing. Content is at policy level, not paragraph level, since none of the underlying data
+// (evidence-excerpts.js, policies.js's consultationResponses, plan-paragraphs.js) is broken
+// down any finer than that. Returned as separate lists (rather than one flat list the template
+// would need to group by kind) plus "all" for the resource panel, which doesn't care which
+// kind an item is.
+function buildRelatedResources (policy) {
+  const evidence = EVIDENCE_EXCERPTS
+    .filter(excerpt => excerpt.policyRefs.includes(policy.ref))
+    .map((excerpt, index) => ({
+      id: 'evidence-' + index,
+      title: excerpt.source,
+      meta: excerpt.ref,
+      text: excerpt.text
+    }))
+
+  const comments = (policy.consultationResponses || []).map((response, index) => ({
+    id: 'comment-' + index,
+    title: response.respondent,
+    meta: response.ref,
+    text: response.comment
+  }))
+
+  const nationalPolicy = NATIONAL_POLICY_REFERENCES
+    .filter(reference => reference.policyRefs.includes(policy.ref))
+    .map((reference, index) => ({
+      id: 'national-policy-' + index,
+      title: reference.source,
+      meta: reference.ref,
+      text: reference.text
+    }))
+
+  return {
+    evidence,
+    comments,
+    nationalPolicy,
+    all: evidence.concat(comments, nationalPolicy)
+  }
+}
+
+router.get('/examination-inspector-view', (req, res) => {
+  res.render('examination-inspector-view/index.html', {
+    sidebarSections: buildLocalPlanSidebarSections()
+  })
+})
+
+router.get('/examination-inspector-view/paragraphs/:id', (req, res) => {
+  const index = PLAN_PARAGRAPHS.findIndex(paragraph => paragraph.id === req.params.id)
+  if (index === -1) return res.redirect('/examination-inspector-view')
+
+  const paragraph = PLAN_PARAGRAPHS[index]
+  const policy = POLICIES.find(policy => policy.ref === paragraph.policyRef)
+
+  res.render('examination-inspector-view/paragraphs/show.html', {
+    paragraph,
+    previousParagraph: PLAN_PARAGRAPHS[index - 1] || null,
+    nextParagraph: PLAN_PARAGRAPHS[index + 1] || null,
+    relatedResources: buildRelatedResources(policy),
+    sidebarSections: buildLocalPlanSidebarSections(paragraph.policyRef)
+  })
 })
