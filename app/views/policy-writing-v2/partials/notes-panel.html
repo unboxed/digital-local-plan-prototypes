@@ -1,0 +1,39 @@
+{#
+  Notes on this policy, sized for the narrow rail: a compact list, with the add form tucked
+  behind a disclosure so a textarea isn't permanently squeezed into an 11rem column.
+
+  Usage:
+    {% from "policy-writing-v2/partials/notes-panel.html" import notesPanel %}
+    {{ notesPanel(policy) }}
+#}
+
+{% macro notesPanel(policy) %}
+<section class="dlp-pw2-rail__panel" aria-labelledby="pw2-notes-heading">
+  <h2 class="dlp-pw2-rail__heading" id="pw2-notes-heading">Notes</h2>
+
+  {% if policy.notes | length %}
+    <ul class="dlp-pw2-note-list">
+      {% for note in policy.notes | reverse %}
+        <li class="dlp-pw2-note">
+          <p class="dlp-pw2-note__meta">{{ note.author }} &middot; {{ note.date }}</p>
+          <p class="dlp-pw2-note__text">{{ note.text }}</p>
+          <form class="dlp-pw2-note__form" action="/policy-writing-v2/chapter/{{ policy.id }}/notes/{{ note.id }}/remove" method="post">
+            <button type="submit" class="dlp-pw2-note__remove">Remove<span class="govuk-visually-hidden"> this note</span></button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="dlp-pw2-rail__empty">No notes yet.</p>
+  {% endif %}
+
+  <details class="dlp-pw2-note-add">
+    <summary class="dlp-pw2-rail__action">+ Add note</summary>
+    <form action="/policy-writing-v2/chapter/{{ policy.id }}/notes" method="post">
+      <label class="govuk-visually-hidden" for="pw2-note-text">Note</label>
+      <textarea class="dlp-pw2-note-add__input" id="pw2-note-text" name="noteText" rows="4"></textarea>
+      <button type="submit" class="dlp-pw2-note-add__submit">Add note</button>
+    </form>
+  </details>
+</section>
+{% endmacro %}

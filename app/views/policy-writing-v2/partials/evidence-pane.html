@@ -1,0 +1,49 @@
+{#
+  The evidence viewer: the full text of whichever source is selected in the Sources rail,
+  so it can be read alongside the draft. It is also the drop target for sources dragged out of
+  the rail (see initEvidenceDrop in app/assets/javascripts/application.js).
+
+  Usage:
+    {% from "policy-writing-v2/partials/evidence-pane.html" import evidencePane %}
+    {{ evidencePane(policy, selectedSource, selectedDocument) }}
+#}
+
+{% from "policy-writing-v2/partials/evidence-document.html" import evidenceDocument %}
+
+{% macro evidencePane(policy, selectedSource, selectedDocument) %}
+<section class="dlp-pw2-pane" id="pw2-evidence-pane" aria-labelledby="pw2-evidence-heading"
+         data-dlp-split-pane="evidence"
+         data-dlp-evidence-drop
+         data-dlp-sources-source="#pw2-policy-sources"
+         data-dlp-source-url="/policy-writing-v2/chapter/{{ policy.id }}/source/">
+  <div class="dlp-pw2-pane__heading">
+    <h2 class="govuk-heading-s dlp-pw2-pane__title" id="pw2-evidence-heading">View evidence</h2>
+    <span class="dlp-pw2-pane__actions">
+      <a class="govuk-link dlp-pw2-pane__link"
+         href="/policy-writing-v2/chapter/{{ policy.id }}/source/{{ selectedSource.id if selectedSource else '' }}"
+         target="_blank" rel="noopener noreferrer"
+         data-dlp-evidence-open-link
+         {% if not selectedSource %}hidden{% endif %}>
+        Open in new window<span class="govuk-visually-hidden"> (opens in a new tab)</span>
+      </a>
+      <button type="button" class="dlp-pw2-pane__close" data-dlp-split-close="evidence">
+        <span aria-hidden="true">&#10005;</span>
+        <span class="govuk-visually-hidden">Close the evidence panel</span>
+      </button>
+    </span>
+  </div>
+
+  <div class="dlp-pw2-pane__body" data-dlp-evidence-body>
+    {% if selectedSource %}
+      {{ evidenceDocument(selectedSource, selectedDocument) }}
+    {% elif policy.sources | length %}
+      <p class="govuk-body govuk-hint">Choose a source from the list to read it here.</p>
+    {% else %}
+      <p class="govuk-body govuk-hint">
+        No sources on this policy yet. Use &ldquo;+ Add source&rdquo; to search the evidence base
+        and attach what this policy is based on.
+      </p>
+    {% endif %}
+  </div>
+</section>
+{% endmacro %}

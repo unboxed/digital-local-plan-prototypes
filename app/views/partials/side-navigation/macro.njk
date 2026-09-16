@@ -12,6 +12,8 @@
   params.sections[].items[].text: string (required) — link text
   params.sections[].items[].href: string (required) — link destination
   params.sections[].items[].active: boolean (optional) — marks the current page
+  params.sections[].items[].newTab: boolean (optional) — opens the link in a new tab, with the
+    usual rel and a visually hidden warning appended to the link text
   params.sections[].items[].status: string (optional) — one of "Completed" | "In progress" |
     "Not started" | "Cannot start" | "Action required", rendered as the matching status icon
     (see partials/icons/status-icon.html — adapted from BOPS). Anything else renders no icon.
@@ -44,8 +46,9 @@
             {% endif %}
             <a class="govuk-link govuk-link--no-visited-state app-side-navigation__link"
                href="{{ item.href }}"
+               {%- if item.newTab %} target="_blank" rel="noopener noreferrer"{% endif %}
                {%- if item.active %} aria-current="page"{% endif %}>
-              {{ item.text }}
+              {{ item.text }}{% if item.newTab %}<span class="govuk-visually-hidden"> (opens in a new tab)</span>{% endif %}
             </a>
           </li>
         {% endfor %}

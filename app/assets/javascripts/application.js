@@ -7,6 +7,20 @@
 // so a page can carry more than one tag picker (the Review evidence screen
 // has one for document passages and one for notes). Nothing here assumes a
 // particular page or a single instance.
+// One component failing must not take the rest of the page's JavaScript down with it — these
+// all run in a single documentReady callback, so without this an error in any one of them
+// leaves every component after it unwired, with nothing in the UI to say so. The error is
+// still reported; it just stops being fatal to everything else.
+function safeInit (init) {
+  return element => {
+    try {
+      init(element)
+    } catch (error) {
+      console.error('Failed to initialise a component:', error)
+    }
+  }
+}
+
 window.GOVUKPrototypeKit.documentReady(() => {
   // Side navigation: mobile collapse/expand toggle
   document.querySelectorAll('[data-app-side-navigation-toggle]').forEach((button) => {
@@ -18,10 +32,30 @@ window.GOVUKPrototypeKit.documentReady(() => {
     })
   })
 
-  document.querySelectorAll('[data-dlp-tagger]').forEach(initTagger)
-  document.querySelectorAll('[data-dlp-highlights]').forEach(initSavedHighlights)
-  document.querySelectorAll('[data-dlp-search]').forEach(initDocumentSearch)
-  document.querySelectorAll('[data-dlp-evidence-search]').forEach(initEvidenceSearchModal)
+  document.querySelectorAll('[data-dlp-tagger]').forEach(safeInit(initTagger))
+  document.querySelectorAll('[data-dlp-highlights]').forEach(safeInit(initSavedHighlights))
+  document.querySelectorAll('[data-dlp-search]').forEach(safeInit(initDocumentSearch))
+  document.querySelectorAll('[data-dlp-evidence-search]').forEach(safeInit(initEvidenceSearchModal))
+  document.querySelectorAll('[data-dlp-split]').forEach(safeInit(initSplitPane))
+  document.querySelectorAll('[data-dlp-draft-check]').forEach(safeInit(initDraftCheck))
+  document.querySelectorAll('[data-dlp-evidence-draggable]').forEach(safeInit(initEvidenceDraggable))
+  document.querySelectorAll('[data-dlp-evidence-drop]').forEach(safeInit(initEvidenceDrop))
+  document.querySelectorAll('[data-dlp-reference-flow]').forEach(safeInit(initReferenceFlow))
+
+  // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
+  // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
+  // it and hands over focus rather than scrolling to a box behind it.
+  document.querySelectorAll('[data-dlp-open-evidence-search]').forEach(button => {
+    button.addEventListener('click', () => {
+      const modal = querySelectorOrNull(button.dataset.dlpOpenEvidenceSearch) ||
+        document.querySelector('[data-dlp-search-modal]')
+      if (!modal) return
+
+      openModal(modal)
+      const input = modal.querySelector('[data-dlp-search-input]')
+      if (input) input.focus()
+    })
+  })
 })
 
 // A tag picker: lozenges for tags and policy areas, an optional custom tag
@@ -549,11 +583,23 @@ function scorePassage (passage, phrase, words, currentPolicyRef) {
   return score
 }
 
+function openModal (modal) {
+  if (!modal || modal.open) return
+  if (typeof modal.showModal === 'function') {
+    modal.showModal()
+  } else {
+    modal.setAttribute('open', 'open')
+  }
+}
+
 function initEvidenceSearchModal (root) {
   const input = root.querySelector('[data-dlp-search-input]')
   const submit = root.querySelector('[data-dlp-search-submit]')
   const dataScript = querySelectorOrNull(root.dataset.dlpSearchSource)
-  const modal = document.querySelector('[data-dlp-search-modal]')
+  // Instance-scoped when the page names the dialog this combobox drives, so one page can
+  // carry more than one search. Falls back to the document-wide lookup for pages with one.
+  const modal = querySelectorOrNull(root.dataset.dlpSearchModalTarget) ||
+    document.querySelector('[data-dlp-search-modal]')
   if (!input || !dataScript || !modal) return
 
   const title = modal.querySelector('[data-dlp-modal-title]')
@@ -564,6 +610,11 @@ function initEvidenceSearchModal (root) {
   const copyButton = modal.querySelector('[data-dlp-copy-selected]')
   const clearButton = modal.querySelector('[data-dlp-clear-selection]')
   const copyStatus = modal.querySelector('[data-dlp-copy-status]')
+  // Present only where the modal adds the selection to something via a POST (the v2 writer)
+  // rather than copying it to the clipboard (the policy summary). Both paths are guarded, so
+  // a modal supplies whichever footer it wants and the other simply stays quiet.
+  const addButton = modal.querySelector('[data-dlp-add-selected]')
+  const selectedFields = modal.querySelector('[data-dlp-selected-fields]')
 
   const suggestions = root.querySelector('[data-dlp-search-suggestions]')
   const termsScript = querySelectorOrNull(root.dataset.dlpTermsSource)
@@ -600,6 +651,32 @@ function initEvidenceSearchModal (root) {
     if (copyStatus) copyStatus.textContent = message || ''
   }
 
+  // Mirrors the current selection into hidden inputs so the modal footer can submit as an
+  // ordinary form, with no fetch and no JSON endpoint. Named _selected[...] because the kit's
+  // session middleware skips fields starting with "_" — a payload of full evidence excerpts
+  // has no business being copied into req.session.data.
+  function syncSelectedFields () {
+    if (!selectedFields) return
+
+    selectedFields.innerHTML = ''
+    selected.forEach((passage, index) => {
+      const values = {
+        text: passage.text,
+        source: passage.source || '',
+        ref: passage.ref || '',
+        policyRefs: (passage.policyRefs || []).join(',')
+      }
+
+      Object.keys(values).forEach(name => {
+        const field = document.createElement('input')
+        field.type = 'hidden'
+        field.name = '_selected[' + index + '][' + name + ']'
+        field.value = values[name]
+        selectedFields.appendChild(field)
+      })
+    })
+  }
+
   function updateSelection () {
     if (selectionCount) {
       selectionCount.textContent = selected.length
@@ -607,7 +684,9 @@ function initEvidenceSearchModal (root) {
         : 'No excerpts selected'
     }
     if (copyButton) copyButton.disabled = selected.length === 0
+    if (addButton) addButton.disabled = selected.length === 0
     if (clearButton) clearButton.hidden = selected.length === 0
+    syncSelectedFields()
   }
 
   function clearSelection () {
@@ -757,7 +836,8 @@ function initEvidenceSearchModal (root) {
       const count = document.createElement('p')
       count.className = 'govuk-body-s dlp-modal__count'
       count.textContent = results.length + ' excerpt' + (results.length === 1 ? '' : 's') +
-        ', most relevant first. Select the ones you want, then copy them.'
+        ', most relevant first. ' +
+        (modal.dataset.dlpSelectionHint || 'Select the ones you want, then copy them.')
       body.appendChild(count)
 
       const list = document.createElement('ul')
@@ -770,11 +850,7 @@ function initEvidenceSearchModal (root) {
 
     body.scrollTop = 0
 
-    if (typeof modal.showModal === 'function') {
-      modal.showModal()
-    } else {
-      modal.setAttribute('open', 'open')
-    }
+    openModal(modal)
   }
 
   if (copyButton) {
@@ -922,6 +998,1119 @@ function escapeHtml (value) {
       case '>': return '&gt;'
       case '"': return '&quot;'
       default: return '&#39;'
+    }
+  })
+}
+
+// A two-pane splitter with a draggable divider between the panes.
+//
+// Deliberately generic — the attributes say "split", not "draft" — because nothing here knows
+// or cares what the panes contain. Widths come from a custom property the divider sets, so a
+// drag touches one declaration rather than restyling either pane.
+//
+// Markup contract (every part optional except the root and the divider):
+//   [data-dlp-split]                 the grid, carrying min/max/default/key in its dataset
+//   [data-dlp-split-divider]         the separator; focusable, and the primary keyboard control
+//   [data-dlp-split-pane="<name>"]   panes, whose names are read out in aria-valuetext
+//   [data-dlp-split-close="<name>"]  closes that pane, giving the other the full width
+//   [data-dlp-split-reopen="<name>"] reopens it; shown only while that pane is closed
+//
+// It also answers two events on the root, so other behaviour can open or close a pane without
+// reaching into this one's state: "dlp-split-open" and "dlp-split-close" (the latter takes
+// { detail: { pane } }). The evidence drag-and-drop uses these to reveal a closed panel as a
+// drop target.
+function initSplitPane (root) {
+  const divider = root.querySelector('[data-dlp-split-divider]')
+  if (!divider) return
+
+  const min = Number(root.dataset.dlpSplitMin) || 25
+  const max = Number(root.dataset.dlpSplitMax) || 75
+  const initial = Number(root.dataset.dlpSplitDefault) || 50
+  const storageKey = 'dlp-split:' + (root.dataset.dlpSplitKey || 'default')
+
+  const panes = Array.prototype.slice.call(root.querySelectorAll('[data-dlp-split-pane]'))
+  const firstName = (panes[0] && panes[0].dataset.dlpSplitPane) || 'first panel'
+  const secondName = (panes[1] && panes[1].dataset.dlpSplitPane) || 'second panel'
+
+  function clamp (value) {
+    return Math.min(max, Math.max(min, Math.round(value)))
+  }
+
+  // The chosen width is viewport ergonomics rather than journey state, so it lives in the
+  // browser instead of session data — storing it server-side would mean a POST per drag.
+  // Private browsing makes these throw, hence the try/catch on both sides.
+  function readStoredFraction () {
+    try {
+      const stored = Number(window.localStorage.getItem(storageKey))
+      return stored >= min && stored <= max ? stored : null
+    } catch (error) {
+      return null
+    }
+  }
+
+  function storeFraction (value) {
+    try {
+      window.localStorage.setItem(storageKey, String(value))
+    } catch (error) {
+      // Nothing to do — the split still works, it just won't be remembered.
+    }
+  }
+
+  const closeButtons = Array.prototype.slice.call(root.querySelectorAll('[data-dlp-split-close]'))
+  // The reopen control lives in the pane that stays, so it is still reachable once the other
+  // one is gone.
+  const reopenButtons = Array.prototype.slice.call(root.querySelectorAll('[data-dlp-split-reopen]'))
+
+  let fraction = readStoredFraction() || initial
+
+  function readStoredClosed () {
+    try {
+      return window.localStorage.getItem(storageKey + ':closed') || ''
+    } catch (error) {
+      return ''
+    }
+  }
+
+  function storeClosed (name) {
+    try {
+      window.localStorage.setItem(storageKey + ':closed', name || '')
+    } catch (error) {
+      // Nothing to do — closing still works, it just will not be remembered.
+    }
+  }
+
+  // Closing a pane hides it and the divider and gives the remaining pane the whole row.
+  function setClosedPane (name, options) {
+    panes.forEach(pane => {
+      pane.hidden = Boolean(name) && pane.dataset.dlpSplitPane === name
+    })
+
+    divider.hidden = Boolean(name)
+    root.classList.toggle('dlp-split--collapsed', Boolean(name))
+    closeButtons.forEach(button => { button.hidden = Boolean(name) })
+    reopenButtons.forEach(button => {
+      button.hidden = button.dataset.dlpSplitReopen !== name
+    })
+
+    if (!options || options.persist !== false) storeClosed(name)
+  }
+
+  function setFraction (value, options) {
+    fraction = clamp(value)
+    root.style.setProperty('--dlp-split-fraction', fraction + '%')
+    divider.setAttribute('aria-valuenow', String(fraction))
+    divider.setAttribute('aria-valuetext',
+      firstName + ' ' + fraction + '%, ' + secondName + ' ' + (100 - fraction) + '%')
+    if (!options || options.persist !== false) storeFraction(fraction)
+  }
+
+  divider.setAttribute('aria-valuemin', String(min))
+  divider.setAttribute('aria-valuemax', String(max))
+  setFraction(fraction, { persist: false })
+
+  divider.addEventListener('pointerdown', event => {
+    event.preventDefault()
+    if (divider.setPointerCapture) divider.setPointerCapture(event.pointerId)
+    root.classList.add('dlp-split--dragging')
+  })
+
+  divider.addEventListener('pointermove', event => {
+    if (!divider.hasPointerCapture || !divider.hasPointerCapture(event.pointerId)) return
+    const rect = root.getBoundingClientRect()
+    if (!rect.width) return
+    // Not persisted mid-drag; the pointerup below writes the value the user settled on.
+    setFraction(((event.clientX - rect.left) / rect.width) * 100, { persist: false })
+  })
+
+  function endDrag (event) {
+    if (divider.hasPointerCapture && divider.hasPointerCapture(event.pointerId)) {
+      divider.releasePointerCapture(event.pointerId)
+    }
+    root.classList.remove('dlp-split--dragging')
+    storeFraction(fraction)
+  }
+
+  divider.addEventListener('pointerup', endDrag)
+  divider.addEventListener('pointercancel', endDrag)
+  divider.addEventListener('dblclick', () => setFraction(initial))
+
+  // The keyboard path is the real control, not a concession: dragging a 4px divider is the
+  // harder way to do this even with a mouse.
+  divider.addEventListener('keydown', event => {
+    let next = null
+
+    if (event.key === 'ArrowLeft') next = fraction - 2
+    else if (event.key === 'ArrowRight') next = fraction + 2
+    else if (event.key === 'PageDown') next = fraction - 10
+    else if (event.key === 'PageUp') next = fraction + 10
+    else if (event.key === 'Home') next = min
+    else if (event.key === 'End') next = max
+    else if (event.key === 'Enter' || event.key === ' ') next = fraction === initial ? max : initial
+
+    if (next === null) return
+    event.preventDefault()
+    setFraction(next)
+  })
+
+  closeButtons.forEach(button => {
+    button.addEventListener('click', () => setClosedPane(button.dataset.dlpSplitClose))
+  })
+
+  reopenButtons.forEach(button => {
+    button.addEventListener('click', () => setClosedPane(''))
+  })
+
+  // Opening and closing from elsewhere, without that code needing to know how this works.
+  // persist: false — a panel revealed to catch a drop should not become the remembered state.
+  root.addEventListener('dlp-split-open', event => {
+    setClosedPane('', (event.detail || {}).persist === false ? { persist: false } : undefined)
+  })
+
+  root.addEventListener('dlp-split-close', event => {
+    const detail = event.detail || {}
+    setClosedPane(detail.pane || '', detail.persist === false ? { persist: false } : undefined)
+  })
+
+  // Applied last, so a pane closed on a previous visit comes back closed.
+  setClosedPane(readStoredClosed(), { persist: false })
+}
+
+// "Check references" — how well does this draft actually use the evidence attached to it?
+//
+// This is string matching, not a language model: it counts word overlap between the draft and
+// each attached source, looks for placeholder and hedging wording, and re-runs the evidence
+// search using terms taken from what has been typed. The confidence labels and the
+// "check each suggestion against the source" caveat are there because it will produce false
+// negatives on genuine paraphrase and false positives on shared planning vocabulary. The
+// thresholds below are tuned by eye against the seeded drafts.
+//
+// It runs in the browser, on the current contents of the textarea, so it reflects unsaved
+// typing. A server-side version could only ever see the last saved draft.
+
+const DRAFT_PLACEHOLDER_PATTERNS = [
+  { pattern: /circa X\b/gi, label: 'Placeholder figure' },
+  { pattern: /\bX (homes|jobs|sqm|dwellings|units)\b/gi, label: 'Placeholder figure' },
+  { pattern: /\[[^\]]{1,60}\]/g, label: 'Placeholder text' },
+  { pattern: /\bTBC\b|\bto be confirmed\b/gi, label: 'Unresolved content' },
+  { pattern: /\bTODO\b|\bXX+\b/g, label: 'Unresolved content' }
+]
+
+const DRAFT_WEAK_WORDING_PATTERNS = [
+  { pattern: /\bwhere possible\b/gi, suggestion: 'State the circumstances this applies in, or use “must”.' },
+  { pattern: /\bshould consider\b/gi, suggestion: '“Will be expected to” or “must” is enforceable; “should consider” is not.' },
+  { pattern: /\bas appropriate\b/gi, suggestion: 'Say who decides what is appropriate, and against what.' },
+  { pattern: /\bencouraged to\b/gi, suggestion: 'Encouragement carries little weight at appeal — consider “will be expected to”.' },
+  { pattern: /\bwhere feasible\b/gi, suggestion: 'Say what would make this infeasible, or the test cannot be applied.' }
+]
+
+// A passage has to beat a single stray word match to be worth suggesting.
+const DRAFT_SUGGESTION_FLOOR = 10
+
+function readJsonFrom (selector) {
+  const script = querySelectorOrNull(selector)
+  if (!script) return []
+  try {
+    return JSON.parse(script.textContent) || []
+  } catch (error) {
+    return []
+  }
+}
+
+function initDraftCheck (root) {
+  const runButton = root.querySelector('[data-dlp-draft-check-run]')
+  const review = root.querySelector('[data-dlp-draft-review]')
+  const panels = root.querySelector('[data-dlp-draft-check-panels]')
+  const summaryLine = root.querySelector('[data-dlp-draft-check-summary]')
+  const draftInput = querySelectorOrNull(root.dataset.dlpDraftInput)
+  if (!runButton || !review || !draftInput) return
+
+  const corpus = readJsonFrom(root.dataset.dlpCorpusSource)
+  const attached = readJsonFrom(root.dataset.dlpSourcesSource)
+  const searchTerms = readJsonFrom(root.dataset.dlpTermsSource)
+  const currentPolicyRef = root.dataset.dlpCurrentPolicy || ''
+  const addSourceAction = root.dataset.dlpAddSourceAction || ''
+
+  // How many corpus passages each word appears in. Used to judge how distinctive a word is:
+  // "overheating" appears in a handful of passages and identifies a subject, "development"
+  // appears in dozens and identifies nothing.
+  //
+  // Built on FIRST USE, never at init. This function runs inside documentReady, which the kit
+  // fires synchronously — and because the bundle is a deferred module, that happens while the
+  // module is still evaluating, before the const SEARCH_STOP_WORDS further down this file has
+  // been initialised. Calling tokeniseSearch here threw a temporal-dead-zone ReferenceError
+  // that took the whole documentReady block down with it. Deferring also means a page where
+  // the check is never run does none of this work.
+  let docFrequencyCache = null
+
+  function documentFrequency () {
+    if (docFrequencyCache) return docFrequencyCache
+
+    const counts = {}
+    corpus.forEach(passage => {
+      const seen = {}
+      tokeniseSearch(passage.text || '').forEach(word => {
+        if (seen[word]) return
+        seen[word] = true
+        counts[word] = (counts[word] || 0) + 1
+      })
+    })
+
+    docFrequencyCache = counts
+    return docFrequencyCache
+  }
+
+  // Words appearing in more than half the attached sources are planning boilerplate rather
+  // than evidence of a citation, so they can't carry an overlap score on their own.
+  function buildCommonWords () {
+    if (attached.length < 2) return []
+    const counts = {}
+
+    attached.forEach(source => {
+      const seen = {}
+      tokeniseSearch(source.text || '').forEach(word => {
+        if (seen[word]) return
+        seen[word] = true
+        counts[word] = (counts[word] || 0) + 1
+      })
+    })
+
+    return Object.keys(counts).filter(word => counts[word] > attached.length / 2)
+  }
+
+  function assessSource (source, draftLower, commonWords) {
+    const title = (source.source || '').toLowerCase()
+    const ref = (source.ref || '').toLowerCase()
+    const named = (title && draftLower.indexOf(title) !== -1) ||
+      (ref && ref.length > 4 && draftLower.indexOf(ref) !== -1)
+
+    const words = tokeniseSearch(source.text || '')
+      .filter(word => commonWords.indexOf(word) === -1)
+    const matched = words.filter(word => countOccurrences(draftLower, word) > 0)
+    const overlap = words.length ? matched.length / words.length : 0
+
+    // Overlap with the document's TITLE, scored separately. A passage and its document are
+    // not the same thing: a draft can be plainly about the Surface Water Management Plan while
+    // sharing little wording with the particular paragraph quoted from it.
+    const titleWords = tokeniseSearch(source.source || '')
+    const titleOverlap = titleWords.length
+      ? titleWords.filter(word => countOccurrences(draftLower, word) > 0).length / titleWords.length
+      : 0
+
+    let state = 'missing'
+    if (named) state = 'named'
+    else if (overlap >= 0.34) state = 'paraphrased'
+    else if (overlap >= 0.15) state = 'weak'
+
+    // Suggestions are scored on title as well as body (see scorePassage), so without this the
+    // two halves of the check contradict each other: it recommends a source, and then reports
+    // the source you just accepted as unreferenced.
+    if ((state === 'missing' || state === 'weak') && titleOverlap >= 0.5) state = 'paraphrased'
+
+    return { source, state, overlap, matched }
+  }
+
+  function sentenceAround (text, index) {
+    let start = index
+    while (start > 0 && '.!?\n'.indexOf(text.charAt(start - 1)) === -1) start -= 1
+    let end = index
+    while (end < text.length && '.!?\n'.indexOf(text.charAt(end)) === -1) end += 1
+    return text.slice(start, Math.min(end + 1, text.length)).trim()
+  }
+
+  function findPatternHits (draft, patterns) {
+    const hits = []
+
+    patterns.forEach(entry => {
+      entry.pattern.lastIndex = 0
+      let match
+
+      while ((match = entry.pattern.exec(draft)) !== null) {
+        hits.push({ match: match[0], index: match.index, entry })
+        if (!entry.pattern.global) break
+        // A zero-length match would spin here forever.
+        if (match.index === entry.pattern.lastIndex) entry.pattern.lastIndex += 1
+      }
+    })
+
+    // The patterns overlap by design — "circa X homes" is matched by both the "circa X" and
+    // the "X homes" rule — so keep the longest match starting earliest and drop anything
+    // nested inside it. Without this one placeholder is reported several times over.
+    hits.sort((a, b) => a.index - b.index || b.match.length - a.match.length)
+
+    const kept = []
+    let consumedTo = -1
+
+    hits.forEach(hit => {
+      if (hit.index < consumedTo) return
+      kept.push(hit)
+      consumedTo = hit.index + hit.match.length
+    })
+
+    return kept
+  }
+
+  // Search phrases come from what the user actually typed — the most frequent words, plus any
+  // multi-word term from the type-ahead vocabulary that appears verbatim, so "surface water"
+  // is treated as a phrase rather than two unrelated words.
+  function suggestReferences (draft, draftLower) {
+    const counts = {}
+    tokeniseSearch(draft).forEach(word => { counts[word] = (counts[word] || 0) + 1 })
+
+    // Ranking by raw count does not work here: in a short draft nearly every word occurs
+    // once, so the sort collapses into document order and the opening boilerplate
+    // ("Development must be...") crowds out the words that say what the policy is about.
+    // Weighting each count by how rare the word is across the corpus fixes that.
+    const docFrequency = documentFrequency()
+    const phrases = Object.keys(counts)
+      // A word that appears nowhere in the corpus can never match a passage, so including it
+      // would only use up a slot.
+      .filter(word => docFrequency[word])
+      .sort((a, b) =>
+        (counts[b] / docFrequency[b]) - (counts[a] / docFrequency[a]))
+      .slice(0, 8)
+
+    searchTerms.forEach(term => {
+      const value = String(term && term.value ? term.value : term).toLowerCase()
+      if (value.indexOf(' ') !== -1 && draftLower.indexOf(value) !== -1) phrases.push(value)
+    })
+
+    const alreadyAttached = {}
+    attached.forEach(source => { alreadyAttached[source.text] = true })
+
+    const scored = []
+    corpus.forEach(passage => {
+      if (alreadyAttached[passage.text]) return
+
+      let best = 0
+      phrases.forEach(phrase => {
+        const score = scorePassage(passage, phrase, tokeniseSearch(phrase), currentPolicyRef)
+        if (score > best) best = score
+      })
+
+      if (best >= DRAFT_SUGGESTION_FLOOR) scored.push({ passage, score: best })
+    })
+
+    return scored.sort((a, b) => b.score - a.score).slice(0, 3)
+  }
+
+  // --- Rendering -----------------------------------------------------------------------
+  //
+  // The review takes the place of the textarea, in the editing box, so what you read back is
+  // your own draft with the evidence marked on it. Sentences that draw on an attached source
+  // are marked and numbered [1], [2] …, matching the numbered key below the box; where the
+  // check finds evidence the draft clearly relates to but has not been attached, it offers
+  // "Add reference to … here" at the point in the text where it belongs.
+  //
+  // Everything is built with createElement/createTextNode/textContent — the draft is user
+  // input and is quoted back in full, so none of it goes near innerHTML.
+
+  function sourceLabel (source) {
+    return [source.source, source.ref].filter(Boolean).join(', ')
+  }
+
+  // Sentence boundaries, with offsets into the original draft so marks land in the right place.
+  // A reference belongs to a sentence: a paragraph is too coarse to say where the evidence is
+  // being used, and a word is too fine to be a citation.
+  function splitSentences (text, offset) {
+    const spans = []
+    let start = 0
+    let depth = 0
+
+    for (let index = 0; index < text.length; index += 1) {
+      const character = text.charAt(index)
+
+      // Terminators inside brackets do not end a sentence. Drafters write "[Total Number,
+      // e.g., 12,500]" and "(2026–2041)", and splitting on those full stops used to leave a
+      // placeholder straddling two sentences — which meant it was counted as a wording issue
+      // but never highlighted, because a mark cannot span a sentence boundary.
+      if (character === '[' || character === '(') depth += 1
+      else if (character === ']' || character === ')') depth = Math.max(0, depth - 1)
+
+      const terminator = character === '.' || character === '!' || character === '?'
+      if ((terminator && !depth) || character === '\n') {
+        const slice = text.slice(start, index + 1)
+        if (slice.trim()) spans.push({ start: offset + start, end: offset + index + 1, text: slice })
+        start = index + 1
+      }
+    }
+
+    const tail = text.slice(start)
+    if (tail.trim()) spans.push({ start: offset + start, end: offset + text.length, text: tail })
+
+    return spans
+  }
+
+  // Which attached sources a single sentence draws on, by the same measure used for the whole
+  // draft, so the marks in the text and the key underneath can't disagree.
+  function referencesIn (sentence, commonWords) {
+    const sentenceLower = sentence.toLowerCase()
+    const refs = []
+
+    attached.forEach((source, index) => {
+      const state = assessSource(source, sentenceLower, commonWords).state
+      if (state === 'named' || state === 'paraphrased') {
+        refs.push({ number: index + 1, source, state })
+      }
+    })
+
+    return refs
+  }
+
+  function addSourceButton (passage, label) {
+    const form = document.createElement('form')
+    form.className = 'dlp-pw2-suggest'
+    form.method = 'post'
+    form.action = addSourceAction
+
+    const values = {
+      text: passage.text,
+      source: passage.source || '',
+      ref: passage.ref || '',
+      policyRefs: (passage.policyRefs || []).join(',')
+    }
+
+    Object.keys(values).forEach(name => {
+      const field = document.createElement('input')
+      field.type = 'hidden'
+      field.name = '_selected[0][' + name + ']'
+      field.value = values[name]
+      form.appendChild(field)
+    })
+
+    const button = document.createElement('button')
+    button.type = 'submit'
+    button.className = 'dlp-pw2-suggest__button'
+    button.textContent = label
+    form.appendChild(button)
+
+    return form
+  }
+
+  // Renders one sentence's text, marking placeholders and unenforceable wording inside it.
+  function appendMarkedText (parent, text, offset, marks) {
+    const local = marks
+      .filter(mark => mark.start >= offset && mark.end <= offset + text.length)
+      .map(mark => ({ start: mark.start - offset, end: mark.end - offset, type: mark.type, note: mark.note }))
+      .sort((a, b) => a.start - b.start)
+
+    let cursor = 0
+    local.forEach(span => {
+      if (span.start > cursor) {
+        parent.appendChild(document.createTextNode(text.slice(cursor, span.start)))
+      }
+
+      const mark = document.createElement('mark')
+      mark.className = 'dlp-pw2-mark dlp-pw2-mark--' + span.type
+      mark.title = span.note
+      mark.appendChild(document.createTextNode(text.slice(span.start, span.end)))
+
+      // The highlight must never be colour alone.
+      const hidden = document.createElement('span')
+      hidden.className = 'govuk-visually-hidden'
+      hidden.textContent = ' (flagged: ' + span.note + ') '
+      mark.appendChild(hidden)
+
+      parent.appendChild(mark)
+      cursor = span.end
+    })
+
+    if (cursor < text.length) parent.appendChild(document.createTextNode(text.slice(cursor)))
+    return local
+  }
+
+  function renderReviewDocument (draft, marks, sentenceRefs, missingBySentence) {
+    const doc = document.createDocumentFragment()
+    let offset = 0
+
+    draft.split('\n\n').forEach((paragraphText, index) => {
+      if (index > 0) offset += 2
+      const paragraphStart = offset
+      offset += paragraphText.length
+      if (!paragraphText.trim()) return
+
+      const paragraph = document.createElement('p')
+      paragraph.className = 'dlp-pw2-draft__para'
+
+      splitSentences(paragraphText, paragraphStart).forEach(sentence => {
+        const refs = sentenceRefs[sentence.start] || []
+
+        // A referenced sentence is wrapped, so inline marks can still sit inside it — nesting
+        // one <mark> in another is not something you can rely on rendering sensibly.
+        const container = refs.length ? document.createElement('span') : paragraph
+        if (refs.length) container.className = 'dlp-pw2-cited'
+
+        appendMarkedText(container, sentence.text, sentence.start, marks)
+
+        refs.forEach(ref => {
+          const marker = document.createElement('sup')
+          marker.className = 'dlp-pw2-refnum'
+          marker.title = sourceLabel(ref.source)
+          marker.textContent = '[' + ref.number + ']'
+
+          const hidden = document.createElement('span')
+          hidden.className = 'govuk-visually-hidden'
+          hidden.textContent = ' reference ' + ref.number + ', ' + sourceLabel(ref.source) + ' '
+          marker.appendChild(hidden)
+
+          container.appendChild(marker)
+        })
+
+        if (container !== paragraph) paragraph.appendChild(container)
+
+        // Evidence the draft plainly relates to, offered where it belongs rather than in a list.
+        const missing = missingBySentence[sentence.start]
+        if (missing && addSourceAction) {
+          paragraph.appendChild(addSourceButton(
+            missing.passage, '+ Add reference to ' + sourceLabel(missing.passage) + ' here'))
+        }
+      })
+
+      doc.appendChild(paragraph)
+    })
+
+    return doc
+  }
+
+  const STATE_WORDS = {
+    named: 'Cited by name',
+    paraphrased: 'Used, not named',
+    weak: 'Barely used',
+    missing: 'Not used'
+  }
+
+  // The key that makes the [1]/[2] markers in the text mean something.
+  function renderSourceKey (assessments, usedStates) {
+    const section = document.createElement('section')
+    section.className = 'dlp-pw2-key'
+
+    const heading = document.createElement('h3')
+    heading.className = 'dlp-pw2-key__heading'
+    heading.textContent = 'References'
+    section.appendChild(heading)
+
+    const list = document.createElement('ol')
+    list.className = 'dlp-pw2-key__list'
+
+    assessments.forEach((assessment, index) => {
+      // "named"/"paraphrased" only where a sentence is actually marked with this number;
+      // otherwise fall back to how close the whole draft came.
+      const state = usedStates[index] ||
+        (assessment.overlap >= 0.15 ? 'weak' : 'missing')
+
+      const item = document.createElement('li')
+      item.className = 'dlp-pw2-key__item dlp-pw2-key__item--' + state
+
+      const number = document.createElement('span')
+      number.className = 'dlp-pw2-key__number'
+      number.textContent = '[' + (index + 1) + ']'
+
+      const label = document.createElement('span')
+      label.className = 'dlp-pw2-key__label'
+      label.textContent = sourceLabel(assessment.source)
+
+      const stateLabel = document.createElement('span')
+      stateLabel.className = 'dlp-pw2-key__state'
+      stateLabel.textContent = STATE_WORDS[state]
+
+      item.appendChild(number)
+      item.appendChild(label)
+      item.appendChild(stateLabel)
+      list.appendChild(item)
+    })
+
+    section.appendChild(list)
+    return section
+  }
+
+  // A small labelled swatch, used for the legend under the review.
+  function annotationChip (text, type) {
+    const chip = document.createElement('span')
+    chip.className = 'dlp-pw2-chip dlp-pw2-chip--' + type
+    chip.textContent = text
+    return chip
+  }
+
+  // The legend and the caveat, as plain lines rather than a panel of their own. The marks are
+  // meaningless without a key, and anything generated needs to say that it was.
+  function renderReviewNotes (marks) {
+    const notes = document.createElement('div')
+    notes.className = 'dlp-pw2-review-notes'
+
+    if (marks.length) {
+      const legend = document.createElement('p')
+      legend.className = 'dlp-pw2-legend'
+      legend.appendChild(annotationChip('Placeholder', 'placeholder'))
+      legend.appendChild(annotationChip('Not enforceable', 'wording'))
+      notes.appendChild(legend)
+    }
+
+    const caveat = document.createElement('p')
+    caveat.className = 'dlp-pw2-review-notes__caveat'
+    caveat.textContent = 'AI generated — check each suggestion against the source before using it.'
+    notes.appendChild(caveat)
+
+    if (!attached.length) {
+      const none = document.createElement('p')
+      none.className = 'dlp-pw2-review-notes__caveat'
+      none.textContent = 'No sources are attached to this policy yet — add some with “+ Add source”.'
+      notes.appendChild(none)
+    }
+
+    return notes
+  }
+
+  // Deliberately leaves the panes alone: the review swaps in where the textarea was, and the
+  // evidence panel stays exactly as the drafter left it. The box fills its frame through CSS
+  // (see [data-dlp-split-pane="draft"] in _policy-writing-v2.scss), not by taking the panel's
+  // space away.
+  function showReview (on) {
+    review.hidden = !on
+    draftInput.hidden = on
+    if (panels) panels.hidden = !on
+    runButton.setAttribute('aria-pressed', String(on))
+  }
+
+  function run () {
+    const draft = draftInput.value || ''
+    const draftLower = draft.toLowerCase()
+    const draftWords = draft.trim() ? draft.trim().split(/\s+/).length : 0
+
+    review.innerHTML = ''
+    if (panels) panels.innerHTML = ''
+
+    if (!draftWords) {
+      if (summaryLine) {
+        summaryLine.textContent = 'Nothing to check yet — start drafting, or insert a template to work from.'
+      }
+      return
+    }
+
+    const commonWords = buildCommonWords()
+    const assessments = attached.map(source => assessSource(source, draftLower, commonWords))
+
+    const found = []
+    findPatternHits(draft, DRAFT_PLACEHOLDER_PATTERNS).forEach(hit => {
+      found.push({ start: hit.index, end: hit.index + hit.match.length, type: 'placeholder', note: hit.entry.label })
+    })
+    findPatternHits(draft, DRAFT_WEAK_WORDING_PATTERNS).forEach(hit => {
+      found.push({ start: hit.index, end: hit.index + hit.match.length, type: 'wording', note: hit.entry.suggestion })
+    })
+
+    // findPatternHits settles overlaps within one pass, but the two passes are independent,
+    // and one <mark> cannot be half inside another — so settle across them the same way.
+    found.sort((a, b) => a.start - b.start || b.end - a.end)
+    const marks = []
+    let consumedTo = -1
+    found.forEach(span => {
+      if (span.start < consumedTo) return
+      marks.push(span)
+      consumedTo = span.end
+    })
+
+    // Place each suggestion against the sentence it best fits, so "add a reference" appears
+    // where the reference would go rather than in a list at the bottom.
+    const allSentences = []
+    let offset = 0
+    draft.split('\n\n').forEach((paragraphText, index) => {
+      if (index > 0) offset += 2
+      splitSentences(paragraphText, offset).forEach(sentence => allSentences.push(sentence))
+      offset += paragraphText.length
+    })
+
+    const sentenceRefs = {}
+    const usedStates = []
+    allSentences.forEach(sentence => {
+      const refs = referencesIn(sentence.text, commonWords)
+      sentenceRefs[sentence.start] = refs
+      refs.forEach(ref => {
+        // "named" beats "paraphrased": one sentence citing the document by name settles it.
+        if (usedStates[ref.number - 1] !== 'named') usedStates[ref.number - 1] = ref.state
+      })
+    })
+
+    const missingBySentence = {}
+    let missingCount = 0
+    suggestReferences(draft, draftLower).forEach(suggestion => {
+      let best = null
+      let bestScore = 0
+
+      allSentences.forEach(sentence => {
+        if (missingBySentence[sentence.start]) return
+        const phrase = (suggestion.passage.source || '').toLowerCase()
+        const score = scorePassage(
+          { text: sentence.text, source: '', policyRefs: [] },
+          phrase,
+          tokeniseSearch(suggestion.passage.text || ''),
+          '')
+        if (score > bestScore) { bestScore = score; best = sentence }
+      })
+
+      if (best) {
+        missingBySentence[best.start] = suggestion
+        missingCount += 1
+      }
+    })
+
+    review.appendChild(renderReviewDocument(draft, marks, sentenceRefs, missingBySentence))
+    if (panels) {
+      if (assessments.length) panels.appendChild(renderSourceKey(assessments, usedStates))
+      panels.appendChild(renderReviewNotes(marks))
+    }
+
+    showReview(true)
+    review.focus()
+
+    if (summaryLine) {
+      const cited = usedStates.filter(Boolean).length
+      summaryLine.textContent = 'Draft marked up: ' + cited + ' of ' + assessments.length +
+        ' sources used, ' + marks.length + ' wording issues, ' + missingCount + ' references suggested.'
+    }
+  }
+
+  review.addEventListener('click', event => {
+    // Controls only — not 'form': the whole drafting pane is one form, so closest('form')
+    // matches every click in here and nothing would ever return to editing.
+    if (event.target.closest('button, a, input, select, textarea, label')) return
+    showReview(false)
+    draftInput.focus()
+  })
+
+  runButton.addEventListener('click', () => {
+    if (runButton.getAttribute('aria-pressed') === 'true') {
+      showReview(false)
+      draftInput.focus()
+      if (summaryLine) summaryLine.textContent = ''
+      return
+    }
+    run()
+  })
+}
+
+// Dragging a source from the sidebar into the evidence panel to read it.
+//
+// Strictly an accelerator: every source in the rail is also a link that does the same thing, so
+// nothing here is drag-only and the keyboard route is unaffected. Dropping renders the excerpt
+// client-side rather than navigating, because the drafting textarea may hold unsaved typing.
+//
+// Only one HTML5 drag can be in flight at a time, so the two halves below coordinate through a
+// single module-level record rather than passing state through dataTransfer (which is
+// deliberately unreadable during dragover, when we need to know whether to react).
+let evidenceDrag = null
+
+function initEvidenceDraggable (item) {
+  const sourceId = item.dataset.dlpSourceId
+  const target = querySelectorOrNull(item.dataset.dlpEvidenceTarget)
+  if (!sourceId || !target) return
+
+  item.addEventListener('dragstart', event => {
+    const split = target.closest('[data-dlp-split]')
+
+    evidenceDrag = {
+      sourceId,
+      target,
+      split,
+      // A panel revealed just to catch a drop should go back to closed if the drag is
+      // abandoned — and must not be remembered as the user's chosen state either way.
+      openedForDrag: Boolean(split) && target.hidden,
+      dropped: false
+    }
+
+    if (evidenceDrag.openedForDrag) {
+      split.dispatchEvent(new CustomEvent('dlp-split-open', { detail: { persist: false } }))
+      target.classList.add('dlp-pw2-pane--dropzone')
+    }
+
+    item.classList.add('dlp-pw2-source--dragging')
+
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'copy'
+      // Some browsers refuse to start a drag with nothing set.
+      event.dataTransfer.setData('text/plain', sourceId)
+    }
+  })
+
+  item.addEventListener('dragend', () => {
+    item.classList.remove('dlp-pw2-source--dragging')
+
+    if (evidenceDrag) {
+      evidenceDrag.target.classList.remove('dlp-pw2-pane--dropzone', 'dlp-pw2-pane--dragover')
+      if (evidenceDrag.openedForDrag && !evidenceDrag.dropped && evidenceDrag.split) {
+        evidenceDrag.split.dispatchEvent(
+          new CustomEvent('dlp-split-close', { detail: { pane: 'evidence', persist: false } }))
+      }
+    }
+
+    evidenceDrag = null
+  })
+}
+
+function initEvidenceDrop (pane) {
+  const body = pane.querySelector('[data-dlp-evidence-body]')
+  if (!body) return
+
+  const sources = readJsonFrom(pane.dataset.dlpSourcesSource)
+  const openLink = pane.querySelector('[data-dlp-evidence-open-link]')
+  const sourceUrl = pane.dataset.dlpSourceUrl || ''
+
+  // Mirrors policy-writing-v2/partials/evidence-document.html — change one and change the
+  // other. The extracts are attached to each source by the route (see sourcesJson).
+  function renderSource (source) {
+    body.innerHTML = ''
+
+    const article = document.createElement('article')
+    article.className = 'dlp-pw2-evidence'
+
+    const heading = document.createElement('h3')
+    heading.className = 'dlp-pw2-evidence__title'
+    heading.textContent = source.source || 'Untitled source'
+    article.appendChild(heading)
+
+    const extract = source.document || { section: source.ref || '', paragraphs: [] }
+
+    if (extract.section) {
+      const section = document.createElement('p')
+      section.className = 'dlp-pw2-evidence__section'
+      section.textContent = extract.section
+      article.appendChild(section)
+    }
+
+    const list = document.createElement('ol')
+    list.className = 'dlp-pw2-doc'
+
+    ;(extract.paragraphs || []).forEach(paragraph => {
+      const item = document.createElement('li')
+      item.className = 'dlp-pw2-doc__para' + (paragraph.cited ? ' dlp-pw2-doc__para--cited' : '')
+
+      const number = document.createElement('span')
+      number.className = 'dlp-pw2-doc__number'
+      number.setAttribute('aria-hidden', 'true')
+      number.textContent = paragraph.number
+      item.appendChild(number)
+
+      const text = document.createElement('p')
+      text.className = 'dlp-pw2-doc__text'
+
+      // The numbers are decorative in the markup, so they have to be spoken here instead.
+      const label = document.createElement('span')
+      label.className = 'govuk-visually-hidden'
+      label.textContent = (paragraph.cited ? 'Cited paragraph ' : 'Paragraph ') + paragraph.number + '. '
+      text.appendChild(label)
+      text.appendChild(document.createTextNode(paragraph.text || ''))
+
+      item.appendChild(text)
+      list.appendChild(item)
+    })
+
+    article.appendChild(list)
+
+    if ((source.policyRefs || []).length) {
+      const refs = document.createElement('p')
+      refs.className = 'dlp-pw2-evidence__refs'
+      source.policyRefs.forEach(ref => {
+        const chip = document.createElement('span')
+        chip.className = 'dlp-chip'
+        chip.textContent = ref
+        refs.appendChild(chip)
+      })
+      article.appendChild(refs)
+    }
+
+    body.appendChild(article)
+
+    if (openLink) {
+      openLink.href = sourceUrl + source.id
+      openLink.hidden = false
+    }
+
+    // The reference flow marks paragraphs up when it is armed; this replaces them, so it has
+    // to know to do that again.
+    pane.dispatchEvent(new CustomEvent('dlp-evidence-rendered', { bubbles: true }))
+
+    // Keep the rail's current-item marker in step with what the viewer is showing.
+    document.querySelectorAll('[data-dlp-evidence-draggable]').forEach(item => {
+      item.classList.toggle('dlp-pw2-source--current', item.dataset.dlpSourceId === source.id)
+    })
+  }
+
+  pane.addEventListener('dragover', event => {
+    if (!evidenceDrag) return
+    // Without preventDefault the browser refuses the drop outright.
+    event.preventDefault()
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+    pane.classList.add('dlp-pw2-pane--dragover')
+  })
+
+  pane.addEventListener('dragleave', event => {
+    // Fires when moving between children too, so only react on actually leaving the pane.
+    if (pane.contains(event.relatedTarget)) return
+    pane.classList.remove('dlp-pw2-pane--dragover')
+  })
+
+  pane.addEventListener('drop', event => {
+    event.preventDefault()
+    pane.classList.remove('dlp-pw2-pane--dropzone', 'dlp-pw2-pane--dragover')
+
+    const id = (evidenceDrag && evidenceDrag.sourceId) ||
+      (event.dataTransfer && event.dataTransfer.getData('text/plain'))
+    const source = sources.filter(candidate => candidate.id === id)[0]
+    if (!source) return
+
+    if (evidenceDrag) {
+      evidenceDrag.dropped = true
+      // Dropping something in is a decision to have the panel open, so unlike the temporary
+      // reveal on dragstart, this one is remembered for next time.
+      if (evidenceDrag.openedForDrag && evidenceDrag.split) {
+        evidenceDrag.split.dispatchEvent(new CustomEvent('dlp-split-open'))
+      }
+    }
+
+    renderSource(source)
+  })
+}
+
+// Inserting a reference into the draft by pointing at the paragraph being cited.
+//
+// Three steps, across both panes: press the toolbar's reference control, click where the
+// reference belongs in the draft, then click the paragraph in the evidence panel. The citation
+// is written in full — "(Local Housing Needs Assessment, paragraph 3.3)" — rather than as a
+// bare number, because the draft check looks for the document's name when deciding whether a
+// source is cited. Insert one and the check agrees with you.
+//
+// The evidence paragraphs are only made interactive while the flow is armed. Outside it they
+// are prose, and giving them a button role permanently would misdescribe them.
+function initReferenceFlow (root) {
+  const startButton = root.querySelector('[data-dlp-reference-start]')
+  const status = root.querySelector('[data-dlp-reference-status]')
+  const draft = querySelectorOrNull(root.dataset.dlpReferenceInput)
+  const evidence = querySelectorOrNull(root.dataset.dlpReferenceEvidence)
+  if (!startButton || !draft || !evidence) return
+
+  let armed = false
+  let caret = null
+
+  function say (message) {
+    if (!status) return
+    status.textContent = message || ''
+    status.hidden = !message
+  }
+
+  function paragraphs () {
+    return Array.prototype.slice.call(evidence.querySelectorAll('.dlp-pw2-doc__para'))
+  }
+
+  // Read from the DOM rather than a data blob, so this keeps working for a paragraph the drag
+  // handler rendered client-side as well as one the server rendered.
+  function citationFor (paragraph) {
+    const title = evidence.querySelector('.dlp-pw2-evidence__title')
+    const numberEl = paragraph.querySelector('.dlp-pw2-doc__number')
+    const number = numberEl ? numberEl.textContent.trim() : ''
+    const document_ = title ? title.textContent.trim() : ''
+    if (!document_) return ''
+
+    // "policy H4" in the London Plan, "paragraph 3.3" in the studies.
+    const label = /^[A-Za-z]/.test(number) ? 'policy' : 'paragraph'
+    return number ? '(' + document_ + ', ' + label + ' ' + number + ')' : '(' + document_ + ')'
+  }
+
+  function markParagraphs (on) {
+    paragraphs().forEach(paragraph => {
+      if (on) {
+        paragraph.setAttribute('role', 'button')
+        paragraph.setAttribute('tabindex', '0')
+        paragraph.setAttribute('aria-label', 'Insert reference to ' + citationFor(paragraph))
+        paragraph.classList.add('dlp-pw2-doc__para--citable')
+      } else {
+        paragraph.removeAttribute('role')
+        paragraph.removeAttribute('tabindex')
+        paragraph.removeAttribute('aria-label')
+        paragraph.classList.remove('dlp-pw2-doc__para--citable')
+      }
+    })
+  }
+
+  function setArmed (on) {
+    armed = on
+    startButton.setAttribute('aria-pressed', String(on))
+    root.classList.toggle('dlp-pw2-main--citing', on)
+    markParagraphs(on)
+
+    if (!on) {
+      caret = null
+      say('')
+      return
+    }
+
+    // Nothing to point at if the panel is shut, so open it — not persisted, since this is the
+    // flow needing it rather than a choice about how to work.
+    const split = evidence.closest('[data-dlp-split]')
+    if (split && evidence.hidden) {
+      split.dispatchEvent(new CustomEvent('dlp-split-open', { detail: { persist: false } }))
+      markParagraphs(true)
+    }
+
+    caret = draft.selectionStart
+    say('Click in your draft where the reference should go, then click the paragraph you are citing.')
+  }
+
+  function insert (paragraph) {
+    const citation = citationFor(paragraph)
+    if (!citation) return
+
+    const value = draft.value
+    const at = caret === null ? value.length : Math.min(caret, value.length)
+    const before = value.slice(0, at)
+    const after = value.slice(at)
+    // Don't run the citation into the preceding word, and don't double a space that is there.
+    const spacer = before && !/\s$/.test(before) ? ' ' : ''
+    const text = spacer + citation
+
+    draft.value = before + text + after
+    setArmed(false)
+
+    draft.focus()
+    const caretAfter = at + text.length
+    draft.setSelectionRange(caretAfter, caretAfter)
+    say('Reference inserted: ' + citation)
+  }
+
+  startButton.addEventListener('click', () => setArmed(!armed))
+
+  // Where the reference goes. Tracked on the draft's own events rather than a document-wide
+  // click, so moving the caret with the keyboard counts too.
+  ;['click', 'keyup', 'select'].forEach(type => {
+    draft.addEventListener(type, () => {
+      if (!armed) return
+      caret = draft.selectionStart
+      say('Now click the paragraph you are citing in the evidence panel.')
+    })
+  })
+
+  // Delegated, so it survives the panel being re-rendered mid-flow.
+  evidence.addEventListener('click', event => {
+    if (!armed) return
+    const paragraph = event.target.closest('.dlp-pw2-doc__para')
+    if (!paragraph || !evidence.contains(paragraph)) return
+    event.preventDefault()
+    insert(paragraph)
+  })
+
+  evidence.addEventListener('keydown', event => {
+    if (!armed || (event.key !== 'Enter' && event.key !== ' ')) return
+    const paragraph = event.target.closest('.dlp-pw2-doc__para')
+    if (!paragraph) return
+    event.preventDefault()
+    insert(paragraph)
+  })
+
+  evidence.addEventListener('dlp-evidence-rendered', () => {
+    if (armed) markParagraphs(true)
+  })
+
+  document.addEventListener('keydown', event => {
+    if (armed && event.key === 'Escape') {
+      setArmed(false)
+      say('')
+      startButton.focus()
     }
   })
 }

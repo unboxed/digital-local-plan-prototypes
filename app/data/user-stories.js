@@ -50,10 +50,54 @@ const USER_STORY_THEMES = [
       { ref: 'E4US2', text: 'As a policy officer I need to see how consutlation responses were used in relation to policy and how effectively they were addressed in plan-making so that we can improve our process' }
     ]
   }
+,
+  {
+    theme: 'Policy',
+    // No sub-theme code in the source for these, unlike the E1-E4 evidence groups, so the
+    // theme heading carries the grouping on its own.
+    subTheme: null,
+    stories: [
+      { ref: 'POUS1', text: 'As a policy team leader I need to work out which policies we need to create so that I can allocate resources efficiently across the team' },
+      { ref: 'POUS2', text: 'As a policy officer I need to find templates of previous policy or standard policies from other LPAs so that I have a starting point for my policy drafting' },
+      { ref: 'POUS3', text: 'As a policy officer I need to connect key insights to policy so I can see how a policy is informed by evidence' },
+      { ref: 'POUS4', text: 'As a policy officer I need to view evidence while I\'m drafting policy so that my policy is informed by evidence' },
+      { ref: 'POUS5', text: 'As a policy officer I need to track changes and updates to the policy I\'m working on so other people can see when I\'ve made changes' }
+    ]
+  }
 ]
+
+// Themes in the order they first appear, each with its sub-theme groups. The theme field was
+// carried in the data but never shown; with Policy stories alongside Evidence ones it has to
+// be, or the page reads as one undifferentiated list.
+function getUserStoryThemeGroups () {
+  const groups = []
+  const byTheme = {}
+
+  USER_STORY_THEMES.forEach(group => {
+    if (!byTheme[group.theme]) {
+      byTheme[group.theme] = { theme: group.theme, groups: [] }
+      groups.push(byTheme[group.theme])
+    }
+    byTheme[group.theme].groups.push(group)
+  })
+
+  return groups
+}
+
+// Look stories up by reference, so a page can show the handful it is about without copying
+// their wording — this file stays the one place any story is written down.
+function getUserStories (refs) {
+  const byRef = {}
+
+  USER_STORY_THEMES.forEach(group => {
+    group.stories.forEach(story => { byRef[story.ref] = story })
+  })
+
+  return refs.map(ref => byRef[ref]).filter(Boolean)
+}
 
 function getUserStoryCount () {
   return USER_STORY_THEMES.reduce((total, theme) => total + theme.stories.length, 0)
 }
 
-module.exports = { USER_STORY_THEMES, getUserStoryCount }
+module.exports = { USER_STORY_THEMES, getUserStoryThemeGroups, getUserStories, getUserStoryCount }

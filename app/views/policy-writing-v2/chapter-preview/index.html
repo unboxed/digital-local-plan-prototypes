@@ -1,0 +1,69 @@
+{#
+  Read-only view of the whole chapter, opened in a new window from the workspace so a drafter
+  can see progress across every policy at once.
+
+  Extends layouts/main.html rather than the wide layout — this is for reading, and the standard
+  960px measure is right for that. Reuses the .dlp-pdf-page* styles so it reads as a printed
+  chapter rather than a form.
+
+  Multi-paragraph text is rendered with white-space: pre-wrap (see .dlp-pw2-preview__body)
+  rather than split on "\n\n" here, which keeps the escaping to Nunjucks' default.
+#}
+
+{% extends "layouts/main.html" %}
+
+{% set pageName = chapter.title %}
+
+{% from "partials/icons/status-icon.html" import statusIcon %}
+
+{% block content %}
+
+<div class="dlp-pdf-backdrop">
+  <article class="dlp-pdf-page">
+
+    <header class="dlp-pdf-page__header">
+      <p class="dlp-pdf-page__eyebrow">Chapter draft</p>
+      <h1 class="dlp-pdf-page__title">{{ chapter.title }}</h1>
+      <p class="dlp-pdf-page__chapter">
+        {{ chapter.policies | length }} polic{{ "y" if chapter.policies | length == 1 else "ies" }}
+        &middot; {{ draftedCount }} drafted
+        &middot; {{ sourceCount }} source{{ "" if sourceCount == 1 else "s" }}
+      </p>
+    </header>
+
+    <div class="dlp-pdf-page__body">
+      <p class="dlp-pw2-preview__body">{{ chapter.explanatoryText }}</p>
+
+      {% for item in chapter.policies %}
+        <section class="dlp-pw2-preview__policy">
+          <h2 class="dlp-pw2-preview__heading">
+            {% if item.ref %}{{ item.ref }} {% endif %}{{ item.title or "Untitled policy" }}
+          </h2>
+
+          <p class="dlp-pw2-preview__status">
+            {{ statusIcon(item.status) }}
+            <span>{{ item.status }}</span>
+          </p>
+
+          {% if item.draft and item.draft.trim() %}
+            <p class="dlp-pw2-preview__body">{{ item.draft }}</p>
+          {% else %}
+            <p class="dlp-pdf-page__note">Not drafted yet.</p>
+          {% endif %}
+
+          {% if item.sources | length %}
+            <h3 class="dlp-pw2-preview__sources-heading">Sources behind this policy</h3>
+            <ul class="govuk-list govuk-list--bullet dlp-pw2-preview__sources">
+              {% for source in item.sources %}
+                <li>{{ source.source }}{% if source.ref %}, {{ source.ref }}{% endif %}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </div>
+
+  </article>
+</div>
+
+{% endblock %}

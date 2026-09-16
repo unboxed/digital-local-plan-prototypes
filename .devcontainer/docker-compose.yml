@@ -27,6 +27,11 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    # Publish the GOV.UK Prototype Kit's dev server to the host. VS Code's
+    # automatic port forwarding can't be relied on here: the socket cleanup loop
+    # in `command` below deletes the vscode-ipc-*.sock files it depends on.
+    ports:
+      - "3000:3000"
     volumes:
       - ..:/workspace:delegated
       - claude-code-history:/commandhistory

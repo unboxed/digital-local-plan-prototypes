@@ -1,0 +1,146 @@
+{#
+  The drafting pane.
+
+  The editing box has two states in the SAME place: the textarea you type in, and the marked-up
+  review that "Check references" produces. The review replaces the textarea rather than
+  appearing below it, so you read your own draft with the evidence marked on it — see
+  initDraftCheck in app/assets/javascripts/application.js.
+
+  One form carries the whole draft, so "Insert template" (which submits to a different action
+  via formaction) saves what's already typed rather than discarding it.
+
+  Usage:
+    {% from "policy-writing-v2/partials/draft-pane.html" import draftPane %}
+    {{ draftPane(policy, templates) }}
+#}
+
+{% macro draftPane(policy, templates) %}
+<section class="dlp-pw2-pane" aria-labelledby="pw2-draft-heading" data-dlp-split-pane="draft">
+  <div class="dlp-pw2-pane__heading">
+    <h2 class="govuk-heading-s dlp-pw2-pane__title" id="pw2-draft-heading">Draft policy</h2>
+
+    {# Revealed by initSplitPane only while the evidence panel is closed. #}
+    <button type="button" class="dlp-pw2-pane__link dlp-pw2-pane__reopen"
+            data-dlp-split-reopen="evidence" hidden>
+      Show evidence
+    </button>
+  </div>
+
+  <div class="dlp-pw2-pane__body"
+       data-dlp-draft-check
+       data-dlp-draft-input="#pw2-draft-text"
+       data-dlp-corpus-source="#pw2-evidence-data"
+       data-dlp-terms-source="#pw2-search-terms"
+       data-dlp-sources-source="#pw2-policy-sources"
+       data-dlp-current-policy="{{ policy.ref }}"
+       data-dlp-add-source-action="/policy-writing-v2/chapter/{{ policy.id }}/sources">
+
+    <form class="dlp-pw2-draft__form" id="pw2-draft-form" action="/policy-writing-v2/chapter/{{ policy.id }}/draft" method="post">
+
+      <div class="govuk-form-group govuk-!-margin-bottom-2 dlp-pw2-draft__identity">
+        <div>
+          <label class="govuk-label govuk-label--s" for="pw2-policy-ref">Reference</label>
+          <input class="govuk-input dlp-pw2-draft__ref" id="pw2-policy-ref" name="policyRef" type="text" value="{{ policy.ref }}">
+        </div>
+        <div class="dlp-pw2-draft__title-field">
+          <label class="govuk-label govuk-label--s" for="pw2-policy-title">Policy title</label>
+          <input class="govuk-input" id="pw2-policy-title" name="policyTitle" type="text" value="{{ policy.title }}">
+        </div>
+      </div>
+
+      <div class="govuk-form-group govuk-!-margin-bottom-3 dlp-pw2-draft__field">
+        <label class="govuk-label govuk-label--s" for="pw2-draft-text">Policy draft</label>
+
+        {#
+          The formatting buttons are decoration — hidden from assistive tech and taken out of
+          the tab order individually, rather than aria-hidden on the whole row, because the
+          reference control beside them is real and must stay reachable.
+        #}
+        <div class="dlp-editor-toolbar">
+          <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1"><strong>B</strong></button>
+          <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1"><em>I</em></button>
+          <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1">&#8801;</button>
+          <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1">&hellip;</button>
+
+          <button type="button"
+                  class="dlp-editor-toolbar__button dlp-pw2-cite-button"
+                  data-dlp-reference-start
+                  aria-pressed="false">
+            <span aria-hidden="true">&#128279;</span>
+            Add reference
+          </button>
+
+          {#
+            Pushed to the right of the toolbar. A toggle rather than a button because the
+            review is a state the draft is in, not an action that happens once — and turning it
+            off is how you get back to editing.
+          #}
+          <button type="button"
+                  class="dlp-pw2-toggle"
+                  data-dlp-draft-check-run
+                  aria-pressed="false">
+            <span class="dlp-pw2-toggle__switch" aria-hidden="true"></span>
+            Suggestions
+          </button>
+        </div>
+
+        <textarea class="govuk-textarea dlp-pw2-draft__textarea"
+                  id="pw2-draft-text" name="draftText" rows="18">{{ policy.draft }}</textarea>
+
+        {# Filled in and revealed by the check; takes the textarea's place while showing. #}
+        <div class="dlp-pw2-draft__review" data-dlp-draft-review tabindex="-1" hidden></div>
+      </div>
+
+      <p class="govuk-visually-hidden" role="status" aria-live="polite" data-dlp-draft-check-summary></p>
+
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button" data-module="govuk-button">Save policy block draft</button>
+      </div>
+
+      {# The numbered key for the reference markers, plus anything the check suggests adding. #}
+      <div data-dlp-draft-check-panels></div>
+
+      <noscript>
+        <div class="govuk-inset-text">
+          The draft check needs JavaScript, because it reads what you have typed rather than
+          what you last saved.
+        </div>
+      </noscript>
+
+      <details class="govuk-details">
+        <summary class="govuk-details__summary">
+          <span class="govuk-details__summary-text">Add a template policy to work from</span>
+        </summary>
+        <div class="govuk-details__text">
+          <p class="govuk-body">
+            A template is a skeleton, not a finished policy — it is appended to the end of your
+            draft with placeholders left in for you to replace.
+          </p>
+
+          <div class="govuk-form-group govuk-!-margin-bottom-2">
+            <label class="govuk-label" for="pw2-template">Template</label>
+            <select class="govuk-select" id="pw2-template" name="templateId">
+              {% for template in templates %}
+                <option value="{{ template.id }}">{{ template.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <ul class="govuk-list govuk-list--bullet govuk-hint">
+            {% for template in templates %}
+              <li><strong>{{ template.name }}</strong> — {{ template.description }}</li>
+            {% endfor %}
+          </ul>
+
+          <button type="submit"
+                  formaction="/policy-writing-v2/chapter/{{ policy.id }}/template"
+                  class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
+                  data-module="govuk-button">
+            Insert template into draft
+          </button>
+        </div>
+      </details>
+    </form>
+  </div>
+</section>
+{% endmacro %}

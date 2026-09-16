@@ -1,0 +1,89 @@
+{#
+  "Search evidence" modal, opened from the "+ Add source" button in the sources rail.
+
+  Same component the policy summary screen uses (initEvidenceSearchModal in
+  app/assets/javascripts/application.js), with two differences:
+
+  1. The search box lives INSIDE the dialog rather than on the page behind it, so adding a
+     source is one self-contained task: open, search, select, add. The [data-dlp-evidence-search]
+     root is therefore nested in the dialog; it finds the dialog by id, so nesting is fine.
+  2. Instead of copying the chosen excerpts to the clipboard, the footer is a real POST form
+     that adds them to this policy's sources.
+
+  The hidden fields are rebuilt by syncSelectedFields() on every selection change. They're
+  named _selected[...] because the kit's session middleware skips fields starting with "_",
+  so a payload of full evidence excerpts never gets duplicated into req.session.data.
+
+  Usage:
+    {% from "policy-writing-v2/partials/evidence-search-modal.html" import evidenceSearchModal %}
+    {{ evidenceSearchModal(policy) }}
+#}
+
+{% macro evidenceSearchModal(policy) %}
+<dialog class="dlp-modal dlp-pw2-modal" id="pw2-evidence-modal" data-dlp-search-modal
+        data-dlp-selection-hint="Select the ones you want, then add them to this policy's sources."
+        aria-labelledby="pw2-modal-title">
+
+  <div class="dlp-modal__header">
+    <h2 class="dlp-modal__title" id="pw2-modal-title" data-dlp-modal-title>Add a source</h2>
+    <button type="button" class="dlp-modal__close" data-dlp-modal-close>
+      <span aria-hidden="true">&#10005;</span>
+      <span class="govuk-visually-hidden">Close</span>
+    </button>
+  </div>
+
+  {# Outside the scrolling body, so the search row stays put as results scroll. #}
+  <div class="dlp-pw2-modal__search"
+       data-dlp-evidence-search
+       data-dlp-search-modal-target="#pw2-evidence-modal"
+       data-dlp-search-source="#pw2-evidence-data"
+       data-dlp-terms-source="#pw2-search-terms"
+       data-dlp-current-policy="{{ policy.ref }}">
+    <label class="dlp-label" for="pw2-evidence-search">Search the evidence base</label>
+    <p class="dlp-hint" id="pw2-evidence-search-hint">
+      Start typing to see suggested terms, or search for your own keyword.
+    </p>
+    <div class="dlp-search__row">
+      <div class="dlp-search__field">
+        <input class="dlp-input"
+               id="pw2-evidence-search"
+               type="text"
+               autocomplete="off"
+               role="combobox"
+               aria-expanded="false"
+               aria-autocomplete="list"
+               aria-controls="pw2-search-suggestions"
+               aria-describedby="pw2-evidence-search-hint"
+               data-dlp-search-input>
+        <ul class="dlp-typeahead" id="pw2-search-suggestions" role="listbox" data-dlp-search-suggestions hidden></ul>
+      </div>
+      <button type="button" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-search-submit>
+        Search
+      </button>
+    </div>
+  </div>
+
+  {# Replaced wholesale by the first search; this is only what's shown before one runs. #}
+  <div class="dlp-modal__body" data-dlp-modal-body>
+    <p class="govuk-body govuk-hint">
+      Search the evidence base to find excerpts to attach to this policy.
+    </p>
+  </div>
+
+  <form class="dlp-modal__footer" data-dlp-modal-footer hidden
+        action="/policy-writing-v2/chapter/{{ policy.id }}/sources" method="post">
+    <div data-dlp-selected-fields hidden></div>
+    <p class="dlp-modal__selection" data-dlp-selection-count role="status"></p>
+    <div class="dlp-modal__actions">
+      <button type="submit" class="govuk-button govuk-!-margin-bottom-0"
+              data-module="govuk-button" data-dlp-add-selected disabled>
+        Add to sources
+      </button>
+      <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
+              data-module="govuk-button" data-dlp-clear-selection hidden>
+        Clear selection
+      </button>
+    </div>
+  </form>
+</dialog>
+{% endmacro %}

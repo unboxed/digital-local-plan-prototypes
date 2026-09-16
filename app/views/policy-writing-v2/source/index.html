@@ -1,0 +1,56 @@
+{#
+  One evidence excerpt on its own page, opened in a second window from the evidence pane so it
+  can be read alongside the draft.
+
+  Extends layouts/main.html rather than the workspace's full-bleed sidebar layout — this is for
+  reading, and the standard measure is right for that. Reuses the .dlp-pdf-page* styles so it
+  reads as a page from the evidence base rather than a panel out of the workspace.
+#}
+
+{% extends "layouts/main.html" %}
+
+{% set pageName = source.source %}
+
+{% block content %}
+
+<div class="dlp-pdf-backdrop">
+  <article class="dlp-pdf-page">
+
+    <header class="dlp-pdf-page__header">
+      <p class="dlp-pdf-page__eyebrow">Evidence</p>
+      <h1 class="dlp-pdf-page__title">{{ source.source }}</h1>
+      {% if source.ref %}
+        <p class="dlp-pdf-page__chapter">{{ source.ref }}</p>
+      {% endif %}
+    </header>
+
+    <div class="dlp-pdf-page__body">
+      {% if document.section %}
+        <h2 class="dlp-pw2-preview__heading">{{ document.section }}</h2>
+      {% endif %}
+
+      <ol class="dlp-pw2-doc dlp-pw2-doc--page">
+        {% for paragraph in document.paragraphs %}
+          <li class="dlp-pw2-doc__para{% if paragraph.cited %} dlp-pw2-doc__para--cited{% endif %}">
+            <span class="dlp-pw2-doc__number" aria-hidden="true">{{ paragraph.number }}</span>
+            <p class="dlp-pw2-doc__text">
+              <span class="govuk-visually-hidden">{% if paragraph.cited %}Cited paragraph{% else %}Paragraph{% endif %} {{ paragraph.number }}. </span>
+              {{ paragraph.text }}
+            </p>
+          </li>
+        {% endfor %}
+      </ol>
+    </div>
+
+    <p class="dlp-pdf-page__note">
+      Attached to {% if policy.ref %}{{ policy.ref }} {% endif %}{{ policy.title or "this policy" }}
+      in {{ chapter.title }}.
+      {% if source.policyRefs | length %}
+        Also cited by {{ source.policyRefs | join(", ") }}.
+      {% endif %}
+    </p>
+
+  </article>
+</div>
+
+{% endblock %}

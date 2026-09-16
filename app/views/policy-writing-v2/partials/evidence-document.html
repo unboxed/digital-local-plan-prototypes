@@ -1,0 +1,45 @@
+{#
+  An extract from an evidence document: a section heading and its numbered paragraphs, with
+  the cited one marked. See app/data/evidence-documents.js.
+
+  The same shape is built client-side by renderSource in application.js for the drag-to-view
+  path — change one and change the other.
+
+  Usage:
+    {% from "policy-writing-v2/partials/evidence-document.html" import evidenceDocument %}
+    {{ evidenceDocument(source, document) }}
+#}
+
+{% macro evidenceDocument(source, document) %}
+<article class="dlp-pw2-evidence">
+  <h3 class="dlp-pw2-evidence__title">{{ source.source }}</h3>
+  {% if document.section %}
+    <p class="dlp-pw2-evidence__section">{{ document.section }}</p>
+  {% endif %}
+
+  <ol class="dlp-pw2-doc">
+    {% for paragraph in document.paragraphs %}
+      <li class="dlp-pw2-doc__para{% if paragraph.cited %} dlp-pw2-doc__para--cited{% endif %}">
+        <span class="dlp-pw2-doc__number" aria-hidden="true">{{ paragraph.number }}</span>
+        <p class="dlp-pw2-doc__text">
+          {% if paragraph.cited %}
+            <span class="govuk-visually-hidden">Cited paragraph {{ paragraph.number }}. </span>
+          {% else %}
+            <span class="govuk-visually-hidden">Paragraph {{ paragraph.number }}. </span>
+          {% endif %}
+          {{ paragraph.text }}
+        </p>
+      </li>
+    {% endfor %}
+  </ol>
+
+  {% if source.policyRefs | length %}
+    <p class="dlp-pw2-evidence__refs">
+      <span class="govuk-visually-hidden">Also cited by policies </span>
+      {% for ref in source.policyRefs %}
+        <span class="dlp-chip">{{ ref }}</span>
+      {% endfor %}
+    </p>
+  {% endif %}
+</article>
+{% endmacro %}
