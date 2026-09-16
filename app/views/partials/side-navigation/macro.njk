@@ -17,6 +17,8 @@
   params.sections[].items[].status: string (optional) — one of "Completed" | "In progress" |
     "Not started" | "Cannot start" | "Action required", rendered as the matching status icon
     (see partials/icons/status-icon.html — adapted from BOPS). Anything else renders no icon.
+  params.title: string (optional) — heading shown above all sections, e.g. the name of the
+    document the sections navigate (omit for none).
   params.ariaLabel: string (optional) — defaults to "Task navigation"
   params.classes: string (optional) — extra classes on the outer <nav>
 #}
@@ -26,6 +28,9 @@
 {% macro appSideNavigation(params) %}
 <nav class="app-side-navigation {%- if params.classes %} {{ params.classes }}{% endif %}"
      aria-label="{{ params.ariaLabel | default('Task navigation') }}">
+  {% if params.title %}
+    <p class="app-side-navigation__title">{{ params.title }}</p>
+  {% endif %}
   {% for section in params.sections %}
     <div class="app-side-navigation__section">
       {% if section.heading %}
