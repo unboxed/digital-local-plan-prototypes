@@ -1,0 +1,40 @@
+{#
+  Chapter history / audit log, as a timeline: a marker per entry on a connecting line, the kind
+  of change in bold, what changed underneath, and the status in plain text where the entry is settled.
+  An entry with no status renders with a hollow marker and no tag, so an open item reads as
+  open at a glance.
+
+  Deliberately read-only example content: this prototype does NOT record what the user does,
+  and the caption says so, so nobody in a demo mistakes it for a live log. Wiring it up would
+  be a push() in each POST handler in app/routes.js.
+
+  Usage:
+    {% from "policy-writing-v2/partials/history-panel.html" import historyPanel %}
+    {{ historyPanel(chapter) }}
+#}
+
+{% macro historyPanel(chapter) %}
+<section class="dlp-pw2-rail__panel" aria-labelledby="pw2-history-heading">
+  <h2 class="dlp-pw2-rail__heading" id="pw2-history-heading">Chapter history</h2>
+
+  <ol class="dlp-pw2-timeline">
+    {% for entry in chapter.history | reverse %}
+      <li class="dlp-pw2-timeline__entry{% if entry.status %} dlp-pw2-timeline__entry--done{% endif %}">
+        <span class="dlp-pw2-timeline__marker" aria-hidden="true"></span>
+
+        <p class="dlp-pw2-timeline__head">
+          <span class="dlp-pw2-timeline__type">{{ entry.type }}</span>
+          {% if entry.status %}
+            <span class="dlp-pw2-timeline__status">{{ entry.status }}</span>
+          {% endif %}
+        </p>
+
+        <p class="dlp-pw2-timeline__text">{{ entry.description }}</p>
+        <p class="dlp-pw2-timeline__meta">{{ entry.date }} &middot; {{ entry.actor }}</p>
+      </li>
+    {% endfor %}
+  </ol>
+
+  <p class="dlp-pw2-rail__caption">Example history — this prototype does not record your changes.</p>
+</section>
+{% endmacro %}

@@ -1,0 +1,125 @@
+{#
+  Policy writer v2 — the drafting workspace.
+
+  This file decides the ARRANGEMENT of the zones and nothing else. Every zone is a
+  self-contained macro with its own form posting to its own route, and the JavaScript is
+  opted into by data-dlp-* attributes rather than by position, so moving a zone is a change
+  here plus a change to the grid in _policy-writing-v2.scss — no route, data or JS change.
+
+  Uses the shared sidebar layout: the chapter's policies are the thing a drafter moves
+  between, which is exactly what partials/side-navigation is for. That layout is also
+  full-bleed, which is what gives the evidence and drafting panes room to sit side by side.
+#}
+
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% set pageName = "Policy writer v2" %}
+
+{% from "govuk/components/breadcrumbs/macro.njk" import govukBreadcrumbs %}
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "policy-writing-v2/partials/chapter-header.html" import chapterHeader %}
+{% from "policy-writing-v2/partials/sources-panel.html" import sourcesPanel %}
+{% from "policy-writing-v2/partials/notes-panel.html" import notesPanel %}
+{% from "policy-writing-v2/partials/evidence-pane.html" import evidencePane %}
+{% from "policy-writing-v2/partials/draft-pane.html" import draftPane %}
+{% from "policy-writing-v2/partials/history-panel.html" import historyPanel %}
+{% from "policy-writing-v2/partials/evidence-search-modal.html" import evidenceSearchModal %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ sections: sidebarSections, ariaLabel: "Policies in this chapter" }) }}
+
+  {#
+    Adding a policy is a POST, and the side-navigation macro renders links only, so this sits
+    under the list rather than in it. form="…" points at the drafting form in the content
+    block — an ID reference, so DOM order does not matter — which keeps the save-first
+    behaviour: whatever is typed is saved before the new, empty policy is added.
+  #}
+  {% if policy %}
+    <div class="dlp-pw2-sidebar-add">
+      <button type="submit" class="dlp-pw2-rail__action"
+              form="pw2-draft-form"
+              formaction="/policy-writing-v2/chapter/{{ policy.id }}/policies">
+        + Add new policy
+      </button>
+    </div>
+  {% endif %}
+
+  {#
+    Sources and notes sit under the policy navigation rather than in the content area: they
+    belong to the policy you are on, like the navigation does, and keeping them out of the
+    content area gives the evidence and drafting panes the full width to share.
+  #}
+  {% if policy %}
+    <div class="dlp-pw2-sidebar-panels">
+      {{ sourcesPanel(policy, selectedSource) }}
+      {{ notesPanel(policy) }}
+      {{ historyPanel(chapter) }}
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+{{ govukBreadcrumbs({
+  classes: "dlp-pw2-breadcrumbs",
+  items: [
+    { text: "Policy", href: "/policy-writing" },
+    { text: "Chapters", href: "/policy-writing-v2" },
+    { text: chapter.title }
+  ]
+}) }}
+
+{% if not policy %}
+
+  <h1 class="govuk-heading-l">{{ chapter.title }}</h1>
+  <p class="govuk-body">This chapter has no policies yet.</p>
+
+{% else %}
+
+  <h1 class="govuk-visually-hidden">{{ chapter.title }} — Policy writer v2</h1>
+
+  {# Zone 1: chapter title and explanatory text. #}
+  <div class="dlp-pw2-top">
+    {{ chapterHeader(chapter, policy) }}
+  </div>
+
+  {# Zone 2: the resizable evidence | draft split, and the chapter history under it. #}
+  <div class="dlp-pw2-main"
+       data-dlp-reference-flow
+       data-dlp-reference-input="#pw2-draft-text"
+       data-dlp-reference-evidence="#pw2-evidence-pane">
+
+    {# Spans both panes, because the flow starts in one and finishes in the other. #}
+    <p class="dlp-pw2-cite-status" role="status" aria-live="polite" data-dlp-reference-status hidden></p>
+    <div class="dlp-split"
+         data-dlp-split
+         data-dlp-split-key="pw2-evidence-draft"
+         data-dlp-split-min="25"
+         data-dlp-split-max="75"
+         data-dlp-split-default="50">
+
+      {{ evidencePane(policy, selectedSource, selectedDocument) }}
+
+      <div class="dlp-split__divider"
+           role="separator"
+           tabindex="0"
+           aria-orientation="vertical"
+           aria-label="Resize the evidence and drafting panels"
+           aria-valuemin="25"
+           aria-valuemax="75"
+           aria-valuenow="50"
+           data-dlp-split-divider></div>
+
+      {{ draftPane(policy, templates) }}
+      </div>
+  </div>
+
+  {{ evidenceSearchModal(policy) }}
+
+  <script type="application/json" id="pw2-evidence-data">{{ searchableEvidenceJson | safe }}</script>
+  <script type="application/json" id="pw2-search-terms">{{ searchTermsJson | safe }}</script>
+  <script type="application/json" id="pw2-policy-sources">{{ sourcesJson | safe }}</script>
+
+{% endif %}
+
+{% endblock %}

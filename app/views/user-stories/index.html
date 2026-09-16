@@ -1,5 +1,8 @@
-{% extends "layouts/main.html" %} {% set pageName = "User stories" %} {% block
-content %}
+{% extends "layouts/main.html" %}
+
+{% set pageName = "User stories" %}
+
+{% block content %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
@@ -8,24 +11,31 @@ content %}
     <h1 class="govuk-heading-xl">User stories</h1>
 
     <p class="govuk-body">
-      The {{ storyCount }} user stories from the value proposition framework,
-      grouped by theme. These are the needs the prototypes in this project are
-      exploring.
+      The {{ storyCount }} user stories behind this work, grouped by theme.
+      These are the needs the prototypes in this project are exploring.
     </p>
 
+    {# Grouped by theme, then by sub-theme. A theme whose stories carry no sub-theme code in
+       the source (Policy) renders its stories directly under the theme heading. #}
     {% for theme in themes %}
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">{{ theme.subTheme }}</h2>
+      <h2 class="govuk-heading-l govuk-!-margin-top-8">{{ theme.theme }}</h2>
 
-      <dl class="dlp-story-list">
-        {% for story in theme.stories %}
-        <div class="dlp-story-list__item">
-          <dt class="dlp-story-list__ref">{{ story.ref }}</dt>
-          <dd class="dlp-story-list__text">{{ story.text }}</dd>
+      {% for group in theme.groups %}
+        <div class="govuk-!-margin-bottom-6">
+          {% if group.subTheme %}
+            <h3 class="govuk-heading-m">{{ group.subTheme }}</h3>
+          {% endif %}
+
+          <dl class="dlp-story-list">
+            {% for story in group.stories %}
+              <div class="dlp-story-list__item">
+                <dt class="dlp-story-list__ref">{{ story.ref }}</dt>
+                <dd class="dlp-story-list__text">{{ story.text }}</dd>
+              </div>
+            {% endfor %}
+          </dl>
         </div>
-        {% endfor %}
-      </dl>
-    </div>
+      {% endfor %}
     {% endfor %}
   </div>
 </div>

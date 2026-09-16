@@ -51,13 +51,45 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
   tagged with the policy refs it supports. This is the corpus the policy summary's evidence
   search ranks and returns; keep it broad enough that every term the type-ahead offers
   returns something.
+- The corpus includes the **National Planning Policy Framework and the London Plan**, which
+  unlike everything else in it are real published documents. Their paragraph and policy
+  references are genuine and the substance is accurate, but the wording is summarised for the
+  prototype rather than quoted — both data files say so, and any new entry for them should keep
+  that caveat. Their references read `Policy H4` rather than `Paragraph 4.2`, which is why
+  `getEvidenceDocument` strips either label before matching.
+- `app/data/evidence-documents.js` — numbered-paragraph extracts of the evidence base, so the
+  evidence viewer shows something that reads like a real study rather than a lone quotation. The
+  cited paragraph is spliced in from `evidence-excerpts.js` by `excerpt()` rather than written
+  out again: that corpus is what the draft check scores against, so a second copy would drift and
+  the check would start disagreeing with the viewer. Surrounding paragraphs are context written
+  for this prototype. A document with no entry falls back to a one-paragraph extract built from
+  the excerpt, so a source added from the search modal is never a special case.
+- `app/data/policy-templates.js` — skeleton policy structures a drafter can pull into a draft
+  in Policy writer v2. Their `[insert figure]` placeholders are deliberate: inserting one and
+  running the draft check immediately flags them.
 - `app/config.json` — organisation name, service name, and kit-level config.
 
 ## Conventions
 
 - **Custom CSS classes are prefixed `dlp-`** and defined in `application.scss`, reusing its
   existing variables (`$dlp-border-grey`, `$dlp-muted-text`, `$dlp-panel-background`, etc.).
-- **JavaScript is opted into from markup via `data-dlp-*` attributes**, never by hard-coded
+- **Never call a module-level `const` from inside an init function's setup.** The bundle is
+  served as a deferred ES module, so the kit fires `documentReady` **synchronously while the
+  module is still evaluating**. Any `const` declared lower down the file (`SEARCH_STOP_WORDS`,
+  the pattern lists, …) is still in its temporal dead zone at that point, and touching one
+  throws a `ReferenceError`. Do work like that lazily, on first use, not at init. This has bitten
+  once already: an eagerly built word-frequency index in the draft check took down every
+  component registered after it, with nothing on screen to say why.
+- **Each component is registered through `safeInit`**, which catches and logs rather than
+  letting one failure unwire everything after it in the same `documentReady` callback. Keep new
+  components wrapped the same way, and still guard optional parts inside them.
+- - **`element.hidden = true` needs `[hidden] { display: none !important }`**, which
+  `application.scss` sets at the top. The attribute is only `display: none` in the browser's own
+  stylesheet, so any author `display` rule outranks it — `.dlp-pw2-pane` is flex,
+  `.govuk-textarea` is block, `.dlp-modal__footer` is flex — and without the reset those
+  elements set the attribute and stayed on screen. **A test asserting `el.hidden === true` will
+  not catch this**; assert `getComputedStyle(el).display` against the real stylesheet instead.
+- - **JavaScript is opted into from markup via `data-dlp-*` attributes**, never by hard-coded
   element ids — a page can carry more than one tag picker, so nothing in
   `app/assets/javascripts/application.js` may assume a single instance. Guard every optional
   part, so a screen using only some of the markup can't throw and kill the page's JS.
@@ -140,6 +172,10 @@ one:
 
 See `app/views/project-management/tasks/index.html` for a worked example.
 
+Set an item's `newTab: true` to open it in a new tab — the macro adds `target`, the usual
+`rel`, and a visually hidden "(opens in a new tab)" to the link text. Omit `heading` on a
+section whose single item needs no title above it.
+
 The status vocabulary above is standardised across prototypes — reuse this wording rather than
 inventing new status terms. Status icons (`app/views/partials/icons/status-icon.html`,
 `statusIcon(status)`) are adapted from BOPS
@@ -200,6 +236,197 @@ another prototype needs the same thing:
 4. Link to each variant's entry point separately from the prototype's landing page, with copy
    that says what's different (see `app/views/policy-writing/index.html`).
 
+## Resizable split pane
+
+`.dlp-split` / `initSplitPane` is a general two-pane splitter with a draggable divider. The
+attribute names deliberately say `split`, not what the panes contain:
+
+```html
+<div class="dlp-split" data-dlp-split data-dlp-split-key="..."
+     data-dlp-split-min="25" data-dlp-split-max="75" data-dlp-split-default="50">
+  <section data-dlp-split-pane="evidence">…</section>
+  <div class="dlp-split__divider" role="separator" tabindex="0"
+       aria-orientation="vertical" aria-label="…" data-dlp-split-divider></div>
+  <section data-dlp-split-pane="draft">…</section>
+</div>
+```
+
+Widths come from a `--dlp-split-fraction` custom property the JS sets on the root, so dragging
+changes one declaration rather than restyling either pane. Notes:
+
+- **The divider is the whole keyboard story**, so it has to work properly: arrows ±2,
+  PageUp/PageDown ±10, Home/End to the limits, Enter/Space toggles to the default, double-click
+  resets. Pane names from `data-dlp-split-pane` are read out in `aria-valuetext`. There are no
+  preset buttons — if you add some, keep the divider's own key handling regardless.
+- **A pane can be closed and reopened**: `[data-dlp-split-close="<name>"]` hides that pane and
+  the divider and gives the other the full row; `[data-dlp-split-reopen="<name>"]` brings it back
+  and is revealed only while that pane is closed. Put the reopen control in the pane that
+  *stays*, or closing one leaves no way back. The closed pane is remembered alongside the width.
+- The chosen width persists in `localStorage` (keyed by `data-dlp-split-key`), not session data:
+  it is viewport ergonomics, and storing it server-side would mean a POST per drag. Every access
+  is in a `try/catch` — private browsing throws.
+- Below desktop the panes stack and the divider is `display: none`; there is no room for two
+  columns and nothing to trade.
+- `.dlp-split > * { min-width: 0 }` is load-bearing: without it a long unbroken word forces its
+  track wider than the fraction and the divider stops tracking the pointer.
+
+## Policy writer v2
+
+`/policy-writing-v2` (`app/views/policy-writing-v2/`) is a second take on the drafting
+workspace, independent of the `policy-writing` prototype and sharing no session state with it.
+
+- **Slug.** It is `/policy-writing-v2`, *not* nested under `/policy-writing/`. Nested, the `v2`
+  segment would be captured by `router.param('variant', ...)` and bounced to the policy-writing
+  landing page. As a sibling it is still matched by the `activeSection` middleware's
+  `startsWith('/policy-writing')` branch, which is what we want — v2 sits under "Policy writing"
+  in the nav rather than adding a fifth nav item, so **no middleware or service-header change
+  was needed**.
+- **Session keys** are `policyWriterV2Chapter` / `policyWriterV2ChapterOwned` /
+  `policyWriterV2SchemaVersion`, following the usual deep-clone-on-first-touch plus schema-stamp
+  pattern. The sentinel is a plain boolean rather than the per-variant object `getPolicyTopics`
+  uses, because v2 is prefilled-only. **Changing the shape of the seed means bumping
+  `POLICY_WRITER_V2_SCHEMA_VERSION`**, or existing browser sessions never see the change.
+- **The sidebar carries the policy navigation, then the policy's sources and notes.** The
+  navigation comes from the shared `partials/side-navigation` macro, built by `buildV2Sidebar`
+  in `app/routes.js`, so status icons and the active-item treatment match the other prototypes;
+  `.dlp-pw2-sidebar-panels` below it repeats that component's background and padding so the
+  column reads as one surface rather than a nav with two cards stuck underneath. Everything in
+  that column belongs to the policy you are on. The workspace therefore extends
+  `layouts/main-with-sidebar.html`, which is also full-bleed — that, plus keeping sources and
+  notes out of the content area, is what gives the evidence and drafting panes the full width
+  to share. There is no separate wide layout.
+- **The evidence viewer renders a document extract**, via the
+  `policy-writing-v2/partials/evidence-document.html` macro — section heading, numbered
+  paragraphs in the margin, the cited one tinted and ruled. `renderSource` in application.js
+  builds the same shape for the drag path, so the two have to be changed together; the extracts
+  reach the browser attached to each source in `sourcesJson` (built by the route, not dumped
+  from the session, which holds only what the user owns).
+- **References are inserted by pointing at the paragraph being cited** — `initReferenceFlow`.
+  Press the toolbar's reference control, click where it goes in the draft, then click the
+  paragraph in the evidence panel. The citation is written in full,
+  "(Local Housing Needs Assessment, paragraph 3.3)", not as a bare number: the draft check
+  looks for the document's NAME when deciding whether a source is cited, so inserting one moves
+  that source to "Cited by name" on the next check and marks the sentence. A bare `[2]` would
+  leave the check none the wiser. The document and paragraph are read from the DOM rather than a
+  data blob, so it works on a paragraph the drag handler rendered as well as a server-rendered
+  one; `renderSource` fires `dlp-evidence-rendered` so the flow can re-mark paragraphs if the
+  panel is re-rendered mid-flow. Paragraphs become `role="button"` and focusable **only while
+  the flow is armed** — outside it they are prose, and describing them as buttons permanently
+  would be a lie. The formatting buttons beside the control are now individually
+  `aria-hidden`/`tabindex="-1" rather than the row carrying `aria-hidden`, which would have
+  hidden the real control too.
+- **Sources can be dragged from the rail into the evidence panel**, which renders the excerpt
+  client-side rather than navigating — the drafting textarea may hold unsaved typing. It is only
+  ever an accelerator: every source tag is also a link doing the same thing, so nothing is
+  drag-only and the keyboard route is untouched. If the panel is closed, `dragstart` reveals it
+  as a captioned drop zone via a `dlp-split-open` event with `persist: false`; abandoning the
+  drag closes it again, while dropping dispatches a persisting open, because putting something
+  in is a decision to have the panel open. The two halves coordinate through one module-level
+  `evidenceDrag` record — only one HTML5 drag can be in flight at a time, and `dataTransfer` is
+  deliberately unreadable during `dragover`, which is when the drop target needs to know.
+- **Zone arrangement** lives in exactly two files: `policy-writing-v2/chapter/index.html` (which
+  macros are called, in what order) and the `.dlp-pw2-*` grid rules in `_policy-writing-v2.scss`.
+  Every zone is a self-contained macro with its own form posting to its own route, and the JS is
+  opted into by `data-dlp-*` attributes rather than by position, so rearranging the workspace
+  touches neither routes, data nor JS.
+- **The evidence search modal is shared with `/policy-writing/policy-summary`.**
+  `initEvidenceSearchModal` is parameterised, not forked, in two ways. First, the footer: v2
+  supplies a `[data-dlp-selected-fields]` container and a `[data-dlp-add-selected]` submit so the
+  selection POSTs to the policy's sources, where the policy summary supplies
+  `[data-dlp-copy-selected]` and copies to the clipboard. Second, where the search box lives: in
+  v2 the `[data-dlp-evidence-search]` root is nested *inside* the dialog and the whole thing is
+  opened by `[data-dlp-open-evidence-search="#id"]` on the "+ Add source" button, so adding a
+  source is one self-contained task; on the policy summary the search box stays on the page and
+  the dialog only holds results. `openModal()` is shared and no-ops on an already-open dialog —
+  `showModal()` throws otherwise, which it now would, because in v2 a search usually runs while
+  the dialog is showing. Both paths are guarded, so each page gets whichever shape it declares.
+  **Re-test the policy summary after touching that function.**
+- **The "Check references" review is string matching, not a language model** — word overlap
+  between the draft and its sources, placeholder/hedging regexes, and a re-run of the evidence
+  search using terms taken from what has been typed. It runs in the browser on the textarea's
+  current contents, so it reflects unsaved typing; a server-side version could only see the last
+  save. Keep the "AI generated — check each suggestion against the source" caveat.
+- **One font family, everywhere.** The few places that sit below the GOV.UK type scale's 16px
+  minimum (the sidebar tags and notes) use the `dlp-pw2-small-text` mixin, which applies the
+  GOV.UK family and weight and then an explicit size — never `font-family: inherit`, which
+  silently picks up whatever an ancestor happens to set. The drafting textarea and the review
+  that replaces it are pinned to the same family, size AND line-height in one rule: `.govuk-textarea`
+  ships `line-height: 1.25` while the scale's 19px is ~1.32, so without that the draft visibly
+  reflows as the check swaps one for the other.
+- **The chapter title and explanatory text run the full content width** — they head the whole
+  page rather than forming a column, so they are deliberately not held to the ~46em measure the
+  drafting and evidence panes use. Their `<form>` must stay a full-width block: the fields inside
+  are `width: 100%` *of the form*, so making the form `inline-block` (to put two buttons on one
+  row, say) silently collapses both boxes to their content width.
+- **The chapter brief is read-only**, shown under the editable explanatory text in the same
+  "Explanatory text and chapter brief" disclosure. It is what the drafting is measured against,
+  so it is not something to revise while drafting against it — hence a panel with no field in it
+  and a line saying where it came from. `chapter.brief` is `{intro, items: [{text, refs}]}`; the
+  bracketed numbers are references as written in the brief, not the reference numbers the draft
+  check generates, which are per-policy and computed.
+- **The chapter history is a timeline in the sidebar** — a marker per entry on a connecting line,
+  the kind of change in bold, what changed underneath, and a status tag where the entry is
+  settled. An entry with an empty `status` renders with a hollow marker and no tag, so an open
+  item reads as open. The connector is an `::before` on each entry, suppressed on `:last-child`.
+  Entries are `{id, type, description, status, date, actor}` — **changing that shape means
+  bumping `POLICY_WRITER_V2_SCHEMA_VERSION`**, or existing sessions keep the old one.
+- **"Suggestions" is a toggle, not a button**, at the right-hand end of the drafting toolbar.
+  The marked-up review is a state the draft is in rather than an action that happens once, so
+  the same control turns it off, and clicking the review to resume editing flips it back. It leaves
+  the panes alone — the review swaps in where the textarea was, and the evidence panel stays as
+  the drafter left it. The drafting box fills its frame through CSS instead (the flex chain
+  under `[data-dlp-split-pane="draft"]`: pane body → form → form group → box), so it uses the
+  height rather than taking the neighbouring panel space away. That box is deliberately not held
+  to the ~46em prose measure: a drafter sizing the panes with the divider has already chosen how
+  wide they want to write.
+- **There is no banner above the review.** The two things it carried that still matter — the
+  "AI generated — check each suggestion against the source" caveat, and the key to the
+  highlight colours — sit with the references panel instead, as plain lines. Keep the caveat
+  wherever the generated content ends up.
+- **The review replaces the textarea, in the editing box.** `initDraftCheck` hides
+  `[data-dlp-draft-input]` and reveals `[data-dlp-draft-review]` in its place — you read your own
+  draft with the evidence marked on it, not a report about it somewhere else on the page. A
+  textarea cannot hold markup, which is why this is a swap rather than a live overlay.
+  **Clicking the review returns to editing**; there is no separate button. The click guard tests
+  for controls (`button, a, input, select, textarea, label`) and deliberately not `form` — the
+  whole drafting pane is one form, so `closest('form')` matches every click inside it and
+  nothing would ever return to editing.
+- **`splitSentences` ignores terminators inside brackets.** Drafters write "[Total Number,
+  e.g., 12,500]" and "(2026–2041)"; splitting on those full stops leaves a placeholder
+  straddling two sentences, and since a mark cannot span a sentence boundary it was counted as a
+  wording issue but never highlighted — the summary and the marks disagreeing on screen.
+- **Sentences are the unit of citation.** A sentence drawing on an attached source is wrapped in
+  `.dlp-pw2-cited` and numbered `[1]`, `[2]` … matching the key rendered under the box;
+  placeholders and unenforceable wording are marked inline *inside* that wrapper, because one
+  `<mark>` nested in another does not render dependably. A paragraph is too coarse to say where
+  evidence is used and a word is too fine to be a citation.
+- **The key's status is derived from the marks, never recomputed.** `usedStates` is built from
+  the per-sentence references and passed to both the key and the banner. Measuring the key
+  against the whole draft instead let a source read "Used, not named" while no sentence carried
+  its number — the same answer disagreeing with itself on screen.
+- **Missing references are offered in place**, as "+ Add reference to &lt;document, paragraph&gt;
+  here" at the sentence that best fits, posting to the same `/sources` route as the search modal.
+  Name the paragraph as well as the document: a different excerpt of an already-attached document
+  is a legitimate suggestion, but without the reference it reads as a bug.
+- **Highlights never rely on colour alone**: each `<mark>` and reference marker carries a
+  visually hidden note, and the fills differ in border style as well as hue.
+- **The check writes no HTML.** The draft is user input quoted back in full, so the review is
+  built with `createElement`/`createTextNode`/`textContent`; the only `innerHTML` in
+  `initDraftCheck` is the `= ''` that clears. Keep it that way.
+- **Suggested references rank the draft's words by distinctiveness, not frequency.** In a short
+  draft nearly every word occurs once, so a raw frequency sort collapses into document order and
+  the opening boilerplate ("Development must be…") crowds out the terms that identify the
+  subject. Each word's count is weighted by how many corpus passages contain it.
+- **The sources rail deliberately breaks the GOV.UK type scale.** Sources are tags in an 11rem
+  column, and 16px (the scale's smallest size) wraps every label onto three lines at that width,
+  so the rail uses explicit rem sizes. Labels are clipped with `text-overflow: ellipsis`, never
+  truncated in the markup — the full "document, reference" text stays in the DOM for assistive
+  tech and in a `title` for hover.
+- **Referencing is scored on the document title as well as the excerpt.** Suggestions come from
+  `scorePassage`, which gives a title match +12; if the referenced-check ignored titles, the two
+  halves would contradict each other — the check would recommend a source and then report the
+  source you just accepted as unreferenced. A title-word overlap of 50% or more lifts a source
+  out of "not referenced" into "used but not named".
 ## Keeping this file current
 
 As conventions evolve (new shared layouts, session data patterns, testing setup, etc.), update

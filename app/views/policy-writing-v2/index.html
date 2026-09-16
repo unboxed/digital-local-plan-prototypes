@@ -1,0 +1,49 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName="Policy writer v2" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/policy-writing">Back to Policy</a>
+
+    <h1 class="govuk-heading-xl">Policy writer v2</h1>
+
+    <p class="govuk-body">
+      A second take on the drafting workspace, on a wider screen. Evidence and
+      the policy draft sit side by side, with a divider you can drag to give
+      more room to whichever you need.
+    </p>
+
+    {#
+      Read from app/data/user-stories.js by the route, not written out here, so the wording
+      stays identical to the one on /user-stories.
+    #}
+    <h2 class="govuk-heading-m">User stories</h2>
+
+    <dl class="dlp-story-list govuk-!-margin-bottom-6">
+      {% for story in userStories %}
+        <div class="dlp-story-list__item">
+          <dt class="dlp-story-list__ref">{{ story.ref }}</dt>
+          <dd class="dlp-story-list__text">{{ story.text }}</dd>
+        </div>
+      {% endfor %}
+    </dl>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m" />
+
+    <h2 class="govuk-heading-m">
+      <a class="govuk-link" href="/policy-writing-v2/chapter">Open the drafting workspace</a>
+    </h2>
+    <p class="govuk-body">
+      Work on the Spatial Strategy chapter: pick a policy, read its sources
+      alongside your draft, add more from the evidence base, keep notes, and run
+      an automatic check of how well the draft refers to its sources.
+    </p>
+
+  </div>
+</div>
+
+{% endblock %}

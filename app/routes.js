@@ -47,6 +47,9 @@ const {
 const { EVIDENCE_EXCERPTS } = require('./data/evidence-excerpts.js')
 const { USER_STORY_THEMES, getUserStoryCount } = require('./data/user-stories.js')
 const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES } = require('./data/plan-paragraphs.js')
+const { getUserStoryThemeGroups, getUserStories, getUserStoryCount } = require('./data/user-stories.js')
+const { POLICY_TEMPLATES, getPolicyTemplate } = require('./data/policy-templates.js')
+const { getEvidenceDocument } = require('./data/evidence-documents.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
 //
@@ -486,7 +489,7 @@ router.get('/evidence/library', (req, res) => {
 
 router.get('/user-stories', (req, res) => {
   res.render('user-stories/index', {
-    themes: USER_STORY_THEMES,
+    themes: getUserStoryThemeGroups(),
     storyCount: getUserStoryCount()
   })
 })
@@ -1188,5 +1191,280 @@ router.get('/examination-inspector-view/paragraphs/:id', (req, res) => {
     nextParagraph: PLAN_PARAGRAPHS[index + 1] || null,
     relatedResources: buildRelatedResources(policy),
     sidebarSections: buildLocalPlanSidebarSections(paragraph.policyRef)
+// The v2 landing page would otherwise be file-routed. It needs a route only so the user
+// stories can be read from app/data/user-stories.js rather than copied into the template.
+router.get('/policy-writing-v2', (req, res) => {
+  res.render('policy-writing-v2/index', {
+    userStories: getUserStories(['POUS3', 'POUS4', 'POUS5'])
+  })
+})
+
+// --- Policy writer v2 ---
+//
+// A second take on the drafting workspace: evidence and the policy draft side by side on a
+// wider page, with a draggable divider between them. See CLAUDE.md.
+//
+// Slug note: this lives at /policy-writing-v2, NOT nested under /policy-writing/. Nested, the
+// "v2" segment would be captured by router.param('variant', ...) above and bounced back to the
+// policy-writing landing page. As a sibling path it is still caught by the activeSection
+// middleware's startsWith('/policy-writing') branch at the top of this file, which is what we
+// want — v2 sits under "Policy writing" in the nav rather than adding a fifth nav item.
+
+const POLICY_WRITER_V2_SCHEMA_VERSION = 6
+
+// Same reasoning as ensurePolicyTopicsShape above: the kit merges session-data-defaults.js into
+// a session with a shallow Object.assign, so an existing session whose top-level key is already
+// present never picks up changes to the nested seed. The version stamp repairs those sessions
+// outright rather than trying to patch them field by field.
+function ensurePolicyWriterV2Shape (req) {
+  if (req.session.data.policyWriterV2SchemaVersion !== POLICY_WRITER_V2_SCHEMA_VERSION) {
+    req.session.data.policyWriterV2Chapter =
+      JSON.parse(JSON.stringify(sessionDataDefaults.policyWriterV2Chapter))
+    req.session.data.policyWriterV2ChapterOwned = true
+    req.session.data.policyWriterV2SchemaVersion = POLICY_WRITER_V2_SCHEMA_VERSION
+  }
+}
+
+// Deep-clone-on-first-touch, as everywhere else in this file. The sentinel is a plain boolean
+// rather than the per-variant object getPolicyTopics uses, because v2 has no blank/prefilled
+// split — there is only one journey.
+function getV2Chapter (req) {
+  ensurePolicyWriterV2Shape(req)
+  if (!req.session.data.policyWriterV2ChapterOwned) {
+    req.session.data.policyWriterV2Chapter =
+      JSON.parse(JSON.stringify(req.session.data.policyWriterV2Chapter || {}))
+    req.session.data.policyWriterV2ChapterOwned = true
+  }
+  return req.session.data.policyWriterV2Chapter
+}
+
+function getV2Policies (req) {
+  return getV2Chapter(req).policies || []
+}
+
+function getV2Policy (req, policyId) {
+  return getV2Policies(req).find(policy => policy.id === policyId)
+}
+
+const v2PolicyUrl = policyId => '/policy-writing-v2/chapter/' + policyId
+
+// The chapter's policies as a sidebar, using the shared side navigation component so status
+// icons and the active-item treatment match the other prototypes (see CLAUDE.md).
+function buildV2Sidebar (req, activePolicyId) {
+  const chapter = getV2Chapter(req)
+
+  return [
+    {
+      heading: 'Policies in this chapter',
+      items: (chapter.policies || []).map(policy => ({
+        text: (policy.ref ? policy.ref + ' ' : '') + (policy.title || 'Untitled policy'),
+        href: v2PolicyUrl(policy.id),
+        active: policy.id === activePolicyId,
+        status: policy.status
+      }))
+    }
+  ]
+}
+
+// Shared by every POST submitted from the draft form, so that "Add a policy block" and
+// "Insert template" don't silently discard whatever the user has just typed — same reason
+// saveWorkspaceFields exists for v1. The typeof guards mean a future button can submit a
+// subset of the fields without blanking the rest.
+function saveV2DraftFields (policy, body) {
+  if (typeof body.policyRef === 'string') policy.ref = body.policyRef.trim()
+  if (typeof body.policyTitle === 'string') policy.title = body.policyTitle.trim()
+  if (typeof body.draftText === 'string') policy.draft = body.draftText
+  if (policy.draft && policy.draft.trim() && policy.status === 'Not started') {
+    policy.status = 'In progress'
+  }
+}
+
+router.get('/policy-writing-v2/chapter', (req, res) => {
+  const policies = getV2Policies(req)
+  if (!policies.length) return res.render('policy-writing-v2/chapter/index', { chapter: getV2Chapter(req), policy: null })
+  res.redirect(v2PolicyUrl(policies[0].id))
+})
+
+// Declared before /chapter/:policyId would ever see it — but it's a sibling path, not a child,
+// so it could never be captured by that route anyway.
+router.get('/policy-writing-v2/chapter-preview', (req, res) => {
+  const chapter = getV2Chapter(req)
+  const policies = chapter.policies || []
+  res.render('policy-writing-v2/chapter-preview/index', {
+    chapter,
+    draftedCount: policies.filter(policy => policy.draft && policy.draft.trim()).length,
+    sourceCount: policies.reduce((total, policy) => total + (policy.sources || []).length, 0)
+  })
+})
+
+router.get('/policy-writing-v2/chapter/:policyId', (req, res) => {
+  const chapter = getV2Chapter(req)
+  const policy = getV2Policy(req, req.params.policyId)
+  if (!policy) return res.redirect('/policy-writing-v2/chapter')
+
+  const sources = policy.sources || []
+  // Which source the middle pane is showing. Read from the query string so each row in the
+  // sources rail can be a plain link, and so the choice survives a POST-redirect-GET.
+  const selectedSource =
+    sources.find(source => source.id === req.query.source) || sources[0] || null
+
+  res.render('policy-writing-v2/chapter/index', {
+    chapter,
+    policy,
+    selectedSource,
+    selectedDocument: getEvidenceDocument(selectedSource),
+    // The drag-to-view path renders client-side, so it needs the extracts too — attached here
+    // rather than in the session, which holds only what the user actually owns.
+    sourcesJson: JSON.stringify(sources.map(source => Object.assign({}, source, {
+      document: getEvidenceDocument(source)
+    }))),
+    sidebarSections: buildV2Sidebar(req, policy.id),
+    templates: POLICY_TEMPLATES,
+    draftedCount: (chapter.policies || []).filter(item => item.draft && item.draft.trim()).length,
+    // Serialised once and shared by both the search modal and the draft check — it's the
+    // largest thing on the page, so don't emit it twice. Note getSearchableEvidence folds in
+    // whatever the user has tagged in the evidence prototype, so this corpus varies with that
+    // prototype's session state.
+    searchableEvidenceJson: JSON.stringify(getSearchableEvidence(getEvidenceItems(req))),
+    searchTermsJson: JSON.stringify(getSearchTerms())
+  })
+})
+
+router.post('/policy-writing-v2/chapter/:policyId/details', (req, res) => {
+  const chapter = getV2Chapter(req)
+  chapter.title = req.body.chapterTitleV2 || ''
+  chapter.explanatoryText = req.body.explanatoryTextV2 || ''
+  res.redirect(v2PolicyUrl(req.params.policyId))
+})
+
+router.post('/policy-writing-v2/chapter/:policyId/draft', (req, res) => {
+  const policy = getV2Policy(req, req.params.policyId)
+  if (policy) saveV2DraftFields(policy, req.body)
+  res.redirect(v2PolicyUrl(req.params.policyId))
+})
+
+router.post('/policy-writing-v2/chapter/:policyId/policies', (req, res) => {
+  const policy = getV2Policy(req, req.params.policyId)
+  if (policy) saveV2DraftFields(policy, req.body)
+
+  const newPolicy = {
+    id: 'pw2-policy-' + Date.now(),
+    ref: '',
+    title: '',
+    status: 'Not started',
+    draft: '',
+    sources: [],
+    notes: []
+  }
+  getV2Policies(req).push(newPolicy)
+  res.redirect(v2PolicyUrl(newPolicy.id))
+})
+
+router.post('/policy-writing-v2/chapter/:policyId/template', (req, res) => {
+  const policy = getV2Policy(req, req.params.policyId)
+  const template = getPolicyTemplate(req.body.templateId)
+  if (policy && template) {
+    saveV2DraftFields(policy, req.body)
+    policy.draft = policy.draft && policy.draft.trim()
+      ? policy.draft.replace(/\s+$/, '') + '\n\n' + template.text
+      : template.text
+    if (policy.status === 'Not started') policy.status = 'In progress'
+  }
+  res.redirect(v2PolicyUrl(req.params.policyId))
+})
+
+// Handles both ways a source can arrive: the search modal's multi-select payload, and a single
+// manual add. The modal's fields are named _selected[...] because the kit's session middleware
+// skips anything starting with "_" — so a payload of full evidence excerpts never ends up
+// duplicated into req.session.data, while Express still parses it into req.body.
+router.post('/policy-writing-v2/chapter/:policyId/sources', (req, res) => {
+  const policy = getV2Policy(req, req.params.policyId)
+  if (policy) {
+    if (!policy.sources) policy.sources = []
+    const incoming = []
+
+    const selected = req.body._selected
+    if (selected) {
+      Object.keys(selected).forEach(key => {
+        const entry = selected[key] || {}
+        if (entry.text) {
+          incoming.push({
+            text: entry.text,
+            source: entry.source || '',
+            ref: entry.ref || '',
+            policyRefs: (entry.policyRefs || '').split(',').map(ref => ref.trim()).filter(Boolean)
+          })
+        }
+      })
+    }
+
+    if ((req.body.sourceText || '').trim()) {
+      incoming.push({
+        text: req.body.sourceText.trim(),
+        source: (req.body.sourceTitle || '').trim(),
+        ref: (req.body.sourceRef || '').trim(),
+        policyRefs: []
+      })
+    }
+
+    incoming.forEach((entry, index) => {
+      // De-duplicate on the excerpt text, which is what identifies a passage across the
+      // corpus — the same paragraph can arrive with different ids from different routes.
+      const alreadyAdded = policy.sources.some(source => source.text === entry.text)
+      if (!alreadyAdded) {
+        policy.sources.push(Object.assign({ id: 'pw2-src-' + Date.now() + '-' + index }, entry))
+      }
+    })
+  }
+  res.redirect(v2PolicyUrl(req.params.policyId))
+})
+
+router.post('/policy-writing-v2/chapter/:policyId/sources/:sourceId/remove', (req, res) => {
+  const policy = getV2Policy(req, req.params.policyId)
+  if (policy && policy.sources) {
+    policy.sources = policy.sources.filter(source => source.id !== req.params.sourceId)
+  }
+  res.redirect(v2PolicyUrl(req.params.policyId))
+})
+
+router.post('/policy-writing-v2/chapter/:policyId/notes', (req, res) => {
+  const policy = getV2Policy(req, req.params.policyId)
+  const text = (req.body.noteText || '').trim()
+  if (policy && text) {
+    if (!policy.notes) policy.notes = []
+    policy.notes.push({
+      id: 'pw2-note-' + Date.now(),
+      author: 'You',
+      date: 'Just now',
+      text
+    })
+  }
+  res.redirect(v2PolicyUrl(req.params.policyId))
+})
+
+router.post('/policy-writing-v2/chapter/:policyId/notes/:noteId/remove', (req, res) => {
+  const policy = getV2Policy(req, req.params.policyId)
+  if (policy && policy.notes) {
+    policy.notes = policy.notes.filter(note => note.id !== req.params.noteId)
+  }
+  res.redirect(v2PolicyUrl(req.params.policyId))
+})
+
+
+// A single evidence excerpt on its own page, for reading alongside the workspace in a second
+// window. A GET at /source/ (singular) so it can't collide with the /sources/ POST routes.
+router.get('/policy-writing-v2/chapter/:policyId/source/:sourceId', (req, res) => {
+  const chapter = getV2Chapter(req)
+  const policy = getV2Policy(req, req.params.policyId)
+  if (!policy) return res.redirect('/policy-writing-v2/chapter')
+
+  const source = (policy.sources || []).find(item => item.id === req.params.sourceId)
+  if (!source) return res.redirect(v2PolicyUrl(policy.id))
+
+  res.render('policy-writing-v2/source/index', {
+    chapter,
+    policy,
+    source,
+    document: getEvidenceDocument(source)
   })
 })

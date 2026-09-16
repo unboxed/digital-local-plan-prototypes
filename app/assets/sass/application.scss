@@ -5,6 +5,15 @@
 
 // Add extra styles here
 
+// The `hidden` attribute is only `display: none` in the browser's own stylesheet, which ANY
+// author `display` rule outranks. Several components here set one — .dlp-pw2-pane is flex,
+// .govuk-textarea is block, .dlp-modal__footer is flex — so `element.hidden = true` in
+// application.js set the attribute and changed nothing on screen. This is the standard reset
+// (normalize.css carries the same rule) and makes the attribute mean what it says.
+[hidden] {
+  display: none !important;
+}
+
 @import "service-header";
 @import "side-navigation";
 
@@ -1245,3 +1254,6 @@ $dlp-confidence-low: govuk-colour("orange");
   color: $dlp-muted-text;
   display: block;
 }
+// Policy writer v2. Imported last because it uses $dlp-ai-accent and $dlp-confidence-low,
+// which are declared partway down this file rather than at the top.
+@import "policy-writing-v2";
