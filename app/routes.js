@@ -45,9 +45,8 @@ const {
   getPolicyRefsForSource
 } = require('./data/policies.js')
 const { EVIDENCE_EXCERPTS } = require('./data/evidence-excerpts.js')
-const { USER_STORY_THEMES, getUserStoryCount } = require('./data/user-stories.js')
+const { USER_STORY_THEMES, getUserStoryCount, getUserStoryThemeGroups, getUserStories } = require('./data/user-stories.js')
 const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES } = require('./data/plan-paragraphs.js')
-const { getUserStoryThemeGroups, getUserStories, getUserStoryCount } = require('./data/user-stories.js')
 const { POLICY_TEMPLATES, getPolicyTemplate } = require('./data/policy-templates.js')
 const { getEvidenceDocument } = require('./data/evidence-documents.js')
 
@@ -1191,6 +1190,9 @@ router.get('/examination-inspector-view/paragraphs/:id', (req, res) => {
     nextParagraph: PLAN_PARAGRAPHS[index + 1] || null,
     relatedResources: buildRelatedResources(policy),
     sidebarSections: buildLocalPlanSidebarSections(paragraph.policyRef)
+  })
+})
+
 // The v2 landing page would otherwise be file-routed. It needs a route only so the user
 // stories can be read from app/data/user-stories.js rather than copied into the template.
 router.get('/policy-writing-v2', (req, res) => {
