@@ -40,8 +40,9 @@ organisationName + " Local Plan", sections: sidebarSections }) }} {% endblock %}
         {{ paragraph.policyRef }} {{ paragraph.policyTitle }}
       </h2>
 
-      <div class="dlp-document-viewer">
-        <p>{{ paragraph.text }}</p>
+      <div class="govuk-inset-text">
+        <h3 class="govuk-heading-s">Policy text</h3>
+        <p class="govuk-body">{{ paragraph.text }}</p>
       </div>
     </div>
 
