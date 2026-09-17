@@ -4,6 +4,15 @@
 
 {% set pageName="Examination - inspector view" %}
 
+{% block header %}
+  {{ super() }}
+  <div class="dlp-examination-header">
+    <div class="govuk-width-container">
+      <p class="dlp-examination-header__title">Examination - inspector view</p>
+    </div>
+  </div>
+{% endblock %}
+
 {% block sideNavigation %}
   {{ appSideNavigation({ title: organisationName + " Local Plan", sections: sidebarSections }) }}
 {% endblock %}

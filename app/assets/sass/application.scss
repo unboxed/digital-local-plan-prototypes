@@ -1216,44 +1216,27 @@ $dlp-confidence-low: govuk-colour("orange");
   margin: 0;
 }
 
-// Examination - inspector view: related-resource snippets (evidence, comments, NPPF/SDS
-// policies) and the panel that shows the selected one's full text.
-.dlp-resource-list {
-  list-style: none;
-  margin: 0 0 govuk-spacing(4);
-  padding: 0;
+// Examination - inspector view: related-resource tables (evidence, comments, NPPF/SDS
+// policies) and the panel that shows the selected one's full text. Highlights the row whose
+// link is currently shown in the panel alongside it.
+.dlp-resource-row--selected {
+  background: govuk-colour("light-grey");
 }
 
-.dlp-resource-trigger {
-  background: govuk-colour("white");
-  border: 1px solid $dlp-border-grey;
-  cursor: pointer;
-  display: block;
-  margin-bottom: govuk-spacing(2);
-  padding: govuk-spacing(3);
-  text-align: left;
-  width: 100%;
-
-  &:hover {
-    border-color: govuk-colour("black");
-  }
-
-  &[aria-pressed="true"] {
-    background: govuk-colour("light-grey");
-    border-color: govuk-colour("black");
-  }
+// Examination - inspector view: a title-only header, styled like the site-wide service header
+// (app-service-header, _service-header.scss) but deliberately with no nav row — this prototype
+// is an external viewer's page and doesn't carry the internal site navigation.
+.dlp-examination-header {
+  background: govuk-colour("black");
+  padding: govuk-spacing(3) govuk-spacing(4);
 }
 
-.dlp-resource-trigger__title {
+.dlp-examination-header__title {
   @include govuk-font($size: 19, $weight: bold);
-  display: block;
+  color: govuk-colour("white");
+  margin: 0;
 }
 
-.dlp-resource-trigger__meta {
-  @include govuk-font($size: 16);
-  color: $dlp-muted-text;
-  display: block;
-}
 // Policy writer v2. Imported last because it uses $dlp-ai-accent and $dlp-confidence-low,
 // which are declared partway down this file rather than at the top.
 @import "policy-writing-v2";

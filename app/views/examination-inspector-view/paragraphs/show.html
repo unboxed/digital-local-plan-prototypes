@@ -1,105 +1,190 @@
-{% extends "layouts/main-with-sidebar.html" %}
-
-{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
-{% from "govuk/components/pagination/macro.njk" import govukPagination %}
-
-{% set pageName = paragraph.policyRef + " " + paragraph.policyTitle %}
-
-{% block sideNavigation %}
-  {{ appSideNavigation({ title: organisationName + " Local Plan", sections: sidebarSections }) }}
-{% endblock %}
-
+{% extends "layouts/main-with-sidebar.html" %} {% from
+"partials/side-navigation/macro.njk" import appSideNavigation %} {% from
+"govuk/components/pagination/macro.njk" import govukPagination %} {% set
+pageName = paragraph.policyRef + " " + paragraph.policyTitle %} {% block header
+%} {{ super() }}
+<div class="dlp-examination-header">
+  <div class="govuk-width-container">
+    <p class="dlp-examination-header__title">Examination - inspector view</p>
+  </div>
+</div>
+{% endblock %} {% block sideNavigation %} {{ appSideNavigation({ title:
+organisationName + " Local Plan", sections: sidebarSections }) }} {% endblock %}
 {% block content %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-
     <nav class="govuk-breadcrumbs" aria-label="Breadcrumb">
       <ol class="govuk-breadcrumbs__list">
         <li class="govuk-breadcrumbs__list-item">
-          <a class="govuk-breadcrumbs__link" href="/examination-inspector-view">{{ organisationName }} Local Plan</a>
+          <a class="govuk-breadcrumbs__link" href="/examination-inspector-view"
+            >{{ organisationName }} Local Plan</a
+          >
         </li>
         <li class="govuk-breadcrumbs__list-item">{{ paragraph.policyArea }}</li>
         <li class="govuk-breadcrumbs__list-item">
-          <a class="govuk-breadcrumbs__link" href="/examination-inspector-view/paragraphs/{{ paragraph.policyRef | lower }}-1">{{ paragraph.policyRef }} {{ paragraph.policyTitle }}</a>
+          <a
+            class="govuk-breadcrumbs__link"
+            href="/examination-inspector-view/paragraphs/{{ paragraph.policyRef | lower }}-1"
+            >{{ paragraph.policyRef }} {{ paragraph.policyTitle }}</a
+          >
         </li>
-        <li class="govuk-breadcrumbs__list-item">{{ paragraph.sectionTitle }}</li>
+        <li class="govuk-breadcrumbs__list-item">
+          {{ paragraph.sectionTitle }}
+        </li>
       </ol>
     </nav>
 
-    {% set previousLink = { href: "/examination-inspector-view/paragraphs/" + previousParagraph.id, labelText: previousParagraph.policyRef + " " + previousParagraph.policyTitle } if previousParagraph else null %}
-    {% set nextLink = { href: "/examination-inspector-view/paragraphs/" + nextParagraph.id, labelText: nextParagraph.policyRef + " " + nextParagraph.policyTitle } if nextParagraph else null %}
+    <div>
+      <h2 class="govuk-heading-m govuk-!-margin-top-6">
+        {{ paragraph.policyRef }} {{ paragraph.policyTitle }}
+      </h2>
 
-    {% if previousLink or nextLink %}
-      {{ govukPagination({ previous: previousLink, next: nextLink }) }}
-    {% endif %}
-
-    <div class="dlp-document-viewer">
-      <p>{{ paragraph.text }}</p>
+      <div class="dlp-document-viewer">
+        <p>{{ paragraph.text }}</p>
+      </div>
     </div>
 
-    <h2 class="govuk-heading-l govuk-!-margin-top-6">Related to this paragraph</h2>
+    {% set previousLink = { href: "/examination-inspector-view/paragraphs/" +
+    previousParagraph.id, labelText: previousParagraph.policyRef + " " +
+    previousParagraph.policyTitle } if previousParagraph else null %} {% set
+    nextLink = { href: "/examination-inspector-view/paragraphs/" +
+    nextParagraph.id, labelText: nextParagraph.policyRef + " " +
+    nextParagraph.policyTitle } if nextParagraph else null %} {% if previousLink
+    or nextLink %} {{ govukPagination({ previous: previousLink, next: nextLink
+    }) }} {% endif %}
 
-    <h3 class="govuk-heading-m">Evidence</h3>
-    {% if relatedResources.evidence.length %}
-      <ul class="dlp-resource-list">
-        {% for item in relatedResources.evidence %}
-          <li>
-            <button type="button" class="dlp-resource-trigger" data-dlp-resource-trigger data-resource-target="{{ item.id }}" aria-pressed="false">
-              <span class="dlp-resource-trigger__title">{{ item.title }}</span>
-              <span class="dlp-resource-trigger__meta">{{ item.meta }}</span>
-            </button>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="govuk-body-s dlp-document-hint">No evidence for this policy in this prototype yet.</p>
-    {% endif %}
-
+    <div>
+      <h3 class="govuk-heading-s govuk-!-margin-top-6">Evidence</h3>
+      {% if relatedResources.evidence.length %}
+      <table class="govuk-table">
+        <caption
+          class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden"
+        >
+          Evidence related to this paragraph
+        </caption>
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th class="govuk-table__header" scope="col">Title</th>
+            <th class="govuk-table__header" scope="col">Reference</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for item in relatedResources.evidence %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">
+              <a
+                class="govuk-link"
+                href="#"
+                data-dlp-resource-trigger
+                data-resource-target="{{ item.id }}"
+                >{{ item.title }}</a
+              >
+            </td>
+            <td class="govuk-table__cell">{{ item.meta }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="govuk-body-s dlp-document-hint">
+        No evidence for this policy in this prototype yet.
+      </p>
+      {% endif %}
+    </div>
     <h3 class="govuk-heading-m">Comments</h3>
     {% if relatedResources.comments.length %}
-      <ul class="dlp-resource-list">
+    <table class="govuk-table">
+      <caption
+        class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden"
+      >
+        Comments related to this paragraph
+      </caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th class="govuk-table__header" scope="col">Title</th>
+          <th class="govuk-table__header" scope="col">Reference</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
         {% for item in relatedResources.comments %}
-          <li>
-            <button type="button" class="dlp-resource-trigger" data-dlp-resource-trigger data-resource-target="{{ item.id }}" aria-pressed="false">
-              <span class="dlp-resource-trigger__title">{{ item.title }}</span>
-              <span class="dlp-resource-trigger__meta">{{ item.meta }}</span>
-            </button>
-          </li>
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">
+            <a
+              class="govuk-link"
+              href="#"
+              data-dlp-resource-trigger
+              data-resource-target="{{ item.id }}"
+              >{{ item.title }}</a
+            >
+          </td>
+          <td class="govuk-table__cell">{{ item.meta }}</td>
+        </tr>
         {% endfor %}
-      </ul>
+      </tbody>
+    </table>
     {% else %}
-      <p class="govuk-body-s dlp-document-hint">No comments for this policy in this prototype yet.</p>
+    <p class="govuk-body-s dlp-document-hint">
+      No comments for this policy in this prototype yet.
+    </p>
     {% endif %}
 
     <h3 class="govuk-heading-m">NPPF and SDS policies</h3>
     {% if relatedResources.nationalPolicy.length %}
-      <ul class="dlp-resource-list">
+    <table class="govuk-table">
+      <caption
+        class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden"
+      >
+        NPPF and SDS policies related to this paragraph
+      </caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th class="govuk-table__header" scope="col">Title</th>
+          <th class="govuk-table__header" scope="col">Reference</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
         {% for item in relatedResources.nationalPolicy %}
-          <li>
-            <button type="button" class="dlp-resource-trigger" data-dlp-resource-trigger data-resource-target="{{ item.id }}" aria-pressed="false">
-              <span class="dlp-resource-trigger__title">{{ item.title }}</span>
-              <span class="dlp-resource-trigger__meta">{{ item.meta }}</span>
-            </button>
-          </li>
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">
+            <a
+              class="govuk-link"
+              href="#"
+              data-dlp-resource-trigger
+              data-resource-target="{{ item.id }}"
+              >{{ item.title }}</a
+            >
+          </td>
+          <td class="govuk-table__cell">{{ item.meta }}</td>
+        </tr>
         {% endfor %}
-      </ul>
+      </tbody>
+    </table>
     {% else %}
-      <p class="govuk-body-s dlp-document-hint">No NPPF or SDS policies for this policy in this prototype yet.</p>
+    <p class="govuk-body-s dlp-document-hint">
+      No NPPF or SDS policies for this policy in this prototype yet.
+    </p>
     {% endif %}
-
   </div>
 
   <div class="govuk-grid-column-one-third">
     <div class="dlp-tag-panel" data-dlp-resource-panel>
-      <p class="govuk-body dlp-document-hint" data-dlp-resource-panel-empty>Select a resource to view it here.</p>
+      <h3 class="govuk-heading-s">Resouce viewer</h3>
+      <p class="govuk-body dlp-document-hint" data-dlp-resource-panel-empty>
+        Select a resource to view it here.
+      </p>
 
       {% for item in relatedResources.all %}
-        <div class="dlp-resource-viewer__item" data-dlp-resource-panel-item data-resource-id="{{ item.id }}" hidden>
-          <h2 class="govuk-heading-m">{{ item.title }}</h2>
-          <p class="govuk-body-s dlp-document-hint">{{ item.meta }}</p>
-          <p class="govuk-body">{{ item.text }}</p>
-        </div>
+      <div
+        class="dlp-resource-viewer__item"
+        data-dlp-resource-panel-item
+        data-resource-id="{{ item.id }}"
+        hidden
+      >
+        <h2 class="govuk-heading-m">{{ item.title }}</h2>
+        <p class="govuk-body-s dlp-document-hint">{{ item.meta }}</p>
+        <p class="govuk-body">{{ item.text }}</p>
+      </div>
       {% endfor %}
     </div>
   </div>

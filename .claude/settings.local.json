@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"govuk-prototype-kit dev\")",
+      "Bash(pkill -f \"listen-on-port.js\")",
+      "Bash(node -e ' *)",
+      "Bash(curl -s -c /tmp/claude-1000/-workspace/fd2d27c3-b443-4804-90ae-ef83fc86d15f/scratchpad/pw-cookies.txt -b /tmp/claude-1000/-workspace/fd2d27c3-b443-4804-90ae-ef83fc86d15f/scratchpad/pw-cookies.txt -o /tmp/claude-1000/-workspace/fd2d27c3-b443-4804-90ae-ef83fc86d15f/scratchpad/write-seed.html -w '%{http_code}\\\\n' http://localhost:3000/policy-writing/write/topic-1)",
+      "Bash(curl -s http://localhost:3000/examination-inspector-view)",
+      "Bash(grep -n '$dlp-border-grey\\\\|$dlp-muted-text\\\\|$dlp-panel-background' app/assets/sass/application.scss)"
+    ]
+  }
+}

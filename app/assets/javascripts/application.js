@@ -32,15 +32,11 @@ window.GOVUKPrototypeKit.documentReady(() => {
     })
   })
 
-  document.querySelectorAll('[data-dlp-tagger]').forEach(initTagger)
-  document.querySelectorAll('[data-dlp-highlights]').forEach(initSavedHighlights)
-  document.querySelectorAll('[data-dlp-search]').forEach(initDocumentSearch)
-  document.querySelectorAll('[data-dlp-evidence-search]').forEach(initEvidenceSearchModal)
-  document.querySelectorAll('[data-dlp-resource-panel]').forEach(initResourcePanel)
   document.querySelectorAll('[data-dlp-tagger]').forEach(safeInit(initTagger))
   document.querySelectorAll('[data-dlp-highlights]').forEach(safeInit(initSavedHighlights))
   document.querySelectorAll('[data-dlp-search]').forEach(safeInit(initDocumentSearch))
   document.querySelectorAll('[data-dlp-evidence-search]').forEach(safeInit(initEvidenceSearchModal))
+  document.querySelectorAll('[data-dlp-resource-panel]').forEach(safeInit(initResourcePanel))
   document.querySelectorAll('[data-dlp-split]').forEach(safeInit(initSplitPane))
   document.querySelectorAll('[data-dlp-draft-check]').forEach(safeInit(initDraftCheck))
   document.querySelectorAll('[data-dlp-evidence-draggable]').forEach(safeInit(initEvidenceDraggable))
@@ -72,11 +68,22 @@ function initResourcePanel (panel) {
   const triggers = document.querySelectorAll('[data-dlp-resource-trigger]')
 
   triggers.forEach(trigger => {
-    trigger.addEventListener('click', () => {
+    trigger.addEventListener('click', event => {
+      // These are real links (a table of resources, not buttons) so a keyboard or assistive
+      // tech user gets normal link semantics, but the destination is a panel elsewhere on the
+      // page rather than a new location — the click swaps that panel's content in place.
+      event.preventDefault()
       const targetId = trigger.dataset.resourceTarget
 
       triggers.forEach(candidate => {
-        candidate.setAttribute('aria-pressed', String(candidate === trigger))
+        const row = candidate.closest('tr')
+        const isSelected = candidate === trigger
+        if (isSelected) {
+          candidate.setAttribute('aria-current', 'true')
+        } else {
+          candidate.removeAttribute('aria-current')
+        }
+        if (row) row.classList.toggle('dlp-resource-row--selected', isSelected)
       })
 
       if (emptyState) emptyState.hidden = true
