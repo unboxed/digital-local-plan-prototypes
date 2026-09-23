@@ -18,7 +18,7 @@
 
     <a class="govuk-back-link" href="/gateway-2-progress-check">Back to Plan Progress</a>
 
-    <h1 class="govuk-heading-xl">{{ area }}</h1>
+    <h1 class="govuk-heading-xl" id="top">{{ area }}</h1>
 
     <p class="govuk-body">
       <span class="govuk-!-font-weight-bold">Assigned to:</span>
@@ -85,6 +85,8 @@
       <p class="govuk-body-s dlp-document-hint">No brief recorded for this chapter yet.</p>
     {% endif %}
 
+    <p class="govuk-body"><a class="govuk-link" href="#top">Back to top</a></p>
+
     <h2 class="govuk-heading-l govuk-!-margin-top-6" id="sources">Sources</h2>
     {% if resources.sources.length %}
       <ul class="govuk-list">
@@ -99,6 +101,8 @@
     {% else %}
       <p class="govuk-body-s dlp-document-hint">No sources recorded for this chapter yet.</p>
     {% endif %}
+
+    <p class="govuk-body"><a class="govuk-link" href="#top">Back to top</a></p>
 
     <h2 class="govuk-heading-l govuk-!-margin-top-6" id="evidence">Evidence</h2>
     {% if resources.evidence.length %}
@@ -116,6 +120,8 @@
       <p class="govuk-body-s dlp-document-hint">No evidence recorded for this chapter yet.</p>
     {% endif %}
 
+    <p class="govuk-body"><a class="govuk-link" href="#top">Back to top</a></p>
+
     <h2 class="govuk-heading-l govuk-!-margin-top-6" id="responses">Responses</h2>
     {% if resources.responses.length %}
       <ul class="govuk-list">
@@ -129,6 +135,8 @@
     {% else %}
       <p class="govuk-body-s dlp-document-hint">No responses recorded for this chapter yet.</p>
     {% endif %}
+
+    <p class="govuk-body"><a class="govuk-link" href="#top">Back to top</a></p>
 
     <h2 class="govuk-heading-l govuk-!-margin-top-6" id="policy-text">Policy Text</h2>
     {% if resources.paragraphs.length %}
@@ -147,6 +155,8 @@
     {% else %}
       <p class="govuk-body-s dlp-document-hint">No policy text recorded for this chapter yet.</p>
     {% endif %}
+
+    <p class="govuk-body"><a class="govuk-link" href="#top">Back to top</a></p>
 
   </div>
 </div>
