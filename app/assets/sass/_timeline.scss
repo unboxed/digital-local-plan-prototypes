@@ -1,0 +1,99 @@
+// Timeline (partials/timeline/macro.njk) — a marker per entry on a connecting line. The line is
+// drawn behind the markers and stopped short of the last one, so it reads as a sequence rather
+// than a bordered list. Originally built for Policy writer v2's chapter history; shared here
+// since Gateway 2 progress check's chapter audit log needs the same shape. Deliberately uses
+// govuk-colour() directly rather than the $dlp-* variables declared later in application.scss
+// (see that file's import order), so this partial doesn't depend on import position.
+$app-timeline-marker: 12px;
+$app-timeline-gutter: 22px;
+
+.app-timeline {
+  list-style: none;
+  margin: 0 0 govuk-spacing(3);
+  padding: 0;
+}
+
+.app-timeline__entry {
+  padding: 0 0 govuk-spacing(4) $app-timeline-gutter;
+  position: relative;
+
+  // The connecting line, drawn from this marker down to the next one.
+  &::before {
+    background: govuk-colour("black", $variant: "tint-80");
+    bottom: 0;
+    content: "";
+    left: ($app-timeline-marker / 2) - 1px;
+    position: absolute;
+    top: $app-timeline-marker;
+    width: 2px;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+
+    &::before {
+      display: none;
+    }
+  }
+}
+
+.app-timeline__marker {
+  background: govuk-colour("white");
+  border: 2px solid govuk-colour("black", $variant: "tint-80");
+  border-radius: 50%;
+  height: $app-timeline-marker;
+  left: 0;
+  position: absolute;
+  top: 4px;
+  width: $app-timeline-marker;
+}
+
+.app-timeline__entry--done .app-timeline__marker {
+  background: govuk-colour("blue");
+  border-color: govuk-colour("blue");
+}
+
+.app-timeline__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1);
+  justify-content: space-between;
+  margin: 0;
+}
+
+.app-timeline__type {
+  @include govuk-font($size: 16, $weight: bold);
+}
+
+// Below the GOV.UK type scale's 16px minimum — $size: false applies the GOV.UK family/weight
+// without a size, then an explicit smaller size is set, rather than font-family: inherit (which
+// would silently pick up whatever an ancestor happens to set).
+.app-timeline__status {
+  @include govuk-font($size: false);
+  color: govuk-colour("black", $variant: "tint-25");
+  flex: 0 0 auto;
+  font-size: 0.6875rem;
+}
+
+.app-timeline__text {
+  @include govuk-font($size: false);
+  color: govuk-colour("black", $variant: "tint-25");
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.app-timeline__meta {
+  @include govuk-font($size: false);
+  color: govuk-colour("black", $variant: "tint-25");
+  font-size: 0.6875rem;
+  margin: 0;
+}
+
+.app-timeline__caption {
+  @include govuk-font($size: false);
+  color: govuk-colour("black", $variant: "tint-25");
+  font-size: 0.6875rem;
+  font-style: italic;
+  margin: 0;
+}

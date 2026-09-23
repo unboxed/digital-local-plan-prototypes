@@ -55,13 +55,6 @@
   min-width: 0;
 }
 
-.dlp-pw2-rail__caption {
-  @include dlp-pw2-small-text(0.6875rem);
-  color: $dlp-muted-text;
-  font-style: italic;
-  margin: 0;
-}
-
 // Long measure is hard to read, so widening the window widens the LAYOUT, not the line
 // length. Applied to prose and to the editable fields that hold it.
 .dlp-pw2-prose {
@@ -331,90 +324,9 @@
   line-height: 1.4;
 }
 
-// --- Chapter history timeline --------------------------------------------------------------
-//
-// A marker per entry on a connecting line. The line is drawn behind the markers and stopped
-// short of the last one, so it reads as a sequence rather than a bordered list.
-
-$dlp-pw2-timeline-marker: 12px;
-$dlp-pw2-timeline-gutter: 22px;
-
-.dlp-pw2-timeline {
-  list-style: none;
-  margin: 0 0 govuk-spacing(3);
-  padding: 0;
-}
-
-.dlp-pw2-timeline__entry {
-  padding: 0 0 govuk-spacing(4) $dlp-pw2-timeline-gutter;
-  position: relative;
-
-  // The connecting line, drawn from this marker down to the next one.
-  &::before {
-    background: $dlp-border-grey;
-    bottom: 0;
-    content: "";
-    left: ($dlp-pw2-timeline-marker / 2) - 1px;
-    position: absolute;
-    top: $dlp-pw2-timeline-marker;
-    width: 2px;
-  }
-
-  &:last-child {
-    padding-bottom: 0;
-
-    &::before {
-      display: none;
-    }
-  }
-}
-
-.dlp-pw2-timeline__marker {
-  background: govuk-colour("white");
-  border: 2px solid $dlp-border-grey;
-  border-radius: 50%;
-  height: $dlp-pw2-timeline-marker;
-  left: 0;
-  position: absolute;
-  top: 4px;
-  width: $dlp-pw2-timeline-marker;
-}
-
-.dlp-pw2-timeline__entry--done .dlp-pw2-timeline__marker {
-  background: $dlp-tag-accent;
-  border-color: $dlp-tag-accent;
-}
-
-.dlp-pw2-timeline__head {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: govuk-spacing(1);
-  justify-content: space-between;
-  margin: 0;
-}
-
-.dlp-pw2-timeline__type {
-  @include govuk-font($size: 16, $weight: bold);
-}
-
-.dlp-pw2-timeline__status {
-  @include dlp-pw2-small-text(0.6875rem);
-  color: $dlp-muted-text;
-  flex: 0 0 auto;
-}
-
-.dlp-pw2-timeline__text {
-  @include dlp-pw2-small-text(0.8125rem);
-  color: $dlp-muted-text;
-  margin: 0;
-}
-
-.dlp-pw2-timeline__meta {
-  @include dlp-pw2-small-text(0.6875rem);
-  color: $dlp-muted-text;
-  margin: 0;
-}
+// Chapter history timeline: see _timeline.scss (.app-timeline*, shared with Gateway 2 progress
+// check's chapter audit log) — the rail wrapper/heading around it stay here since sources-panel
+// and notes-panel share those same .dlp-pw2-rail__panel/__heading classes.
 
 // --- Read-only chapter preview -----------------------------------------------------------
 
