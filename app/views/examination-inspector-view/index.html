@@ -1,16 +1,13 @@
 {% extends "layouts/main-with-sidebar.html" %}
 
 {% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
 
 {% set pageName="Examination - inspector view" %}
 
 {% block header %}
   {{ super() }}
-  <div class="dlp-examination-header">
-    <div class="govuk-width-container">
-      <p class="dlp-examination-header__title">Examination - inspector view</p>
-    </div>
-  </div>
+  {{ appExternalHeader({ title: "Examination - inspector view" }) }}
 {% endblock %}
 
 {% block sideNavigation %}

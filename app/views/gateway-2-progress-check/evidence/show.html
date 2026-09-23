@@ -1,0 +1,55 @@
+{% extends "layouts/main.html" %}
+
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
+
+{% set pageName = document.source %}
+
+{% block header %}
+  {{ super() }}
+  {{ appExternalHeader({ title: "Gateway 2 progress check" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/gateway-2-progress-check">Back to Plan Progress</a>
+
+    <h1 class="govuk-heading-xl">{{ document.source }}</h1>
+
+    <p class="govuk-body">
+      <strong class="govuk-tag{% if statusColours[status] %} govuk-tag--{{ statusColours[status] }}{% endif %}">{{ status }}</strong>
+    </p>
+
+    <dl class="govuk-summary-list">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Author</dt>
+        <dd class="govuk-summary-list__value">{{ document.author }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Date</dt>
+        <dd class="govuk-summary-list__value">{{ document.date }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Policy area</dt>
+        <dd class="govuk-summary-list__value">{{ document.policyArea }}</dd>
+      </div>
+    </dl>
+
+    <h2 class="govuk-heading-m govuk-!-margin-top-6">Document</h2>
+
+    {% if document.paragraphs.length %}
+      <div class="dlp-document-viewer">
+        {% for paragraph in document.paragraphs %}
+        <p>{{ paragraph }}</p>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No further detail recorded for this document in this prototype yet.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

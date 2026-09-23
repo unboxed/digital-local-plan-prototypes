@@ -16,6 +16,7 @@
 
 @import "service-header";
 @import "side-navigation";
+@import "external-header";
 
 // Evidence prototype (E2US3 / E2US4)
 
@@ -1221,20 +1222,6 @@ $dlp-confidence-low: govuk-colour("orange");
 // link is currently shown in the panel alongside it.
 .dlp-resource-row--selected {
   background: govuk-colour("light-grey");
-}
-
-// Examination - inspector view: a title-only header, styled like the site-wide service header
-// (app-service-header, _service-header.scss) but deliberately with no nav row — this prototype
-// is an external viewer's page and doesn't carry the internal site navigation.
-.dlp-examination-header {
-  background: govuk-colour("black");
-  padding: govuk-spacing(3) govuk-spacing(4);
-}
-
-.dlp-examination-header__title {
-  @include govuk-font($size: 19, $weight: bold);
-  color: govuk-colour("white");
-  margin: 0;
 }
 
 // Policy writer v2. Imported last because it uses $dlp-ai-accent and $dlp-confidence-low,

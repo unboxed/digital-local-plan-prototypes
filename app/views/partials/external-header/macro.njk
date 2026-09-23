@@ -1,0 +1,24 @@
+{#
+  Title-only page header, for prototypes viewed by someone outside the LPA (an inspector, a
+  member of the public) that deliberately don't carry the site's internal service-header nav —
+  see layouts/main.html's `header` block and CLAUDE.md's "Service header" section for why that
+  nav is conditional on `activeSection`.
+
+  Usage (override the `header` block so this appears above the sidebar/content, the same place
+  the phase banner renders — see examination-inspector-view/index.html for a worked example):
+    {% from "partials/external-header/macro.njk" import appExternalHeader %}
+    {% block header %}
+      {{ super() }}
+      {{ appExternalHeader({ title: "..." }) }}
+    {% endblock %}
+
+  params.title: string (required) — the prototype's name, shown with no nav or links alongside it.
+#}
+
+{% macro appExternalHeader(params) %}
+<div class="app-external-header">
+  <div class="govuk-width-container">
+    <p class="app-external-header__title">{{ params.title }}</p>
+  </div>
+</div>
+{% endmacro %}

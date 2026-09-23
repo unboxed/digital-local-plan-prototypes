@@ -1,0 +1,42 @@
+{% extends "layouts/main.html" %}
+
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
+
+{% set pageName = area %}
+
+{% block header %}
+  {{ super() }}
+  {{ appExternalHeader({ title: "Gateway 2 progress check" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/gateway-2-progress-check">Back to Plan Progress</a>
+
+    <h1 class="govuk-heading-xl">{{ area }}</h1>
+
+    <p class="govuk-body">
+      <strong class="govuk-tag{% if statusColours[status] %} govuk-tag--{{ statusColours[status] }}{% endif %}">{{ status }}</strong>
+    </p>
+
+    <h2 class="govuk-heading-m govuk-!-margin-top-6">Policies in this chapter</h2>
+
+    {% if policies.length %}
+    <ul class="govuk-list">
+      {% for policy in policies %}
+      <li>
+        <span class="govuk-!-font-weight-bold">{{ policy.ref }}</span> {{ policy.title }}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="govuk-body-s dlp-document-hint">No policies in this prototype yet.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
