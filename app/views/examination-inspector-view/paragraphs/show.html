@@ -1,15 +1,19 @@
-{% extends "layouts/main-with-sidebar.html" %} {% from
-"partials/side-navigation/macro.njk" import appSideNavigation %} {% from
-"govuk/components/pagination/macro.njk" import govukPagination %} {% set
-pageName = paragraph.policyRef + " " + paragraph.policyTitle %} {% block header
-%} {{ super() }}
-<div class="dlp-examination-header">
-  <div class="govuk-width-container">
-    <p class="dlp-examination-header__title">Examination - inspector view</p>
-  </div>
-</div>
-{% endblock %} {% block sideNavigation %} {{ appSideNavigation({ title:
-organisationName + " Local Plan", sections: sidebarSections }) }} {% endblock %}
+{% extends "layouts/main-with-sidebar.html" %}
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+
+{% set pageName = paragraph.policyRef + " " + paragraph.policyTitle %}
+
+{% block header %}
+  {{ super() }}
+  {{ appExternalHeader({ title: "Examination - inspector view" }) }}
+{% endblock %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ title: organisationName + " Local Plan", sections: sidebarSections }) }}
+{% endblock %}
+
 {% block content %}
 
 <div class="govuk-grid-row">
@@ -170,7 +174,7 @@ organisationName + " Local Plan", sections: sidebarSections }) }} {% endblock %}
 
   <div class="govuk-grid-column-one-third">
     <div class="dlp-tag-panel" data-dlp-resource-panel>
-      <h3 class="govuk-heading-s">Resouce viewer</h3>
+      <h3 class="govuk-heading-s">Resource viewer</h3>
       <p class="govuk-body dlp-document-hint" data-dlp-resource-panel-empty>
         Select a resource to view it here.
       </p>

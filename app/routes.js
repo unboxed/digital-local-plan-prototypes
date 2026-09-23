@@ -49,6 +49,14 @@ const { USER_STORY_THEMES, getUserStoryCount, getUserStoryThemeGroups, getUserSt
 const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES } = require('./data/plan-paragraphs.js')
 const { POLICY_TEMPLATES, getPolicyTemplate } = require('./data/policy-templates.js')
 const { getEvidenceDocument } = require('./data/evidence-documents.js')
+const {
+  getChapterStatus,
+  getEvidenceStatus,
+  getChapterOfficers,
+  getChapterBrief,
+  getChapterAuditLog,
+  getStageStatuses
+} = require('./data/gateway-2-progress.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
 //
@@ -1468,5 +1476,122 @@ router.get('/policy-writing-v2/chapter/:policyId/source/:sourceId', (req, res) =
     policy,
     source,
     document: getEvidenceDocument(source)
+  })
+})
+
+// --- Gateway 2 progress check prototype ---
+//
+// A second, standalone view for planning inspectors, alongside Examination - inspector view but
+// independent of it: a "Plan Progress" page listing every chapter (policy area) and every
+// evidence base document with its current status, each with a "View" link through to a page for
+// that item. Reuses the same chapters (policies.js's policy areas) and evidence base
+// (documents.js) as Examination - inspector view rather than a second plan structure — status
+// values themselves are illustrative content added by gateway-2-progress.js, since neither
+// existing data source carries one. Like Examination - inspector view, this has no
+// `activeSection` wiring: it's an external-viewer prototype with no standard site nav, just the
+// title-only appExternalHeader.
+
+// Verified against GOV.UK Frontend's actual govuk-tag modifiers (grey, green, purple, red,
+// orange, teal, magenta, yellow, turquoise, pink, plus default/blue via no modifier) — same
+// rendering pattern as the existing tagColours[tag] usage elsewhere (e.g. evidence-card.html).
+// 'Completed' (as opposed to 'Complete') is the chapter detail table's standardised-vocabulary
+// wording for the same underlying colour, reusing this map rather than adding a second one.
+const CHAPTER_STATUS_COLOURS = {
+  'Not started': 'grey',
+  'Brief prepared': '',
+  'In progress': 'turquoise',
+  Drafted: 'purple',
+  Complete: 'green',
+  Completed: 'green'
+}
+const EVIDENCE_STATUS_COLOURS = {
+  'Not yet procured': 'grey',
+  'In procurement': '',
+  'Draft received': 'turquoise',
+  'Accepted version': 'green'
+}
+
+// Hrefs are pre-encoded here, not with a Nunjucks urlencode filter, for the same reason
+// POLICY_AREA_LINKS is pre-encoded above.
+router.get('/gateway-2-progress-check', (req, res) => {
+  const chapters = POLICY_AREAS.map(area => ({
+    name: area,
+    status: getChapterStatus(area),
+    href: '/gateway-2-progress-check/chapters/' + encodeURIComponent(area)
+  }))
+
+  const evidence = Object.keys(DOCUMENTS).map(source => ({
+    name: source,
+    status: getEvidenceStatus(source),
+    href: '/gateway-2-progress-check/evidence/' + encodeURIComponent(source)
+  }))
+
+  res.render('gateway-2-progress-check/index.html', {
+    chapters,
+    evidence,
+    chapterStatusColours: CHAPTER_STATUS_COLOURS,
+    evidenceStatusColours: EVIDENCE_STATUS_COLOURS
+  })
+})
+
+// The chapter's Sources/Evidence/Responses/Policy Text sections, built entirely from data and
+// helpers already used elsewhere in this file rather than a second, chapter-specific corpus.
+// Hrefs are pre-encoded/pre-resolved here rather than in the template, same reason as elsewhere
+// in this file (POLICY_AREA_LINKS, the index route above) — an evidence excerpt's source isn't
+// always one of documents.js's DOCUMENTS, so its href is null when there's nothing to link to.
+function buildChapterResources (area) {
+  const policies = getPoliciesForArea(area)
+  const policyRefs = policies.map(policy => policy.ref)
+
+  const sources = Object.values(DOCUMENTS)
+    .filter(doc => doc.policyArea === area)
+    .map(doc => Object.assign({
+      href: '/gateway-2-progress-check/evidence/' + encodeURIComponent(doc.source)
+    }, doc))
+
+  const evidence = EVIDENCE_EXCERPTS
+    .filter(excerpt => excerpt.policyRefs.some(ref => policyRefs.includes(ref)))
+    .map(excerpt => Object.assign({
+      href: DOCUMENTS[excerpt.source]
+        ? '/gateway-2-progress-check/evidence/' + encodeURIComponent(excerpt.source)
+        : null
+    }, excerpt))
+
+  const responses = policies.flatMap(policy =>
+    (policy.consultationResponses || []).map(response =>
+      Object.assign({ policyRef: policy.ref, policyTitle: policy.title }, response)))
+
+  const paragraphs = PLAN_PARAGRAPHS.filter(paragraph => paragraph.policyArea === area)
+
+  return { sources, evidence, responses, paragraphs }
+}
+
+router.get('/gateway-2-progress-check/chapters/:area', (req, res) => {
+  const area = req.params.area
+  if (!POLICY_AREAS.includes(area)) return res.redirect('/gateway-2-progress-check')
+
+  const status = getChapterStatus(area)
+
+  res.render('gateway-2-progress-check/chapters/show.html', {
+    area,
+    status,
+    statusColours: CHAPTER_STATUS_COLOURS,
+    policies: getPoliciesForArea(area),
+    officers: getChapterOfficers(area),
+    brief: getChapterBrief(area),
+    auditLog: getChapterAuditLog(area),
+    stageStatuses: getStageStatuses(status),
+    resources: buildChapterResources(area)
+  })
+})
+
+router.get('/gateway-2-progress-check/evidence/:source', (req, res) => {
+  const source = req.params.source
+  if (!DOCUMENTS[source]) return res.redirect('/gateway-2-progress-check')
+
+  res.render('gateway-2-progress-check/evidence/show.html', {
+    document: getDocument(source),
+    status: getEvidenceStatus(source),
+    statusColours: EVIDENCE_STATUS_COLOURS
   })
 })

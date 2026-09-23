@@ -1,0 +1,154 @@
+{% extends "layouts/main.html" %}
+
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
+{% from "partials/timeline/macro.njk" import appTimeline %}
+{% from "govuk/components/accordion/macro.njk" import govukAccordion %}
+
+{% set pageName = area %}
+
+{% block header %}
+  {{ super() }}
+  {{ appExternalHeader({ title: "Gateway 2 progress check" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/gateway-2-progress-check">Back to Plan Progress</a>
+
+    <h1 class="govuk-heading-xl">{{ area }}</h1>
+
+    <p class="govuk-body">
+      <span class="govuk-!-font-weight-bold">Assigned to:</span>
+      {{ officers | join(", ") if officers.length else "Not assigned" }}
+    </p>
+
+    <table class="govuk-table">
+      <caption class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden">Chapter section status</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th class="govuk-table__header" scope="col">Section</th>
+          <th class="govuk-table__header" scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell"><a class="govuk-link" href="#brief">Brief</a></td>
+          <td class="govuk-table__cell"><strong class="govuk-tag{% if statusColours[stageStatuses.brief] %} govuk-tag--{{ statusColours[stageStatuses.brief] }}{% endif %}">{{ stageStatuses.brief }}</strong></td>
+        </tr>
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell"><a class="govuk-link" href="#sources">Sources</a></td>
+          <td class="govuk-table__cell"><strong class="govuk-tag{% if statusColours[stageStatuses.sources] %} govuk-tag--{{ statusColours[stageStatuses.sources] }}{% endif %}">{{ stageStatuses.sources }}</strong></td>
+        </tr>
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell"><a class="govuk-link" href="#evidence">Evidence</a></td>
+          <td class="govuk-table__cell"><strong class="govuk-tag{% if statusColours[stageStatuses.evidence] %} govuk-tag--{{ statusColours[stageStatuses.evidence] }}{% endif %}">{{ stageStatuses.evidence }}</strong></td>
+        </tr>
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell"><a class="govuk-link" href="#responses">Responses</a></td>
+          <td class="govuk-table__cell"><strong class="govuk-tag{% if statusColours[stageStatuses.responses] %} govuk-tag--{{ statusColours[stageStatuses.responses] }}{% endif %}">{{ stageStatuses.responses }}</strong></td>
+        </tr>
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell"><a class="govuk-link" href="#policy-text">Policy Text</a></td>
+          <td class="govuk-table__cell"><strong class="govuk-tag{% if statusColours[stageStatuses.policyText] %} govuk-tag--{{ statusColours[stageStatuses.policyText] }}{% endif %}">{{ stageStatuses.policyText }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    {% set auditLogHtml %}
+      {% if auditLog.length %}
+        {{ appTimeline({ entries: auditLog | reverse }) }}
+      {% else %}
+        <p class="govuk-body">No audit log entries for this chapter yet.</p>
+      {% endif %}
+    {% endset %}
+
+    {{ govukAccordion({
+      id: "chapter-audit-log",
+      items: [{
+        heading: { text: "Audit log" },
+        content: { html: auditLogHtml }
+      }]
+    }) }}
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-6" id="brief">Brief</h2>
+    {% if brief %}
+      <p class="govuk-body">{{ brief.intro }}</p>
+      <ul class="govuk-list govuk-list--bullet">
+        {% for item in brief.items %}
+        <li>{{ item.text }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No brief recorded for this chapter yet.</p>
+    {% endif %}
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-6" id="sources">Sources</h2>
+    {% if resources.sources.length %}
+      <ul class="govuk-list">
+        {% for source in resources.sources %}
+        <li class="govuk-!-margin-bottom-4">
+          <a class="govuk-link" href="{{ source.href }}">{{ source.source }}</a>
+          <br>
+          <span class="govuk-body-s dlp-document-hint">{{ source.author }} &middot; {{ source.date }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No sources recorded for this chapter yet.</p>
+    {% endif %}
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-6" id="evidence">Evidence</h2>
+    {% if resources.evidence.length %}
+      <ul class="govuk-list">
+        {% for item in resources.evidence %}
+        <li class="govuk-!-margin-bottom-4">
+          <p class="govuk-body">{{ item.text }}</p>
+          <p class="govuk-body-s dlp-document-hint">
+            {% if item.href %}<a class="govuk-link" href="{{ item.href }}">{{ item.source }}</a>{% else %}{{ item.source }}{% endif %}, {{ item.ref }}
+          </p>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No evidence recorded for this chapter yet.</p>
+    {% endif %}
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-6" id="responses">Responses</h2>
+    {% if resources.responses.length %}
+      <ul class="govuk-list">
+        {% for response in resources.responses %}
+        <li class="govuk-!-margin-bottom-4">
+          <p class="govuk-body">{{ response.comment }}</p>
+          <p class="govuk-body-s dlp-document-hint">{{ response.respondent }}, {{ response.ref }} &middot; against {{ response.policyRef }} {{ response.policyTitle }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No responses recorded for this chapter yet.</p>
+    {% endif %}
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-6" id="policy-text">Policy Text</h2>
+    {% if resources.paragraphs.length %}
+      {% set currentPolicyRef = "" %}
+      {% for paragraph in resources.paragraphs %}
+        {% if paragraph.policyRef != currentPolicyRef %}
+          {% set currentPolicyRef = paragraph.policyRef %}
+          <h3 class="govuk-heading-m govuk-!-margin-top-6">
+            <a class="govuk-link" href="/examination-inspector-view/paragraphs/{{ paragraph.policyRef | lower }}-1">{{ paragraph.policyRef }} {{ paragraph.policyTitle }}</a>
+          </h3>
+        {% endif %}
+        <div class="govuk-inset-text">
+          <p class="govuk-body">{{ paragraph.text }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No policy text recorded for this chapter yet.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "layouts/main.html" %}
+
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
+
+{% set pageName="Gateway 2 progress check" %}
+
+{% block header %}
+  {{ super() }}
+  {{ appExternalHeader({ title: "Gateway 2 progress check" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/">Back to prototypes</a>
+
+    <h1 class="govuk-heading-xl">Plan Progress</h1>
+
+    <p class="govuk-body-l">{{ organisationName }} Local Plan</p>
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-6">Chapters</h2>
+
+    <table class="govuk-table">
+      <caption class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden">Chapter progress</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th class="govuk-table__header" scope="col">Chapter</th>
+          <th class="govuk-table__header" scope="col">Status</th>
+          <th class="govuk-table__header" scope="col"><span class="govuk-visually-hidden">Action</span></th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% for chapter in chapters %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">{{ chapter.name }}</td>
+          <td class="govuk-table__cell">
+            <strong class="govuk-tag{% if chapterStatusColours[chapter.status] %} govuk-tag--{{ chapterStatusColours[chapter.status] }}{% endif %}">{{ chapter.status }}</strong>
+          </td>
+          <td class="govuk-table__cell">
+            <a class="govuk-link" href="{{ chapter.href }}">View<span class="govuk-visually-hidden"> {{ chapter.name }}</span></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-6">Evidence base</h2>
+
+    <table class="govuk-table">
+      <caption class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden">Evidence base progress</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th class="govuk-table__header" scope="col">Evidence</th>
+          <th class="govuk-table__header" scope="col">Status</th>
+          <th class="govuk-table__header" scope="col"><span class="govuk-visually-hidden">Action</span></th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% for item in evidence %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">{{ item.name }}</td>
+          <td class="govuk-table__cell">
+            <strong class="govuk-tag{% if evidenceStatusColours[item.status] %} govuk-tag--{{ evidenceStatusColours[item.status] }}{% endif %}">{{ item.status }}</strong>
+          </td>
+          <td class="govuk-table__cell">
+            <a class="govuk-link" href="{{ item.href }}">View<span class="govuk-visually-hidden"> {{ item.name }}</span></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+{% endblock %}

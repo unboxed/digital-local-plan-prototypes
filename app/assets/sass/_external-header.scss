@@ -1,0 +1,13 @@
+// Title-only page header (partials/external-header/macro.njk), for prototypes viewed by
+// someone outside the LPA that deliberately don't carry the site-wide service header's nav row
+// (app-service-header, _service-header.scss) — see that macro's docstring for why.
+.app-external-header {
+  background: govuk-colour("black");
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+.app-external-header__title {
+  @include govuk-font($size: 19, $weight: bold);
+  color: govuk-colour("white");
+  margin: 0;
+}

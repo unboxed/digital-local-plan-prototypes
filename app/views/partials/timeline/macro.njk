@@ -1,0 +1,39 @@
+{#
+  Timeline: a marker per entry on a connecting line, the kind of change in bold, what changed
+  underneath, and the status in plain text where the entry is settled. An entry with no status
+  renders with a hollow marker and no status text, so an open item reads as open at a glance.
+  Originally built for Policy writer v2's chapter history; shared here since Gateway 2's chapter
+  audit log needs the same shape.
+
+  Usage (caller decides ordering, e.g. newest-first via the `reverse` filter, and supplies its
+  own heading — this macro renders only the list itself):
+    {% from "partials/timeline/macro.njk" import appTimeline %}
+    {{ appTimeline({ entries: chapter.history | reverse }) }}
+
+  params.entries: array of { type, description, date, actor, status? } — status is optional;
+    when present the entry's marker fills in and the status text shows, e.g. "Done".
+  params.caption: string (optional) — defaults to a stock "this is example content" caveat,
+    since every consumer so far is read-only illustrative content rather than a real log.
+#}
+
+{% macro appTimeline(params) %}
+<ol class="app-timeline">
+  {% for entry in params.entries %}
+    <li class="app-timeline__entry{% if entry.status %} app-timeline__entry--done{% endif %}">
+      <span class="app-timeline__marker" aria-hidden="true"></span>
+
+      <p class="app-timeline__head">
+        <span class="app-timeline__type">{{ entry.type }}</span>
+        {% if entry.status %}
+          <span class="app-timeline__status">{{ entry.status }}</span>
+        {% endif %}
+      </p>
+
+      <p class="app-timeline__text">{{ entry.description }}</p>
+      <p class="app-timeline__meta">{{ entry.date }} &middot; {{ entry.actor }}</p>
+    </li>
+  {% endfor %}
+</ol>
+
+<p class="app-timeline__caption">{{ params.caption | default("Example history — this prototype does not record your changes.") }}</p>
+{% endmacro %}
