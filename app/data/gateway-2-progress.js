@@ -200,6 +200,56 @@ const STAGE_STATUS_BY_CHAPTER_STATUS = {
   Complete: { brief: 'Completed', sources: 'Completed', evidence: 'Completed', responses: 'Completed', policyText: 'Completed' }
 }
 
+// A policy's own status (shown against each policy in the chapter page's Policy Text section)
+// is derived from its chapter's overall status and whether it's one of the "full summary" worked
+// examples (policy.hasSummary, computed by policies.js's getPoliciesForArea) — that policy
+// already has evidence/consultation content behind it, so it's treated as ahead of the chapter's
+// other policies rather than needing 82 independently authored statuses. Uses the same
+// vocabulary as CHAPTER_PROGRESS ('Complete', not 'Completed'), so app/routes.js's
+// CHAPTER_STATUS_COLOURS map already covers it.
+const POLICY_STATUS_BY_CHAPTER_STATUS = {
+  'Not started': { full: 'Not started', partial: 'Not started' },
+  'Brief prepared': { full: 'Not started', partial: 'Not started' },
+  'In progress': { full: 'In progress', partial: 'Not started' },
+  Drafted: { full: 'Complete', partial: 'Drafted' },
+  Complete: { full: 'Complete', partial: 'Complete' }
+}
+
+function getPolicyStatus (chapterStatus, hasSummary) {
+  const statuses = POLICY_STATUS_BY_CHAPTER_STATUS[chapterStatus] || POLICY_STATUS_BY_CHAPTER_STATUS['Not started']
+  return hasSummary ? statuses.full : statuses.partial
+}
+
+// Officer commentary shown under some (not all — illustrative, not exhaustive) Sources and
+// Evidence items in the chapter page, in a govuk-inset-text "Officer notes" block. Kept here
+// rather than on documents.js/evidence-excerpts.js since those are shared with other
+// prototypes (Examination - inspector view, the Evidence prototype) and this commentary is
+// specific to a Gateway 2 reviewer's read of the item, not part of the evidence base itself.
+//
+// Written for an external audience (the inspector reading this page), not as an internal
+// note-to-self — each one explains what the evidence shows and how that connects to the policy
+// content it supports, rather than flagging internal to-dos or caveats about the evidence base.
+const SOURCE_OFFICER_NOTES = {
+  'Local Housing Needs Assessment': 'This assessment provides the household growth projections and brownfield land supply analysis that the housing requirement in HS1 and the wider Housing chapter are based on.',
+  'Heritage and Conservation Study': 'This study identifies the constraints on the scale and design of new development in and around conservation areas, and the historic routes and roofscapes that HE1 seeks to protect.'
+}
+
+// Keyed by "source|ref" since EVIDENCE_EXCERPTS entries (evidence-excerpts.js) have no single
+// field that uniquely identifies one on its own.
+const EVIDENCE_OFFICER_NOTES = {
+  'Inclusive Design Access Audit|Paragraph 4.12': 'This finding — that step-free access and wayfinding are the two barriers raised most often — is the basis for HL1 setting an accessibility requirement above the national minimum.',
+  'Air Quality Assessment|Paragraph 4.9': 'This identifies the specific street canyons where air quality objectives are exceeded, which HL2 requires development to address through the air quality neutral standard.',
+  'Local Housing Needs Assessment|Chapter 3': 'This sets out the projected household growth over the plan period that the housing requirement figure in HS1 is drawn from.'
+}
+
+function getSourceOfficerNote (source) {
+  return SOURCE_OFFICER_NOTES[source] || null
+}
+
+function getEvidenceOfficerNote (item) {
+  return EVIDENCE_OFFICER_NOTES[item.source + '|' + item.ref] || null
+}
+
 function getChapterStatus (area) {
   return CHAPTER_PROGRESS[area] || 'Not started'
 }
@@ -231,10 +281,16 @@ module.exports = {
   CHAPTER_BRIEFS,
   CHAPTER_AUDIT_LOG,
   STAGE_STATUS_BY_CHAPTER_STATUS,
+  POLICY_STATUS_BY_CHAPTER_STATUS,
+  SOURCE_OFFICER_NOTES,
+  EVIDENCE_OFFICER_NOTES,
   getChapterStatus,
   getEvidenceStatus,
   getChapterOfficers,
   getChapterBrief,
   getChapterAuditLog,
-  getStageStatuses
+  getStageStatuses,
+  getPolicyStatus,
+  getSourceOfficerNote,
+  getEvidenceOfficerNote
 }

@@ -55,7 +55,10 @@ const {
   getChapterOfficers,
   getChapterBrief,
   getChapterAuditLog,
-  getStageStatuses
+  getStageStatuses,
+  getPolicyStatus,
+  getSourceOfficerNote,
+  getEvidenceOfficerNote
 } = require('./data/gateway-2-progress.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
@@ -1546,7 +1549,8 @@ function buildChapterResources (area) {
   const sources = Object.values(DOCUMENTS)
     .filter(doc => doc.policyArea === area)
     .map(doc => Object.assign({
-      href: '/gateway-2-progress-check/evidence/' + encodeURIComponent(doc.source)
+      href: '/gateway-2-progress-check/evidence/' + encodeURIComponent(doc.source),
+      officerNote: getSourceOfficerNote(doc.source)
     }, doc))
 
   const evidence = EVIDENCE_EXCERPTS
@@ -1554,7 +1558,8 @@ function buildChapterResources (area) {
     .map(excerpt => Object.assign({
       href: DOCUMENTS[excerpt.source]
         ? '/gateway-2-progress-check/evidence/' + encodeURIComponent(excerpt.source)
-        : null
+        : null,
+      officerNote: getEvidenceOfficerNote(excerpt)
     }, excerpt))
 
   const responses = policies.flatMap(policy =>
@@ -1571,12 +1576,19 @@ router.get('/gateway-2-progress-check/chapters/:area', (req, res) => {
   if (!POLICY_AREAS.includes(area)) return res.redirect('/gateway-2-progress-check')
 
   const status = getChapterStatus(area)
+  const policies = getPoliciesForArea(area)
+
+  const policyStatuses = {}
+  policies.forEach(policy => {
+    policyStatuses[policy.ref] = getPolicyStatus(status, policy.hasSummary)
+  })
 
   res.render('gateway-2-progress-check/chapters/show.html', {
     area,
     status,
     statusColours: CHAPTER_STATUS_COLOURS,
-    policies: getPoliciesForArea(area),
+    policies,
+    policyStatuses,
     officers: getChapterOfficers(area),
     brief: getChapterBrief(area),
     auditLog: getChapterAuditLog(area),
