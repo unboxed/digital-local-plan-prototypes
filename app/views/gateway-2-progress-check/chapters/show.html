@@ -95,6 +95,12 @@
           <a class="govuk-link" href="{{ source.href }}">{{ source.source }}</a>
           <br>
           <span class="govuk-body-s dlp-document-hint">{{ source.author }} &middot; {{ source.date }}</span>
+          {% if source.officerNote %}
+          <div class="govuk-inset-text">
+            <h3 class="govuk-heading-s">Officer notes</h3>
+            <p class="govuk-body">{{ source.officerNote }}</p>
+          </div>
+          {% endif %}
         </li>
         {% endfor %}
       </ul>
@@ -113,6 +119,12 @@
           <p class="govuk-body-s dlp-document-hint">
             {% if item.href %}<a class="govuk-link" href="{{ item.href }}">{{ item.source }}</a>{% else %}{{ item.source }}{% endif %}, {{ item.ref }}
           </p>
+          {% if item.officerNote %}
+          <div class="govuk-inset-text">
+            <h3 class="govuk-heading-s">Officer notes</h3>
+            <p class="govuk-body">{{ item.officerNote }}</p>
+          </div>
+          {% endif %}
         </li>
         {% endfor %}
       </ul>
@@ -146,6 +158,7 @@
           {% set currentPolicyRef = paragraph.policyRef %}
           <h3 class="govuk-heading-m govuk-!-margin-top-6">
             <a class="govuk-link" href="/examination-inspector-view/paragraphs/{{ paragraph.policyRef | lower }}-1">{{ paragraph.policyRef }} {{ paragraph.policyTitle }}</a>
+            <strong class="govuk-tag govuk-!-margin-left-2{% if statusColours[policyStatuses[paragraph.policyRef]] %} govuk-tag--{{ statusColours[policyStatuses[paragraph.policyRef]] }}{% endif %}">{{ policyStatuses[paragraph.policyRef] }}</strong>
           </h3>
         {% endif %}
         <div class="govuk-inset-text">
