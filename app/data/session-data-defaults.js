@@ -302,9 +302,9 @@ module.exports = {
         ,
           {
             id: 'pw2-src-s1-p1',
-            text: "Plans should provide for objectively assessed needs for housing and other development, with a presumption in favour of sustainable development applying unless the policies most important for determining the application provide a clear reason for refusal.",
+            text: "Decisions on development proposals should apply a presumption in favour of sustainable development, with proposals that accord with an up-to-date development plan and the Framework’s decision-making policies approved without delay.",
             source: 'National Planning Policy Framework',
-            ref: 'Paragraph 11',
+            ref: 'Policy S3',
             policyRefs: ['S1', 'S3', 'HS1']
           },
           {
@@ -366,9 +366,9 @@ module.exports = {
         ,
           {
             id: 'pw2-src-s3-p1',
-            text: "The minimum number of homes needed should be determined using the standard method, unless exceptional circumstances justify an alternative approach that also reflects current and future demographic trends and market signals.",
+            text: "Spatial development strategies, and local plans where a spatial development strategy is not in place, should be based on a housing need assessment establishing the overall number of homes needed in the area as a minimum over the plan period, using the standard method.",
             source: 'National Planning Policy Framework',
-            ref: 'Paragraph 61',
+            ref: 'Policy HO1',
             policyRefs: ['S3', 'HS1']
           },
           {
