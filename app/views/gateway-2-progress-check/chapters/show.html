@@ -4,6 +4,7 @@
 {% from "partials/side-navigation/macro.njk" import appSideNavigation %}
 {% from "partials/timeline/macro.njk" import appTimeline %}
 {% from "govuk/components/accordion/macro.njk" import govukAccordion %}
+{% from "partials/policy-text/macro.njk" import appPolicyText %}
 
 {% set pageName = area %}
 
@@ -80,7 +81,7 @@
       <ul class="govuk-list">
         {% for source in resources.sources %}
         <li class="govuk-!-margin-bottom-4">
-          <a class="govuk-link" href="{{ source.href }}">{{ source.source }}</a>
+          {% if source.href %}<a class="govuk-link" href="{{ source.href }}">{{ source.source }}</a>{% else %}<span class="govuk-!-font-weight-bold">{{ source.source }}</span>{% endif %}
           <br>
           <span class="govuk-body-s dlp-document-hint">{{ source.author }} &middot; {{ source.date }}</span>
           {% if source.officerNote %}
@@ -103,10 +104,21 @@
       <ul class="govuk-list">
         {% for item in resources.evidence %}
         <li class="govuk-!-margin-bottom-4">
+          {% if item.extracts %}
+          {# A document with one or more quoted extracts, then the officer's note on it. #}
+          <h3 class="govuk-heading-s">{{ item.source }}</h3>
+          {% for extract in item.extracts %}
+          <blockquote class="dlp-g2-quote">
+            <p class="govuk-body">{{ extract.text }}</p>
+            <p class="govuk-body-s dlp-document-hint govuk-!-margin-bottom-0">{{ item.source }}, {{ extract.ref }}</p>
+          </blockquote>
+          {% endfor %}
+          {% else %}
           <p class="govuk-body">{{ item.text }}</p>
           <p class="govuk-body-s dlp-document-hint">
             {% if item.href %}<a class="govuk-link" href="{{ item.href }}">{{ item.source }}</a>{% else %}{{ item.source }}{% endif %}, {{ item.ref }}
           </p>
+          {% endif %}
           {% if item.officerNote %}
           <div class="govuk-inset-text">
             <h3 class="govuk-heading-s">Officer notes</h3>
@@ -136,7 +148,7 @@
         <tbody class="govuk-table__body">
           {% for theme in resources.representations %}
           <tr class="govuk-table__row">
-            <td class="govuk-table__cell"><a class="govuk-link" href="{{ theme.href }}">{{ theme.title }}</a></td>
+            <td class="govuk-table__cell">{% if theme.href %}<a class="govuk-link" href="{{ theme.href }}">{{ theme.title }}</a>{% else %}{{ theme.title }}{% endif %}</td>
             <td class="govuk-table__cell">{{ theme.policyRef }} {{ theme.policyTitle }}</td>
             <td class="govuk-table__cell">{{ theme.meta }}</td>
           </tr>
@@ -150,7 +162,33 @@
     <p class="govuk-body"><a class="govuk-link" href="#top">Back to top</a></p>
 
     <h2 class="govuk-heading-l govuk-!-margin-top-6" id="policy-text">Policy Text</h2>
-    {% if resources.paragraphs.length %}
+    {% if resources.policyTexts.length %}
+      {# Full wording, one expandable section per policy. The first two start open; the rest
+         open on click, so the chapter's policies can be read without one very long page. #}
+      {% set policyItems = [] %}
+      {% for policy in resources.policyTexts %}
+        {% set policySummary %}
+          {% if policy.isStrategic %}<strong class="govuk-tag">Strategic Policy</strong>{% endif %}
+          <strong class="govuk-tag{% if statusColours[policyStatuses[policy.ref]] %} govuk-tag--{{ statusColours[policyStatuses[policy.ref]] }}{% endif %}">{{ policyStatuses[policy.ref] }}</strong>
+        {% endset %}
+        {% set policyHtml %}
+          {{ appPolicyText(policy.body) }}
+          <p class="govuk-body"><a class="govuk-link" href="/examination-inspector-view/paragraphs/{{ policy.ref | lower }}-1">View {{ policy.ref }} in the examination view</a></p>
+        {% endset %}
+        {% set policyItems = (policyItems.push({
+          heading: { text: policy.ref + " " + policy.title },
+          summary: { html: policySummary },
+          content: { html: policyHtml },
+          expanded: loop.index <= 2
+        }), policyItems) %}
+      {% endfor %}
+      {{ govukAccordion({
+        id: "policy-text-accordion",
+        headingLevel: 3,
+        rememberExpanded: false,
+        items: policyItems
+      }) }}
+    {% elif resources.paragraphs.length %}
       {% set currentPolicyRef = "" %}
       {% for paragraph in resources.paragraphs %}
         {% if paragraph.policyRef != currentPolicyRef %}

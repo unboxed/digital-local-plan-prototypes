@@ -56,7 +56,7 @@ const {
 } = require('./data/policies.js')
 const { EVIDENCE_EXCERPTS } = require('./data/evidence-excerpts.js')
 const { USER_STORY_THEMES, getUserStoryCount, getUserStoryThemeGroups, getUserStories } = require('./data/user-stories.js')
-const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES } = require('./data/plan-paragraphs.js')
+const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES, POLICY_RESOURCES, POLICY_TEXT } = require('./data/plan-paragraphs.js')
 const { POLICY_TEMPLATES, getPolicyTemplate } = require('./data/policy-templates.js')
 const { getEvidenceDocument } = require('./data/evidence-documents.js')
 const {
@@ -68,7 +68,8 @@ const {
   getStageStatuses,
   getPolicyStatus,
   getSourceOfficerNote,
-  getEvidenceOfficerNote
+  getEvidenceOfficerNote,
+  getChapterContent
 } = require('./data/gateway-2-progress.js')
 const {
   getRequirements,
@@ -154,7 +155,9 @@ const PLAN_PARAGRAPHS = POLICY_AREAS.flatMap(area =>
       policyArea: area,
       isStrategic: policy.isStrategic,
       sectionTitle: paragraph.sectionTitle,
-      text: paragraph.text
+      text: paragraph.text,
+      body: paragraph.body,
+      explanatoryText: paragraph.explanatoryText
     }))
   )
 )
@@ -1659,7 +1662,18 @@ function buildRelatedResources (policy, paragraphId) {
   // shouldn't read differently depending which prototype it's viewed from. Only evidence has
   // one today; representations and NPPF/SDS references fall back to "No officer comment" in
   // the template.
-  const evidence = EVIDENCE_EXCERPTS
+  //
+  // A policy with its own lists in POLICY_RESOURCES (plan-paragraphs.js) uses those instead.
+  const curated = POLICY_RESOURCES[policy.ref] || {}
+  const fromCurated = (items, prefix) => items.map((item, index) => ({
+    id: prefix + index,
+    title: item.title,
+    meta: item.ref || '',
+    text: item.text,
+    officerComment: item.officerComment
+  }))
+
+  const evidence = curated.evidence ? fromCurated(curated.evidence, 'evidence-') : EVIDENCE_EXCERPTS
     .filter(excerpt => excerpt.policyRefs.includes(policy.ref))
     .map((excerpt, index) => ({
       id: 'evidence-' + index,
@@ -1691,7 +1705,7 @@ function buildRelatedResources (policy, paragraphId) {
     }
   })
 
-  const nationalPolicy = NATIONAL_POLICY_REFERENCES
+  const nationalPolicy = curated.nationalPolicy ? fromCurated(curated.nationalPolicy, 'national-policy-') : NATIONAL_POLICY_REFERENCES
     .filter(reference => reference.policyRefs.includes(policy.ref))
     .map((reference, index) => ({
       id: 'national-policy-' + index,
@@ -1700,11 +1714,19 @@ function buildRelatedResources (policy, paragraphId) {
       text: reference.text
     }))
 
+  // Individual representations, where a policy lists them in POLICY_RESOURCES. Shown as a
+  // table on the page, tagged with the same colours as the consultations prototype.
+  const representationList = (curated.representations || []).map(rep => Object.assign({
+    commentColour: { Support: 'green', Objection: 'red', Neutral: 'blue' }[rep.commentType]
+  }, rep))
+
   return {
     evidence,
     representations,
+    representationList,
     nationalPolicy,
-    all: evidence.concat(representations, nationalPolicy)
+    // Only items with something to show get a panel in the resource viewer.
+    all: evidence.concat(representations, nationalPolicy).filter(item => item.text || item.responses)
   }
 }
 
@@ -2123,7 +2145,31 @@ function buildChapterResources (area) {
 
   const paragraphs = PLAN_PARAGRAPHS.filter(paragraph => paragraph.policyArea === area)
 
-  return { sources, evidence, representations, paragraphs }
+  // Each policy's full wording, where POLICY_TEXT (plan-paragraphs.js) has it — currently the
+  // Housing chapter. The template shows these as expandable sections in place of `paragraphs`.
+  const policyTexts = policies
+    .filter(policy => POLICY_TEXT[policy.ref])
+    .map(policy => ({ ref: policy.ref, title: policy.title, isStrategic: policy.isStrategic, body: POLICY_TEXT[policy.ref] }))
+
+  // A chapter written out in full in gateway-2-progress.js (CHAPTER_CONTENT) replaces the
+  // derived lists. Its evidence is grouped by document (`extracts` plus one officer note), so
+  // the template checks for `extracts` to tell the two shapes apart.
+  const content = getChapterContent(area)
+  const policyTitles = {}
+  policies.forEach(policy => { policyTitles[policy.ref] = policy.title })
+
+  return {
+    sources: content.sources || sources,
+    evidence: content.evidence || evidence,
+    representations: content.representations
+      ? content.representations.map(theme => Object.assign({
+        policyTitle: policyTitles[theme.policyRef],
+        meta: theme.count + ' representations'
+      }, theme))
+      : representations,
+    paragraphs,
+    policyTexts
+  }
 }
 
 router.get('/gateway-2-progress-check/chapters/:area', (req, res) => {

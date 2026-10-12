@@ -6,6 +6,11 @@
 // viewer. ALL PARAGRAPH TEXT AND NPPF/SDS REFERENCES HERE ARE INVENTED ILLUSTRATIVE CONTENT,
 // not real plan or national policy wording.
 //
+// The exception is S3 Housing, which carries the City Plan 2040's own policy wording as a
+// structured `body` (from POLICY_TEXT below) so the viewer can show it as the plan sets it out,
+// and its `explanatoryText`, shown above it. S3's evidence, representations and NPPF/SDS lists
+// are given in POLICY_RESOURCES below rather than derived.
+//
 // POLICY_PARAGRAPHS is authored only for the 12 policies in policies.js that already have a
 // full summary (hasFullSummary(policy) — see policies.js), since those are the only policies
 // with evidence/consultation content rich enough to make a paragraph viewer worth
@@ -14,7 +19,137 @@
 // have authored paragraph text.
 //
 
+// Full policy wording for the Housing chapter, as `{ intro?, clauses: [{ text, items? }] }`:
+// numbered clauses, each with optional lettered sub-clauses. Shared by the Examination view (S3's
+// page) and Gateway 2 progress check (the Housing chapter's Policy Text), rendered by
+// partials/policy-text/macro.njk.
+//
+// S3 is the City Plan 2040's own wording. HS1–HS8 are written for this prototype from each
+// policy's summary in policies.js, in the plan's style — they are not the plan's wording.
+const POLICY_TEXT = {
+  S3: {
+    intro: 'The City Corporation will protect existing housing and amenity and encourage additional housing concentrated in or near the identified residential areas to meet the City’s needs by:',
+    clauses: [
+      {
+        text: 'Making provision for a minimum of 1,706 net additional dwellings between 2025/26 and 2039/40:',
+        items: [
+          'Encouraging new housing development on appropriate sites in or near identified residential areas;',
+          'Within identified residential areas, prioritising the delivery of affordable housing, co-living, build to rent, hostels, sheltered and extra-care housing, while recognising that for sale market housing would be likely in some instances to have a role to play in making housing development viable;',
+          'Protecting existing housing where it is of a suitable quality and in a suitable location;',
+          'Exceptionally, allowing the loss of isolated residential units where there is a poor level of amenity; and',
+          'Refusing new housing where it would prejudice the primary business function of the City or be contrary to Policy OF2.'
+        ]
+      },
+      {
+        text: 'Ensuring sufficient affordable housing is provided. Incentivising affordable housing delivery to meet the City’s housing need and contributing to London’s wider housing needs by:',
+        items: [
+          'ensuring the delivery of applying the Mayor’s threshold approach of a minimum of 35% affordable housing and a minimum of 50% affordable housing on public sector land;',
+          'requiring residential developments with the potential for 10 or more units to provide a minimum of 35% affordable housing on-site. Exceptionally, new affordable housing may be provided off-site, or through an equivalent cash in lieu payment, if evidence is provided to the City Corporation’s satisfaction that on-site provision cannot be satisfactorily delivered and is not viable; and',
+          'providing an appropriate mix of affordable tenures, addressing identified need in the City of London, including social or London affordable rented housing and where appropriate intermediate housing (living rent, shared ownership or other genuinely affordable products) for rent or sale.'
+        ]
+      },
+      {
+        text: 'Requiring a publicly accessible viability and feasibility assessment to be submitted to justify any proposals that do not meet on-site or off-site affordable housing requirements in this policy. Where policy targets are not able to be met when an application is decided, the City Corporation will require an upwards only review mechanism to be applied to ensure that the benefits of any subsequent uplift in values or reduction in costs are reflected in affordable housing contributions.'
+      },
+      {
+        text: 'Ensuring that other new land uses within identified residential areas are compatible with residential amenity.'
+      },
+      {
+        text: 'Requiring at least 10% of new dwellings to meet Building Regulation requirement M4(3) ‘wheelchair user dwellings’ and all other new dwellings to meet Building Regulation requirement M4(2) ‘accessible and adaptable dwellings’.'
+      }
+    ]
+  },
+  HS1: {
+    clauses: [
+      {
+        text: 'New housing will be supported on suitable sites in or near the identified residential areas shown on the Policies Map, where it would not:',
+        items: [
+          'prejudice the primary business function of the City;',
+          'be contrary to Policy OF2; or',
+          'expose future residents to unacceptable levels of noise, disturbance or poor air quality.'
+        ]
+      },
+      { text: 'Proposals for housing must include a noise and amenity assessment where the site adjoins a late-night use or a servicing yard, and must not prejudice the continued operation of an existing lawful business use on an adjoining site.' },
+      { text: 'Housing outside the identified residential areas will be resisted where it would compromise the delivery of office floorspace or the operation of neighbouring businesses.' }
+    ]
+  },
+  HS2: {
+    clauses: [
+      {
+        text: 'The net loss of existing housing, including through the amalgamation of units, will be resisted unless:',
+        items: [
+          'the accommodation has a poor level of residential amenity that cannot reasonably be improved;',
+          'the units do not have a separate entrance from commercial premises in the same building; or',
+          'outside the identified residential areas, the loss would enable beneficial business development.'
+        ]
+      },
+      { text: 'Where a loss of housing is accepted, any replacement provision should be of at least equivalent floorspace and quality, located in or near an identified residential area.' }
+    ]
+  },
+  HS3: {
+    clauses: [
+      {
+        text: 'The amenity of existing and future residents will be protected by:',
+        items: [
+          'resisting development that would cause unacceptable noise, fumes, smells or vehicle and pedestrian disturbance;',
+          'requiring development to be designed to minimise overlooking of existing homes and to protect their daylight and sunlight; and',
+          'requiring construction, servicing and deliveries to be managed so that disturbance to residents is minimised, particularly at night.'
+        ]
+      },
+      { text: 'New housing must be designed so that its residents are not exposed to unacceptable noise or disturbance from existing uses nearby.' }
+    ]
+  },
+  HS4: {
+    intro: 'All new housing must:',
+    clauses: [
+      { text: 'meet or exceed the London Plan internal space standards and provide private outdoor amenity space in line with London Plan standards;' },
+      { text: 'achieve Secured by Design certification;' },
+      { text: 'maximise communal open and leisure space, including roof gardens and terraces, where this would not harm the amenity of neighbouring occupiers; and' },
+      { text: 'be dual aspect wherever possible, and avoid single aspect north-facing homes.' }
+    ]
+  },
+  HS5: {
+    clauses: [
+      { text: 'The short-term letting of permanent residential premises for more than 90 nights in a calendar year will be resisted.' },
+      { text: 'Short-term letting for commercial purposes will not be permitted in buildings where it would be mixed with permanent residential accommodation.' }
+    ]
+  },
+  HS6: {
+    clauses: [
+      {
+        text: 'New purpose-built student accommodation and hostels will be permitted only where they:',
+        items: [
+          'meet high standards of design and provide good quality, well-managed accommodation;',
+          'are well connected by public transport, walking and cycling to the higher education institutions they serve;',
+          'do not prejudice the primary business function of the City or the amenity of nearby residents; and',
+          'are supported by a management plan covering security, servicing and the behaviour of occupiers.'
+        ]
+      },
+      { text: 'Purpose-built student accommodation must provide at least 35% of bedrooms as affordable student accommodation, and be secured for students through a nominations agreement with one or more higher education providers.' }
+    ]
+  },
+  HS7: {
+    clauses: [
+      { text: 'A minimum of 86 net additional dwellings for older people will be sought between 2023 and 2040.' },
+      { text: 'Accessible housing that enables older people to live independently, including sheltered and extra-care housing, will be supported in or near the identified residential areas.' },
+      { text: 'The net loss of existing housing for older people will be resisted unless it is replaced by accommodation of equivalent or better quality that meets identified need.' }
+    ]
+  },
+  HS8: {
+    clauses: [
+      { text: 'The provision of self and custom build housing units will be encouraged within large residential schemes, having regard to the demand shown on the City Corporation’s self-build register.' }
+    ]
+  }
+}
+
 const POLICY_PARAGRAPHS = {
+  S3: [
+    {
+      sectionTitle: 'Policy text',
+      explanatoryText: 'Housing is vital for the City’s future economy and its communities. A shortage of housing, particularly affordable housing, is one of the main barriers to future business and community growth in the City and across London. High quality, affordable housing is also essential to meet the housing needs of those of the City’s communities on lower incomes.',
+      body: POLICY_TEXT.S3
+    }
+  ],
   HL1: [
     {
       sectionTitle: 'Policy intent',
@@ -284,8 +419,52 @@ const NATIONAL_POLICY_REFERENCES = [
   }
 ]
 
+// Evidence and NPPF/SDS lists given item by item for a policy, in place of the ones
+// buildRelatedResources derives from evidence-excerpts.js and NATIONAL_POLICY_REFERENCES.
+// Only an item with `text` opens in the resource viewer; the rest are listed by name.
+//
+// `representations` lists individual representations in the consultations prototype's format
+// (consultee, respondent type, a summary, and Support/Objection/Neutral), in place of the
+// theme groups derived from policies.js. Consultees are the ones in consultation-responses.js.
+const POLICY_RESOURCES = {
+  S3: {
+    evidence: [
+      {
+        title: 'Strategic Housing Market Assessment',
+        ref: 'Paragraph 2.3',
+        text: 'Although local planning authorities in London are not required to undertake individual housing needs assessments, the City Corporation has assessed the level of need using the national standard methodology to provide a context for the London Plan targets. The national standard method of calculation of need is updated annually once affordability ratios are released by the government. Through this current method the target for the City of London has been assessed as 102 new homes annually. This figure is lower than the London Plan target of 146, so the target for the City of London is set at 146 annually until further review by the GLA or DLUHC, which may amend it.',
+        officerComment: 'The London Plan annual target expires in 2028/29, we will use the Standard Method derived Local Housing Need figures for 2029/30 onwards.'
+      },
+      { title: 'Strategic Housing Land Availability Assessment', ref: 'Paragraph 4.6' },
+      { title: 'Housing Topic Paper', ref: 'Paragraph 3.2' },
+      { title: 'Gypsy and Traveller Accommodation Needs Assessment', ref: 'Paragraph 5.1' },
+      { title: 'Viability Study', ref: 'Paragraph 6.4' }
+    ],
+    representations: [
+      { id: 'REP-1063', consultee: 'Greater London Authority', type: 'Statutory consultee', commentType: 'Support', summary: 'Supports the 1,706 home target as consistent with the London Plan, and the 35% threshold approach with 50% on public sector land.' },
+      { id: 'REP-1071', consultee: 'Berkeley Group', type: 'Developer', commentType: 'Objection', summary: 'The 35% on-site affordable housing requirement will make schemes on small, constrained City sites unviable. Asks for off-site provision and payments in lieu to be accepted more readily.' },
+      { id: 'REP-1078', consultee: 'Golden Lane Estate Residents Association', type: 'Community organisation', commentType: 'Support', summary: 'Welcomes the protection of existing housing and the priority given to social rented homes, but wants a firmer commitment to delivering them inside the City rather than elsewhere.' },
+      { id: 'REP-1084', consultee: 'City Property Forum', type: 'Developer', commentType: 'Objection', summary: 'Housing in or near residential areas risks prejudicing office development in the City Cluster. Policy OF2 should take precedence where the two conflict.' },
+      { id: 'REP-1092', consultee: 'Barbican Association', type: 'Community organisation', commentType: 'Neutral', summary: 'Asks how the policy will protect residential amenity where co-living, hostels and build to rent are prioritised within identified residential areas.' },
+      { id: 'REP-1097', consultee: 'Civic Planning Ltd', type: 'Planning consultant', commentType: 'Objection', summary: 'Publishing viability assessments in full and applying an upwards only review mechanism will deter investment. Asks for commercially sensitive information to be redacted.' },
+      { id: 'REP-1103', consultee: 'Jane Smith', type: 'Member of the public', commentType: 'Support', summary: 'Supports more affordable housing so that key workers can live near their jobs in the City.' },
+      { id: 'REP-1110', consultee: 'Ludgate Planning LLP', type: 'Planning consultant', commentType: 'Neutral', summary: 'Asks for clarity on how the 10% wheelchair user dwellings requirement applies to conversions of existing buildings.' }
+    ],
+    nationalPolicy: [
+      { title: 'Increasing Housing Supply', ref: 'SDS Policy H1' },
+      { title: 'Delivering affordable housing', ref: 'SDS Policy H4' },
+      { title: 'Threshold approach to major applications', ref: 'SDS Policy H5' },
+      { title: 'Assessing the need for homes', ref: 'NPPF Policy HO1' },
+      { title: 'Setting requirement figures for homes', ref: 'NPPF Policy HO2' },
+      { title: 'Providing land for homes', ref: 'NPPF Policy HO3' }
+    ]
+  }
+}
+
 module.exports = {
+  POLICY_TEXT,
   POLICY_PARAGRAPHS,
+  POLICY_RESOURCES,
   getParagraphsForPolicy,
   NATIONAL_POLICY_REFERENCES
 }

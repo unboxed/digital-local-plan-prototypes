@@ -1,0 +1,26 @@
+{#
+  A policy's full wording: an optional intro, then numbered clauses, each with optional lettered
+  sub-clauses. Shared by Examination - inspector view and Gateway 2 progress check.
+
+  Usage:
+    {% from "partials/policy-text/macro.njk" import appPolicyText %}
+    {{ appPolicyText(body) }}
+
+  body: { intro?, clauses: [{ text, items?: [string] }] } — see POLICY_TEXT in
+  app/data/plan-paragraphs.js.
+#}
+{% macro appPolicyText(body) %}
+  {% if body.intro %}<p class="govuk-body">{{ body.intro }}</p>{% endif %}
+  <ol class="govuk-list govuk-list--number">
+    {% for clause in body.clauses %}
+    <li>
+      {{ clause.text }}
+      {% if clause.items %}
+      <ol class="govuk-list dlp-list--alpha">
+        {% for item in clause.items %}<li>{{ item }}</li>{% endfor %}
+      </ol>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+{% endmacro %}

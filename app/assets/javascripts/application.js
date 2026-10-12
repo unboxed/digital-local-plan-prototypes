@@ -46,6 +46,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-autosubmit]').forEach(safeInit(initAutosubmit))
   document.querySelectorAll('[data-dlp-select-all]').forEach(safeInit(initSelectAll))
   document.querySelectorAll('[data-dlp-template-picker]').forEach(safeInit(initTemplatePicker))
+  document.querySelectorAll('[data-dlp-truncate]').forEach(safeInit(initTruncate))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2395,5 +2396,28 @@ function initTemplatePicker (root) {
     }
     textarea.dispatchEvent(new Event('input', { bubbles: true }))
     textarea.dispatchEvent(new Event('keyup', { bubbles: true }))
+  })
+}
+
+// Long text shown as its opening lines with a "Show full …" toggle — the Examination view's
+// policy text. Only collapses when the text is actually taller than the collapsed height, so a
+// short policy shows in full with no toggle; without JavaScript everything shows.
+function initTruncate (root) {
+  const content = root.querySelector('[data-dlp-truncate-content]')
+  const toggle = root.querySelector('[data-dlp-truncate-toggle]')
+  if (!content || !toggle) return
+
+  const collapsedLabel = toggle.textContent
+  root.classList.add('dlp-truncate--collapsed')
+  if (content.scrollHeight <= content.clientHeight + 1) {
+    root.classList.remove('dlp-truncate--collapsed')
+    return
+  }
+
+  toggle.hidden = false
+  toggle.addEventListener('click', () => {
+    const expanded = root.classList.toggle('dlp-truncate--collapsed') === false
+    toggle.setAttribute('aria-expanded', String(expanded))
+    toggle.textContent = expanded ? 'Show less' : collapsedLabel
   })
 }

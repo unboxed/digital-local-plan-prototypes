@@ -62,9 +62,11 @@ const CHAPTER_BRIEFS = {
   Housing: {
     intro: 'This chapter needs to:',
     items: [
-      { text: "Direct new housing to locations that protect the area's business function" },
-      { text: 'Balance household growth projections against brownfield land constraints' },
-      { text: 'Set out clear expectations for residential amenity in a dense mixed-use environment' }
+      { text: 'Set the housing and pitch target for the plan period, given the London Plan expires in 2028/29' },
+      { text: 'Set out the approach to affordable housing' },
+      { text: 'Show the locations where housing will be supported' },
+      { text: 'Detail the response to non-traditional housing products (PBSA, BtR, co-living, care homes, HMO)' },
+      { text: 'Include policies for specialist and older persons housing' }
     ]
   },
   Infrastructure: {
@@ -154,7 +156,7 @@ const CHAPTER_AUDIT_LOG = {
   ],
   Housing: [
     { type: 'Chapter created', description: 'Chapter created and HS1 Location of New Housing drafted', date: '10 January 2024', actor: 'Jomo Adeyemi', status: 'Done' },
-    { type: 'Evidence linked', description: 'Local Housing Needs Assessment linked to HS1', date: '2 February 2024', actor: 'Pauline Perrot', status: 'Done' },
+    { type: 'Evidence linked', description: 'Strategic Housing Market Assessment and its supplement linked to S3', date: '2 February 2024', actor: 'Pauline Perrot', status: 'Done' },
     { type: 'Draft', description: 'Remaining housing policies drafted, awaiting review', date: '18 March 2024', actor: 'Jomo Adeyemi', status: '' }
   ],
   Infrastructure: [
@@ -242,6 +244,52 @@ const EVIDENCE_OFFICER_NOTES = {
   'Local Housing Needs Assessment|Chapter 3': 'This sets out the projected household growth over the plan period that the housing requirement figure in HS1 is drawn from.'
 }
 
+// A chapter's Sources, Evidence and Representations written out in full, in place of the lists
+// buildChapterResources (app/routes.js) derives from documents.js, evidence-excerpts.js and
+// policies.js. Only Housing has them. Evidence is grouped by document: one or more quoted
+// extracts, then the officer's note on that document.
+const CHAPTER_CONTENT = {
+  Housing: {
+    sources: [
+      { source: 'Strategic Housing Market Assessment', author: 'City of London Corporation', date: 'September 2023' },
+      { source: 'Strategic Housing Market Assessment Supplement', author: 'City of London Corporation', date: 'June 2024' },
+      { source: 'GLA Strategic Housing Market Assessment', author: 'Greater London Authority', date: 'Summer 2026' }
+    ],
+    evidence: [
+      {
+        source: 'Strategic Housing Market Assessment',
+        extracts: [
+          { ref: 'Paragraph 2.3', text: 'Although local planning authorities in London are not required to undertake individual housing needs assessments, the City Corporation has assessed the level of need using the national standard methodology to provide a context for the London Plan targets. The national standard method of calculation of need is updated annually once affordability ratios are released by the government. Through this current method the target for the City of London has been assessed as 102 new homes annually. This figure is lower than the London Plan target of 146, so the target for the City of London is set at 146 annually until further review by the GLA or DLUHC, which may amend it.' }
+        ]
+      },
+      {
+        source: 'Strategic Housing Market Assessment Supplement',
+        extracts: [
+          { ref: 'Paragraph 3.8', text: 'Of the total need for 930 affordable homes, around 112 of the need could potentially be in the form of London Living Rent, or around 12% of the total housing need. This product only works in the City of London for households with incomes between £51,000 and £67,000 per annum.' },
+          { ref: 'Paragraph 3.9', text: 'The majority of the total need is for other affordable rented products, which in the City of London are typically London Social Rent. This would pick up the needs of households with income of less than £50,000, with many requiring housing benefit support to pay their rents. On this basis, a potential policy response to the affordable needs would be to seek a 90:10 split between affordable rented and London Living Rent for affordable housing on qualifying sites. However, it is noted that such a split on small sites such as that that come forward within the square mile may be inappropriate or unachievable due to site specific circumstances, or management arrangements.' }
+        ],
+        officerNote: 'The SHMA supplement calculates the required tenures and sizes of the affordable housing need. It has been produced following discussions with the GLA.'
+      },
+      {
+        source: 'GLA Strategic Housing Market Assessment',
+        extracts: [
+          { ref: 'Paragraph 19', text: 'London faces a housing challenge of historic proportions. The evidence in this SHMA demonstrates the scale of need and the consequences of failing to meet it in the past: rising homelessness, severe overcrowding, falling home ownership rates, and young Londoners unable to form independent households.' }
+        ],
+        officerNote: 'This SHMA has been produced by the GLA and was published in summer 2026 as part of the consultation on the draft new London Plan. The level of analysis is not granular enough to identify City of London specific needs, however, it provides an overall context for the level of housing need in London.'
+      }
+    ],
+    representations: [
+      { title: 'Overall housing target', policyRef: 'S3', count: 38 },
+      { title: 'Student housing need', policyRef: 'HS6', count: 14 },
+      { title: 'Design standards for housing', policyRef: 'HS4', count: 22 }
+    ]
+  }
+}
+
+function getChapterContent (area) {
+  return CHAPTER_CONTENT[area] || {}
+}
+
 function getSourceOfficerNote (source) {
   return SOURCE_OFFICER_NOTES[source] || null
 }
@@ -292,5 +340,6 @@ module.exports = {
   getStageStatuses,
   getPolicyStatus,
   getSourceOfficerNote,
-  getEvidenceOfficerNote
+  getEvidenceOfficerNote,
+  getChapterContent
 }

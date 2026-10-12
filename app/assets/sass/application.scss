@@ -1225,6 +1225,48 @@ $dlp-confidence-low: govuk-colour("orange");
   background: govuk-colour("light-grey");
 }
 
+// Examination - inspector view: policy text collapsed to its opening lines (initTruncate),
+// fading out above the "Show full policy text" toggle.
+.dlp-truncate--collapsed .dlp-truncate__content {
+  position: relative;
+  max-height: 8.5em;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 3em;
+    background: linear-gradient(rgba(255, 255, 255, 0), govuk-colour("white"));
+  }
+}
+
+.dlp-truncate__toggle {
+  margin: govuk-spacing(2) 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+// Gateway 2 progress check: a quoted evidence extract.
+.dlp-g2-quote {
+  margin: 0 0 govuk-spacing(4);
+  padding: govuk-spacing(3) govuk-spacing(4);
+  border-left: 5px solid $dlp-border-grey;
+  background: $dlp-panel-background;
+}
+
+// Lettered sub-clauses (a, b, c …) inside a numbered policy clause.
+.dlp-list--alpha {
+  margin-top: govuk-spacing(2);
+  padding-left: govuk-spacing(5);
+  list-style-type: lower-alpha;
+}
+
 // Policy writer v2. Imported last because it uses $dlp-ai-accent and $dlp-confidence-low,
 // which are declared partway down this file rather than at the top.
 @import "policy-writing-v2";

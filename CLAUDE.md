@@ -47,6 +47,12 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
   area. Most carry only a ref, title and one-line summary for the policy area list; the
   worked examples also have evidence sources, consultation responses and notes, and
   `hasFullSummary()` is what decides which of the two a policy is.
+- `app/data/plan-paragraphs.js`'s `POLICY_TEXT` — full policy wording for the Housing chapter,
+  rendered by `partials/policy-text/macro.njk` in both Examination - inspector view (S3) and
+  Gateway 2 progress check (the Housing chapter, as an accordion with the first two open). S3 is
+  the City Plan 2040's own wording; HS1–HS8 were written for the prototype from their summaries.
+  Gateway 2's Housing brief, sources, evidence and representations are written out in
+  `gateway-2-progress.js`'s `CHAPTER_CONTENT` rather than derived.
 - `app/data/evidence-excerpts.js` — paragraph-level excerpts of the evidence base, each
   tagged with the policy refs it supports. This is the corpus the policy summary's evidence
   search ranks and returns; keep it broad enough that every term the type-ahead offers

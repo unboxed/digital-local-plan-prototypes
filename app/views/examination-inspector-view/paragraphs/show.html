@@ -2,6 +2,8 @@
 {% from "partials/side-navigation/macro.njk" import appSideNavigation %}
 {% from "partials/external-header/macro.njk" import appExternalHeader %}
 {% from "govuk/components/pagination/macro.njk" import govukPagination %}
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+{% from "partials/policy-text/macro.njk" import appPolicyText %}
 
 {% set pageName = paragraph.policyRef + " " + paragraph.policyTitle %}
 
@@ -40,16 +42,37 @@
     </nav>
 
     <div>
-      <h2 class="govuk-heading-m govuk-!-margin-top-6">
+      {# Headings: the policy is the h1, Evidence / Representations / NPPF and SDS policies
+         are h2s, and everything below those is a body-size heading. #}
+      <h1 class="govuk-heading-l govuk-!-margin-top-6">
         {{ paragraph.policyRef }} {{ paragraph.policyTitle }}
         {% if paragraph.isStrategic %}
         <strong class="govuk-tag govuk-!-margin-left-2">Strategic Policy</strong>
         {% endif %}
-      </h2>
+      </h1>
+
+      {% if paragraph.explanatoryText %}
+      {{ govukDetails({
+        summaryText: "Explanatory text",
+        text: paragraph.explanatoryText
+      }) }}
+      {% endif %}
 
       <div class="govuk-inset-text">
-        <h3 class="govuk-heading-s">Policy text</h3>
-        <p class="govuk-body">{{ paragraph.text }}</p>
+        <h2 class="govuk-heading-s">Policy text</h2>
+        {# Collapsed to its opening lines by initTruncate when it runs long; without JavaScript
+           the full text shows. #}
+        <div class="dlp-truncate" data-dlp-truncate>
+          <div class="dlp-truncate__content" id="policy-text" data-dlp-truncate-content>
+            {% if paragraph.body %}
+            {{ appPolicyText(paragraph.body) }}
+            {% else %}
+            <p class="govuk-body">{{ paragraph.text }}</p>
+            {% endif %}
+          </div>
+          <button type="button" class="dlp-truncate__toggle govuk-link govuk-body" aria-controls="policy-text"
+            aria-expanded="false" data-dlp-truncate-toggle hidden>Show full policy text</button>
+        </div>
       </div>
     </div>
 
@@ -63,7 +86,7 @@
     }) }} {% endif %}
 
     <div>
-      <h3 class="govuk-heading-s govuk-!-margin-top-6">Evidence</h3>
+      <h2 class="govuk-heading-m govuk-!-margin-top-6">Evidence</h2>
       {% if relatedResources.evidence.length %}
       <table class="govuk-table">
         <caption
@@ -81,6 +104,7 @@
           {% for item in relatedResources.evidence %}
           <tr class="govuk-table__row">
             <td class="govuk-table__cell">
+              {% if item.text %}
               <a
                 class="govuk-link"
                 href="#"
@@ -88,6 +112,7 @@
                 data-resource-target="{{ item.id }}"
                 >{{ item.title }}</a
               >
+              {% else %}{{ item.title }}{% endif %}
             </td>
             <td class="govuk-table__cell">{{ item.meta }}</td>
           </tr>
@@ -100,8 +125,35 @@
       </p>
       {% endif %}
     </div>
-    <h3 class="govuk-heading-m">Representations</h3>
-    {% if relatedResources.representations.length %}
+    <h2 class="govuk-heading-m">Representations</h2>
+    {% if relatedResources.representationList.length %}
+    <table class="govuk-table">
+      <caption class="govuk-table__caption govuk-visually-hidden">
+        Representations on this policy
+      </caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th class="govuk-table__header" scope="col">Consultee</th>
+          <th class="govuk-table__header" scope="col">Summary</th>
+          <th class="govuk-table__header" scope="col">Comment type</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% for rep in relatedResources.representationList %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">
+            <span class="govuk-!-font-weight-bold">{{ rep.consultee }}</span>
+            <span class="govuk-body-s dlp-document-hint dlp-cr-block">{{ rep.type }} · {{ rep.id }}</span>
+          </td>
+          <td class="govuk-table__cell">{{ rep.summary }}</td>
+          <td class="govuk-table__cell">
+            <strong class="govuk-tag govuk-tag--{{ rep.commentColour }}">{{ rep.commentType }}</strong>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% elif relatedResources.representations.length %}
     <table class="govuk-table">
       <caption
         class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden"
@@ -137,7 +189,7 @@
     </p>
     {% endif %}
 
-    <h3 class="govuk-heading-m">NPPF and SDS policies</h3>
+    <h2 class="govuk-heading-m">NPPF and SDS policies</h2>
     {% if relatedResources.nationalPolicy.length %}
     <table class="govuk-table">
       <caption
@@ -155,6 +207,7 @@
         {% for item in relatedResources.nationalPolicy %}
         <tr class="govuk-table__row">
           <td class="govuk-table__cell">
+            {% if item.text %}
             <a
               class="govuk-link"
               href="#"
@@ -162,6 +215,7 @@
               data-resource-target="{{ item.id }}"
               >{{ item.title }}</a
             >
+            {% else %}{{ item.title }}{% endif %}
           </td>
           <td class="govuk-table__cell">{{ item.meta }}</td>
         </tr>
@@ -177,7 +231,7 @@
 
   <div class="govuk-grid-column-one-third">
     <div class="dlp-tag-panel" data-dlp-resource-panel>
-      <h3 class="govuk-heading-s">Resource viewer</h3>
+      <h2 class="govuk-heading-s">Resource viewer</h2>
       <p class="govuk-body dlp-document-hint" data-dlp-resource-panel-empty>
         Select a resource to view it here.
       </p>
@@ -189,7 +243,7 @@
         data-resource-id="{{ item.id }}"
         hidden
       >
-        <h2 class="govuk-heading-m">{{ item.title }}</h2>
+        <h3 class="govuk-heading-s">{{ item.title }}</h3>
         <p class="govuk-body-s dlp-document-hint">
           {{ item.meta }}
           {% if item.href %}<a class="govuk-link" href="{{ item.href }}">See all representations</a>{% endif %}
@@ -208,7 +262,7 @@
         <p class="govuk-body">{{ item.text }}</p>
         {% endif %}
 
-        <h3 class="govuk-heading-s">Officer comment</h3>
+        <h4 class="govuk-heading-s">Officer comment</h4>
         <p class="govuk-body">{{ item.officerComment if item.officerComment else "No officer comment" }}</p>
       </div>
       {% endfor %}
