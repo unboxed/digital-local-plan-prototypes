@@ -1638,8 +1638,12 @@ router.post('/policy-writing/:variant/write/:topicId/policy-blocks', (req, res) 
 
 // One sidebar section per chapter (policy area), each policy in it linking to its first
 // paragraph. activePolicyRef highlights whichever policy the current page belongs to.
+// Housing comes first: it is the worked example, so it is where an inspector should start.
+// Only the sidebar is reordered; the plan's own order (POLICY_AREAS) is unchanged elsewhere.
+const EXAMINATION_SIDEBAR_AREAS = ['Housing'].concat(POLICY_AREAS.filter(area => area !== 'Housing'))
+
 function buildLocalPlanSidebarSections (activePolicyRef) {
-  return POLICY_AREAS.map(area => ({
+  return EXAMINATION_SIDEBAR_AREAS.map(area => ({
     heading: area,
     items: getPoliciesForArea(area).map(policy => ({
       text: policy.ref + ' ' + policy.title,
@@ -1670,6 +1674,7 @@ function buildRelatedResources (policy, paragraphId) {
     title: item.title,
     meta: item.ref || '',
     text: item.text,
+    caveat: item.caveat,
     officerComment: item.officerComment
   }))
 
@@ -1687,7 +1692,7 @@ function buildRelatedResources (policy, paragraphId) {
   // total representations count (policies.js's themeCount) plus the individual comments sample
   // for it, shown when the theme is opened in the resource viewer.
   const responsesByTheme = new Map()
-  ;(policy.consultationResponses || []).forEach(response => {
+  ;(curated.representations || policy.consultationResponses || []).forEach(response => {
     if (!responsesByTheme.has(response.theme)) {
       responsesByTheme.set(response.theme, { theme: response.theme, count: response.themeCount, responses: [] })
     }
@@ -1714,16 +1719,9 @@ function buildRelatedResources (policy, paragraphId) {
       text: reference.text
     }))
 
-  // Individual representations, where a policy lists them in POLICY_RESOURCES. Shown as a
-  // table on the page, tagged with the same colours as the consultations prototype.
-  const representationList = (curated.representations || []).map(rep => Object.assign({
-    commentColour: { Support: 'green', Objection: 'red', Neutral: 'blue' }[rep.commentType]
-  }, rep))
-
   return {
     evidence,
     representations,
-    representationList,
     nationalPolicy,
     // Only items with something to show get a panel in the resource viewer.
     all: evidence.concat(representations, nationalPolicy).filter(item => item.text || item.responses)

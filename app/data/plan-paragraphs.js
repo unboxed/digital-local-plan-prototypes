@@ -423,9 +423,12 @@ const NATIONAL_POLICY_REFERENCES = [
 // buildRelatedResources derives from evidence-excerpts.js and NATIONAL_POLICY_REFERENCES.
 // Only an item with `text` opens in the resource viewer; the rest are listed by name.
 //
-// `representations` lists individual representations in the consultations prototype's format
-// (consultee, respondent type, a summary, and Support/Objection/Neutral), in place of the
-// theme groups derived from policies.js. Consultees are the ones in consultation-responses.js.
+// `representations` takes the place of policies.js's consultationResponses, in the same shape,
+// so they are grouped into themes the same way. Consultees are the ones in
+// consultation-responses.js.
+const SDS_CAVEAT = 'Summarised for this prototype from the London Plan 2021, not quoted.'
+const NPPF_CAVEAT = 'Summarised for this prototype from the National Planning Policy Framework (August 2026), not quoted.'
+
 const POLICY_RESOURCES = {
   S3: {
     evidence: [
@@ -441,22 +444,25 @@ const POLICY_RESOURCES = {
       { title: 'Viability Study', ref: 'Paragraph 6.4' }
     ],
     representations: [
-      { id: 'REP-1063', consultee: 'Greater London Authority', type: 'Statutory consultee', commentType: 'Support', summary: 'Supports the 1,706 home target as consistent with the London Plan, and the 35% threshold approach with 50% on public sector land.' },
-      { id: 'REP-1071', consultee: 'Berkeley Group', type: 'Developer', commentType: 'Objection', summary: 'The 35% on-site affordable housing requirement will make schemes on small, constrained City sites unviable. Asks for off-site provision and payments in lieu to be accepted more readily.' },
-      { id: 'REP-1078', consultee: 'Golden Lane Estate Residents Association', type: 'Community organisation', commentType: 'Support', summary: 'Welcomes the protection of existing housing and the priority given to social rented homes, but wants a firmer commitment to delivering them inside the City rather than elsewhere.' },
-      { id: 'REP-1084', consultee: 'City Property Forum', type: 'Developer', commentType: 'Objection', summary: 'Housing in or near residential areas risks prejudicing office development in the City Cluster. Policy OF2 should take precedence where the two conflict.' },
-      { id: 'REP-1092', consultee: 'Barbican Association', type: 'Community organisation', commentType: 'Neutral', summary: 'Asks how the policy will protect residential amenity where co-living, hostels and build to rent are prioritised within identified residential areas.' },
-      { id: 'REP-1097', consultee: 'Civic Planning Ltd', type: 'Planning consultant', commentType: 'Objection', summary: 'Publishing viability assessments in full and applying an upwards only review mechanism will deter investment. Asks for commercially sensitive information to be redacted.' },
-      { id: 'REP-1103', consultee: 'Jane Smith', type: 'Member of the public', commentType: 'Support', summary: 'Supports more affordable housing so that key workers can live near their jobs in the City.' },
-      { id: 'REP-1110', consultee: 'Ludgate Planning LLP', type: 'Planning consultant', commentType: 'Neutral', summary: 'Asks for clarity on how the 10% wheelchair user dwellings requirement applies to conversions of existing buildings.' }
+      { respondent: 'Greater London Authority', ref: 'Clause 1', comment: 'Supports the minimum of 1,706 net additional dwellings as consistent with the London Plan, and asks the City Corporation to set out how need will be met once the London Plan target expires in 2028/29.', theme: 'Overall housing target', themeCount: 38 },
+      { respondent: 'City Property Forum', ref: 'Clause 1e', comment: 'Housing in or near the residential areas risks prejudicing office development in the City Cluster. Policy OF2 should take precedence where the two conflict.', theme: 'Overall housing target', themeCount: 38 },
+      { respondent: 'Berkeley Group', ref: 'Clause 2b', comment: 'The 35% on-site requirement will make schemes on small, constrained City sites unviable. Off-site provision and payments in lieu should be accepted more readily.', theme: 'Affordable housing requirement', themeCount: 46 },
+      { respondent: 'Golden Lane Estate Residents Association', ref: 'Clause 2c', comment: 'Welcomes the priority given to social rented homes, but wants a firmer commitment to delivering them inside the City rather than elsewhere.', theme: 'Affordable housing requirement', themeCount: 46 },
+      { respondent: 'Jane Smith', ref: 'Clause 2', comment: 'Supports more affordable housing so that key workers can live near their jobs in the City.', theme: 'Affordable housing requirement', themeCount: 46 },
+      { respondent: 'Civic Planning Ltd', ref: 'Clause 3', comment: 'Publishing viability assessments in full and applying an upwards only review mechanism will deter investment. Commercially sensitive information should be redacted.', theme: 'Viability and review mechanisms', themeCount: 17 },
+      { respondent: 'Barbican Association', ref: 'Clauses 1b, 4', comment: 'Asks how residential amenity will be protected where co-living, hostels and build to rent are prioritised within identified residential areas.', theme: 'Residential amenity', themeCount: 12 },
+      { respondent: 'Ludgate Planning LLP', ref: 'Clause 5', comment: 'Asks for clarity on how the 10% wheelchair user dwellings requirement applies to conversions of existing buildings.', theme: 'Accessible housing', themeCount: 9 }
     ],
+    // The London Plan (the SDS) and the August 2026 NPPF are real documents: references are
+    // genuine, wording is summarised for the prototype rather than quoted, as `caveat` says on
+    // screen.
     nationalPolicy: [
-      { title: 'Increasing Housing Supply', ref: 'SDS Policy H1' },
-      { title: 'Delivering affordable housing', ref: 'SDS Policy H4' },
-      { title: 'Threshold approach to major applications', ref: 'SDS Policy H5' },
-      { title: 'Assessing the need for homes', ref: 'NPPF Policy HO1' },
-      { title: 'Setting requirement figures for homes', ref: 'NPPF Policy HO2' },
-      { title: 'Providing land for homes', ref: 'NPPF Policy HO3' }
+      { title: 'Increasing Housing Supply', ref: 'SDS Policy H1', caveat: SDS_CAVEAT, text: 'Ten-year targets for net housing completions are set for each borough, with the City of London’s at 1,460 homes (146 a year). Boroughs should optimise the potential for housing delivery on all suitable and available brownfield sites, including small sites, and plan for any additional capacity identified.' },
+      { title: 'Delivering affordable housing', ref: 'SDS Policy H4', caveat: SDS_CAVEAT, text: 'A strategic target is set for 50% of all new homes delivered across London to be genuinely affordable. Major developments that trigger affordable housing requirements should provide affordable housing through the threshold approach, with affordable housing delivered on site wherever possible and off-site or cash in lieu contributions accepted only in exceptional circumstances.' },
+      { title: 'Threshold approach to major applications', ref: 'SDS Policy H5', caveat: SDS_CAVEAT, text: 'The threshold level of affordable housing is a minimum of 35%, or 50% on public sector land and on industrial land where the scheme would result in a net loss of industrial capacity. Schemes that meet or exceed the threshold, with an appropriate tenure split and without public subsidy, follow the Fast Track Route and need not submit viability information; those that do not follow the Viability Tested Route and are subject to review mechanisms.' },
+      { title: 'Assessing the need for homes', ref: 'NPPF Policy HO1', caveat: NPPF_CAVEAT, text: 'Spatial development strategies, and local plans where there is no spatial development strategy, should be based on a housing need assessment that establishes the minimum number of homes needed over the plan period using the standard method. Plans should also take into account the size, type and tenure of housing needed for different groups, including those who need affordable housing, older people, disabled people, people who rent and families with children.' },
+      { title: 'Setting requirement figures for homes', ref: 'NPPF Policy HO2', caveat: NPPF_CAVEAT, text: 'Development plans should set a housing requirement figure for the plan period that meets the assessed need as far as possible, taking account of any needs that cannot be met in neighbouring areas. Where a spatial development strategy sets requirement figures for its constituent authorities, local plans should plan to meet them.' },
+      { title: 'Providing land for homes', ref: 'NPPF Policy HO3', caveat: NPPF_CAVEAT, text: 'Development plans should identify a sufficient supply and mix of sites to meet the housing requirement, taking account of their availability, suitability and likely economic viability, including specific deliverable sites for the first five years and developable sites or broad locations for later years.' }
     ]
   }
 }

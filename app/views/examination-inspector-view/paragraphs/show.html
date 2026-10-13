@@ -126,34 +126,7 @@
       {% endif %}
     </div>
     <h2 class="govuk-heading-m">Representations</h2>
-    {% if relatedResources.representationList.length %}
-    <table class="govuk-table">
-      <caption class="govuk-table__caption govuk-visually-hidden">
-        Representations on this policy
-      </caption>
-      <thead class="govuk-table__head">
-        <tr class="govuk-table__row">
-          <th class="govuk-table__header" scope="col">Consultee</th>
-          <th class="govuk-table__header" scope="col">Summary</th>
-          <th class="govuk-table__header" scope="col">Comment type</th>
-        </tr>
-      </thead>
-      <tbody class="govuk-table__body">
-        {% for rep in relatedResources.representationList %}
-        <tr class="govuk-table__row">
-          <td class="govuk-table__cell">
-            <span class="govuk-!-font-weight-bold">{{ rep.consultee }}</span>
-            <span class="govuk-body-s dlp-document-hint dlp-cr-block">{{ rep.type }} · {{ rep.id }}</span>
-          </td>
-          <td class="govuk-table__cell">{{ rep.summary }}</td>
-          <td class="govuk-table__cell">
-            <strong class="govuk-tag govuk-tag--{{ rep.commentColour }}">{{ rep.commentType }}</strong>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% elif relatedResources.representations.length %}
+    {% if relatedResources.representations.length %}
     <table class="govuk-table">
       <caption
         class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden"
@@ -260,6 +233,7 @@
         </ul>
         {% else %}
         <p class="govuk-body">{{ item.text }}</p>
+        {% if item.caveat %}<p class="govuk-body-s dlp-document-hint">{{ item.caveat }}</p>{% endif %}
         {% endif %}
 
         <h4 class="govuk-heading-s">Officer comment</h4>
