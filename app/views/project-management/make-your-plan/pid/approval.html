@@ -1,0 +1,40 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+
+{% set pageName = "Approval" %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: "Approval" }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Approval</h1>
+<p class="govuk-body dlp-pm-lede">Review your Project Initiation Document before submitting for approval.</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<div class="dlp-pm-measure-wide">
+  {% for group in summary %}
+    <h2 class="govuk-heading-m govuk-!-margin-top-6">{{ group.title }}</h2>
+    {% set rows = [] %}
+    {% for row in group.rows %}
+      {% set rows = (rows.push({
+        key: { text: row.key },
+        value: { text: row.value },
+        actions: { items: [{ href: row.href, text: "Change", visuallyHiddenText: row.key | lower }] }
+      }), rows) %}
+    {% endfor %}
+    {{ govukSummaryList({ rows: rows }) }}
+  {% endfor %}
+</div>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+<div class="govuk-button-group">
+  {{ govukButton({ text: "Next", href: pmBase + "/pid/approval/send" }) }}
+  <a href="{{ pmBase }}/pid" class="govuk-button govuk-button--secondary" role="button" draggable="false" data-module="govuk-button">Back</a>
+</div>
+
+{% endblock %}

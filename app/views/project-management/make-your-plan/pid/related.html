@@ -1,0 +1,86 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/file-upload/macro.njk" import govukFileUpload %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmFormActions %}
+
+{% set pageName = section.title %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: section.crumb }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Related strategies, papers and documentation</h1>
+<p class="govuk-body dlp-pm-lede">This section explains links to other strategies.</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+{# The form isn't multipart, so an upload keeps only the file name — nothing is stored. #}
+<form method="post" action="{{ pmBase }}/pid/related" novalidate>
+  {# Pressing Enter submits with the first button in the form, which would otherwise be a
+     Remove button in the table. This invisible one makes Enter mean "Add". #}
+  <button type="submit" name="_action" value="add" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Add</button>
+
+  <div class="dlp-pm-measure" id="related">
+    <table class="govuk-table">
+      <caption class="govuk-table__caption govuk-visually-hidden">Related strategies, papers and documentation</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th scope="col" class="govuk-table__header">Related strategies, papers or documentation</th>
+          <th scope="col" class="govuk-table__header">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% for doc in pm.pid.related %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell dlp-pm-break">
+              {% if doc.link %}<a class="govuk-link" href="{{ doc.link }}" target="_blank" rel="noopener noreferrer">{{ doc.name }}<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>{% else %}{{ doc.name }}{% endif %}
+              {% if doc.file %}<br><span class="govuk-body-s dlp-pm-muted">File: {{ doc.file }}</span>{% endif %}
+            </td>
+            <td class="govuk-table__cell">
+              <button type="submit" name="_action" value="remove:{{ doc.id }}" class="dlp-pm-link-button">
+                Remove<span class="govuk-visually-hidden"> {{ doc.name }}</span>
+              </button>
+            </td>
+          </tr>
+        {% else %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell dlp-pm-muted" colspan="2"><strong>None added</strong></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div id="add-related">
+      <h2 class="govuk-heading-m">Add strategy, paper or documentation</h2>
+      {{ govukInput({
+        id: "docName",
+        name: "_docName",
+        label: { text: "Name", classes: "govuk-label--s" },
+        value: values.name,
+        errorMessage: { text: errors.docName } if errors.docName
+      }) }}
+      {{ govukInput({
+        id: "docLink",
+        name: "_docLink",
+        type: "url",
+        spellcheck: false,
+        label: { text: "Link", classes: "govuk-label--s" },
+        value: values.link
+      }) }}
+      {{ govukFileUpload({
+        id: "docFile",
+        name: "_docFile",
+        label: { text: "Upload document (optional)", classes: "govuk-label--s" }
+      }) }}
+      {{ govukButton({ text: "Add", name: "_action", value: "add", classes: "govuk-button--secondary" }) }}
+    </div>
+  </div>
+
+  {{ pmFormActions({ name: "_action", value: "save", backHref: pmBase + "/pid" }) }}
+</form>
+
+{% endblock %}

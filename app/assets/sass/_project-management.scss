@@ -1,0 +1,663 @@
+// Make your plan (/project-management/make-your-plan). Classes are dlp-pm-*.
+
+// The sidebar layout is full-bleed; pages hold to GOV.UK's standard page width within it.
+.dlp-pm-page {
+  max-width: $govuk-page-width;
+}
+
+// Forms and prose hold to a readable measure, as the design's fields do.
+.dlp-pm-measure {
+  max-width: 46em;
+}
+
+.dlp-pm-measure-wide {
+  max-width: 60em;
+}
+
+.dlp-pm-lede {
+  max-width: 50em;
+}
+
+.dlp-pm-muted {
+  color: $dlp-muted-text;
+}
+
+.dlp-pm-break {
+  overflow-wrap: anywhere;
+}
+
+.dlp-pm-strong-link {
+  @include govuk-typography-weight-bold;
+}
+
+// Wide tables scroll inside themselves rather than pushing the page sideways on a phone.
+.dlp-pm-scroll {
+  margin-bottom: govuk-spacing(6);
+  overflow-x: auto;
+
+  .govuk-table {
+    margin-bottom: 0;
+  }
+}
+
+// Data-format field names and values, so the record reads as data.
+.dlp-pm-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+}
+
+.dlp-pm-title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+}
+
+.dlp-pm-page-head {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+  justify-content: space-between;
+}
+
+// Status tags. "Not started" is a plain white chip on the grey card, as in the design.
+.dlp-pm-tag {
+  flex: 0 0 auto;
+}
+
+.dlp-pm-tag--plain {
+  background-color: govuk-colour("white");
+  color: govuk-colour("black");
+}
+
+// A control that submits a form but reads as a link (Remove in a table row).
+.dlp-pm-link-button {
+  @include govuk-font($size: 19);
+  @include govuk-link-common;
+  @include govuk-link-style-default;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+// --- Sidebar extras: readiness checker and guidance ------------------------------------------
+
+// The column carries the nav's ground all the way down, so the nav and the extras under it read
+// as one surface.
+.app-sidebar-layout__sidebar:has(.dlp-pm-sidebar-extras) {
+  background-color: govuk-colour("black", $variant: "tint-95");
+
+  .app-side-navigation {
+    min-height: 0;
+  }
+}
+
+.dlp-pm-sidebar-extras {
+  @include govuk-font($size: 16);
+  padding: 0 govuk-spacing(4) govuk-spacing(4);
+}
+
+.dlp-pm-sidebar-extras__button {
+  margin-bottom: govuk-spacing(4);
+  width: 100%;
+}
+
+.dlp-pm-sidebar-extras__heading {
+  @include govuk-font($size: 16, $weight: bold);
+  border-top: 1px solid $dlp-border-grey;
+  margin: 0 0 govuk-spacing(2);
+  padding-top: govuk-spacing(4);
+}
+
+.dlp-pm-sidebar-extras__text {
+  @include govuk-font($size: 16);
+  margin: 0 0 govuk-spacing(4);
+}
+
+.dlp-pm-sidebar-extras__label {
+  @include govuk-font($size: 16, $weight: bold);
+  display: block;
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-pm-guidance-search__row {
+  display: flex;
+}
+
+.dlp-pm-guidance-search__input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dlp-pm-guidance-search__button {
+  align-items: center;
+  background: govuk-colour("white");
+  border: $govuk-border-width-form-element solid $govuk-input-border-colour;
+  border-left: 0;
+  color: govuk-colour("black");
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 40px;
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+// --- Task cards (overview, timetable, PID) ---------------------------------------------------
+
+.dlp-pm-card {
+  background: $dlp-panel-background;
+  display: flex;
+  gap: govuk-spacing(4);
+  justify-content: space-between;
+  margin-bottom: govuk-spacing(5);
+  padding: govuk-spacing(4) govuk-spacing(4) govuk-spacing(5);
+}
+
+.dlp-pm-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dlp-pm-card__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2) govuk-spacing(3);
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-pm-card__title {
+  margin: 0;
+}
+
+.dlp-pm-card__description {
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-pm-card__blocked {
+  border-left: 4px solid govuk-colour("red");
+  margin-bottom: govuk-spacing(4);
+  padding-left: govuk-spacing(2);
+}
+
+.dlp-pm-progress {
+  background: govuk-colour("black", $variant: "tint-80");
+  border-radius: 6px;
+  height: 12px;
+  margin-bottom: govuk-spacing(4);
+  max-width: 40em;
+  overflow: hidden;
+}
+
+.dlp-pm-progress__bar {
+  background: govuk-colour("blue");
+  border-radius: 6px;
+  display: block;
+  height: 100%;
+}
+
+// Who is working on a task: overlapping initials, as the design's stacked circles.
+.dlp-pm-avatars {
+  display: flex;
+  flex: 0 0 auto;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 govuk-spacing(2);
+}
+
+.dlp-pm-avatars__item {
+  @include govuk-font($size: false, $weight: bold);
+  align-items: center;
+  background: govuk-colour("black", $variant: "tint-80");
+  border: 2px solid govuk-colour("black", $variant: "tint-25");
+  border-radius: 50%;
+  display: flex;
+  font-size: 0.75rem;
+  height: 36px;
+  justify-content: center;
+  margin-left: -10px;
+  width: 36px;
+}
+
+.dlp-pm-completed {
+  border-bottom: 1px solid $dlp-border-grey;
+  border-top: 1px solid $dlp-border-grey;
+  margin-top: govuk-spacing(6);
+  padding: govuk-spacing(4) 0 govuk-spacing(2);
+}
+
+.dlp-pm-completed__summary {
+  cursor: pointer;
+  margin-bottom: govuk-spacing(4);
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+.dlp-pm-completed__heading {
+  display: inline;
+}
+
+.dlp-pm-completed__body .dlp-pm-card {
+  background: none;
+  padding-left: 0;
+}
+
+// --- Landing page ------------------------------------------------------------------------
+
+.dlp-pm-start {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+}
+
+// --- Add or change plan milestones --------------------------------------------------------
+
+.dlp-pm-picker {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+  margin-bottom: govuk-spacing(4);
+
+  .govuk-form-group {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-pm-picker__select {
+  max-width: 100%;
+  min-width: 20em;
+}
+
+// The Show button is for anyone without JavaScript; with it, choosing applies at once.
+.govuk-frontend-supported .dlp-pm-picker__button {
+  display: none;
+}
+
+.dlp-pm-record {
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(5) govuk-spacing(4);
+}
+
+.dlp-pm-data {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(4);
+}
+
+.dlp-pm-data__table {
+  background: govuk-colour("white");
+  margin-bottom: 0;
+
+  .govuk-table__header,
+  .govuk-table__cell {
+    padding-left: govuk-spacing(2);
+    padding-right: govuk-spacing(2);
+  }
+}
+
+// --- Schedule milestones for committee ----------------------------------------------------
+
+.dlp-pm-board {
+  display: grid;
+  gap: govuk-spacing(5);
+  margin-bottom: govuk-spacing(6);
+
+  @include govuk-media-query($from: desktop) {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.dlp-pm-board__column {
+  border: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(4);
+}
+
+.dlp-pm-board__column--events {
+  background: $dlp-panel-background;
+}
+
+.dlp-pm-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-pm-event {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(3);
+  padding: govuk-spacing(3);
+}
+
+.dlp-pm-event__title {
+  align-items: center;
+  display: flex;
+  gap: govuk-spacing(2);
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-pm-event__description {
+  color: $dlp-muted-text;
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-pm-event__label {
+  @include govuk-font($size: 16, $weight: bold);
+}
+
+.dlp-pm-event__select {
+  max-width: 100%;
+  width: 100%;
+}
+
+// The drag handle only means something when dragging works.
+.dlp-pm-event__grip {
+  display: none;
+}
+
+.dlp-pm-board--js {
+  .dlp-pm-event {
+    cursor: grab;
+  }
+
+  .dlp-pm-event__grip {
+    display: inline-block;
+    flex: 0 0 auto;
+    height: 18px;
+    width: 6px;
+    background-image: radial-gradient(circle, $dlp-muted-text 1.5px, transparent 1.6px);
+    background-size: 6px 6px;
+  }
+}
+
+.dlp-pm-event--dragging {
+  opacity: .5;
+}
+
+.dlp-pm-committee {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(3);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  // An assigned item is shown compactly: what it is, and where to move it.
+  .dlp-pm-event {
+    background: govuk-colour("black", $variant: "tint-95");
+    margin-bottom: govuk-spacing(2);
+  }
+
+  .dlp-pm-event__description,
+  .dlp-pm-event__guidance {
+    display: none;
+  }
+}
+
+.dlp-pm-committee__title {
+  @include govuk-font($size: 16, $weight: bold);
+  color: $govuk-link-colour;
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-pm-dropzone__empty {
+  border: 1px dashed $dlp-border-grey;
+  color: $dlp-muted-text;
+  margin: 0;
+  padding: govuk-spacing(3);
+}
+
+.dlp-pm-dropzone--events .dlp-pm-dropzone__empty {
+  background: govuk-colour("white");
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-pm-dropzone--over {
+  outline: 3px dashed govuk-colour("blue");
+  outline-offset: 2px;
+}
+
+.dlp-pm-js-only {
+  display: none;
+}
+
+.govuk-frontend-supported {
+  .dlp-pm-js-only {
+    display: inline;
+  }
+
+  .dlp-pm-no-js {
+    display: none;
+  }
+}
+
+.dlp-pm-add-item {
+  border-top: 1px solid $dlp-border-grey;
+  max-width: 46em;
+  padding-top: govuk-spacing(6);
+}
+
+// The timeline panel opens over the right of the page, as in the design. It is a server-rendered
+// view (?_timeline=open), so it needs no JavaScript to open or close.
+.dlp-pm-drawer {
+  background: govuk-colour("white");
+  border-left: 1px solid $dlp-border-grey;
+  bottom: 0;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, .15);
+  overflow-y: auto;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: min(26rem, 100%);
+  z-index: 1000;
+}
+
+.dlp-pm-drawer__head {
+  align-items: center;
+  background: govuk-colour("white");
+  border-bottom: 1px solid $dlp-border-grey;
+  display: flex;
+  justify-content: space-between;
+  padding: govuk-spacing(4);
+  position: sticky;
+  top: 0;
+}
+
+.dlp-pm-drawer__close {
+  @include govuk-font($size: 24, $weight: bold);
+  @include govuk-link-common;
+  border: 1px solid $dlp-border-grey;
+  color: govuk-colour("black");
+  line-height: 1;
+  padding: 2px 9px 6px;
+  text-decoration: none;
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+.dlp-pm-timeline {
+  list-style: none;
+  margin: 0;
+  padding: govuk-spacing(4);
+}
+
+.dlp-pm-timeline__entry {
+  padding: 0 0 govuk-spacing(5) 24px;
+  position: relative;
+
+  &::before {
+    background: $dlp-border-grey;
+    bottom: 0;
+    content: "";
+    left: 5px;
+    position: absolute;
+    top: 14px;
+    width: 2px;
+  }
+
+  &:last-child::before {
+    display: none;
+  }
+}
+
+.dlp-pm-timeline__marker {
+  background: govuk-colour("green");
+  border: 2px solid govuk-colour("green");
+  border-radius: 50%;
+  height: 12px;
+  left: 0;
+  position: absolute;
+  top: 5px;
+  width: 12px;
+}
+
+.dlp-pm-timeline__entry--open .dlp-pm-timeline__marker {
+  background: govuk-colour("white");
+  border-color: $dlp-muted-text;
+}
+
+.dlp-pm-timeline__title {
+  @include govuk-font($size: 16, $weight: bold);
+}
+
+.dlp-pm-timeline__meta {
+  @include govuk-font($size: 16);
+  align-items: center;
+  color: $dlp-muted-text;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+  margin: govuk-spacing(1) 0 0;
+
+  .govuk-tag {
+    @include govuk-font($size: false);
+    font-size: 0.8125rem;
+  }
+}
+
+// --- Check and publish timetable ---------------------------------------------------------
+
+.dlp-pm-tabs-panel {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(5);
+  padding: govuk-spacing(4);
+
+  .govuk-tabs {
+    margin-bottom: 0;
+  }
+}
+
+// The authority's website, inside the preview tab and on its own in a new tab.
+.dlp-pm-website {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-border-grey;
+}
+
+.dlp-pm-website__url {
+  @include govuk-font($size: false);
+  background: govuk-colour("black", $variant: "tint-95");
+  color: $dlp-muted-text;
+  font-size: 0.8125rem;
+  margin: 0;
+  padding: govuk-spacing(1) govuk-spacing(3);
+}
+
+.dlp-pm-website__bar {
+  @include govuk-font($size: 19, $weight: bold);
+  background: #8a1538;
+  color: govuk-colour("white");
+  padding: govuk-spacing(2) govuk-spacing(4);
+}
+
+.dlp-pm-website__body {
+  padding: govuk-spacing(4);
+}
+
+.dlp-pm-website__stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-pm-website__stage {
+  border-bottom: 1px solid $dlp-border-grey;
+  display: flex;
+  gap: govuk-spacing(3);
+  padding: govuk-spacing(3) 0;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.dlp-pm-website__number {
+  @include govuk-font($size: 16, $weight: bold);
+  align-items: center;
+  background: govuk-colour("black");
+  border-radius: 50%;
+  color: govuk-colour("white");
+  display: flex;
+  flex: 0 0 auto;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+// --- PID ------------------------------------------------------------------------------------
+
+.dlp-pm-budget-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3) govuk-spacing(5);
+}
+
+.dlp-pm-reviews__item {
+  align-items: baseline;
+  display: flex;
+  gap: govuk-spacing(4);
+}
+
+// --- Publish notice -----------------------------------------------------------------------
+
+.dlp-pm-alert {
+  background: govuk-colour("yellow", $variant: "tint-95");
+  border-left: 5px solid govuk-colour("yellow");
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+.dlp-pm-notice {
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+  max-width: 46em;
+  padding: govuk-spacing(5);
+}
+
+.dlp-pm-notice__caption {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(3);
+}
+
+.dlp-pm-placeholder {
+  background: $dlp-highlight-background;
+  border-bottom: 2px dashed govuk-colour("orange");
+  color: inherit;
+  padding: 0 2px;
+}

@@ -1,0 +1,121 @@
+{#
+  Shared pieces of Make your plan.
+
+  pmStatusTag(status) — the tag beside a task or section heading. Uses the status vocabulary
+  from the design, which adds "Blocked" to the standard five (see CLAUDE.md).
+
+  pmTaskCard(task, params) — one grey card on the overview or a task's own page: title, status,
+  description, then either a Start button or a progress bar and a View link.
+    task: { title, description, status, href, progressPercent?, assignees?, startAction?,
+            blockedReason?, linkText?, button? }
+    A not-started task (or any with `button: true`) shows a button; anything else a View link.
+    params.headingLevel: 2 (default) or 3
+#}
+
+{% from "govuk/components/tag/macro.njk" import govukTag %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+
+{% macro pmStatusTag(status) %}
+  {% set classes = {
+    "Completed": "govuk-tag--green",
+    "In progress": "govuk-tag--light-blue",
+    "Not started": "govuk-tag--grey dlp-pm-tag--plain",
+    "Blocked": "govuk-tag--red",
+    "Cannot start": "govuk-tag--grey",
+    "Action required": "govuk-tag--yellow",
+    "Upcoming": "govuk-tag--blue",
+    "Date needed": "govuk-tag--grey",
+    "Scheduled": "govuk-tag--green",
+    "Not yet assigned": "govuk-tag--grey"
+  } %}
+  {{ govukTag({ text: status, classes: "dlp-pm-tag " + (classes[status] or "govuk-tag--grey") }) }}
+{% endmacro %}
+
+{% macro pmTaskCard(task, params) %}
+  {% set level = (params and params.headingLevel) or 2 %}
+  <div class="dlp-pm-card">
+    <div class="dlp-pm-card__body">
+      <div class="dlp-pm-card__head">
+        <h{{ level }} class="govuk-heading-m dlp-pm-card__title">
+          {{ task.title }}
+        </h{{ level }}>
+        {{ pmStatusTag(task.status) }}
+      </div>
+
+      {% if task.description %}<p class="govuk-body dlp-pm-card__description">{{ task.description }}</p>{% endif %}
+      {% if task.blockedReason %}<p class="govuk-body dlp-pm-card__blocked">{{ task.blockedReason }}</p>{% endif %}
+
+      {% if task.status == "Not started" or task.button %}
+        {% if task.startAction %}
+          {% set startHtml = (task.linkText or "Start") + '<span class="govuk-visually-hidden"> ' + (task.title | escape) + '</span>' %}
+          <form method="post" action="{{ task.startAction }}" novalidate>
+            {{ govukButton({ html: startHtml, classes: "govuk-!-margin-bottom-0" }) }}
+          </form>
+        {% else %}
+          {% set startHtml = (task.linkText or "Start") + '<span class="govuk-visually-hidden"> ' + (task.title | escape) + '</span>' %}
+          {{ govukButton({ html: startHtml, href: task.href, classes: "govuk-!-margin-bottom-0" }) }}
+        {% endif %}
+      {% else %}
+        {% if task.progressPercent !== null and task.progressPercent !== undefined %}
+          <div class="dlp-pm-progress" role="img" aria-label="{{ task.progressPercent }}% done">
+            <span class="dlp-pm-progress__bar" style="width: {{ task.progressPercent }}%"></span>
+          </div>
+        {% endif %}
+        <p class="govuk-body govuk-!-margin-bottom-0">
+          <a class="govuk-link" href="{{ task.href }}">{{ task.linkText or "View" }}<span class="govuk-visually-hidden"> {{ task.title }}</span></a>
+        </p>
+      {% endif %}
+    </div>
+
+    {% if task.assignees and task.assignees.length and task.status != "Not started" %}
+      <ul class="dlp-pm-avatars" aria-label="Working on this">
+        {% for person in task.assignees %}
+          <li class="dlp-pm-avatars__item" title="{{ person.name }}">
+            <span aria-hidden="true">{{ person.initials }}</span>
+            <span class="govuk-visually-hidden">{{ person.name }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# Save and Back, under a rule, as every PID form ends in the design. #}
+{% macro pmFormActions(params) %}
+  <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+  <div class="govuk-button-group">
+    {{ govukButton({ text: params.text or "Save", name: params.name, value: params.value }) }}
+    <a href="{{ params.backHref }}" class="govuk-button govuk-button--secondary" role="button" draggable="false" data-module="govuk-button">Back</a>
+  </div>
+{% endmacro %}
+
+{# The authority's website, as the published timetable would appear on it. Council-branded, not
+   GOV.UK: this project can't use crown branding, and it's the authority's site anyway. #}
+{% macro pmWebsitePreview(params) %}
+  <div class="dlp-pm-website">
+    <p class="dlp-pm-website__url">cityoflondon.gov.uk/local-plan/timetable</p>
+    <div class="dlp-pm-website__bar">City of London</div>
+    <div class="dlp-pm-website__body">
+      <h2 class="govuk-heading-m">Local Plan timetable</h2>
+      <p class="govuk-body-s">{{ params.statement }}</p>
+      <ol class="dlp-pm-website__stages">
+        {% for stage in params.stages %}
+          <li class="dlp-pm-website__stage">
+            <span class="dlp-pm-website__number" aria-hidden="true">{{ stage.number }}</span>
+            <div class="dlp-pm-website__stage-body">
+              <h3 class="govuk-heading-s govuk-!-margin-bottom-1">{{ stage.title }}</h3>
+              {% if stage.description %}<p class="govuk-body-s govuk-!-margin-bottom-1">{{ stage.description }}</p>{% endif %}
+              <p class="govuk-body-s govuk-!-margin-bottom-1"><strong>Date:</strong> {{ stage.date or "—" }}</p>
+              {% if stage.hasEnd %}
+                <p class="govuk-body-s govuk-!-margin-bottom-1"><strong>Representations must be received by:</strong> {{ stage.endDate or "—" }}</p>
+              {% endif %}
+              {% if params.editable %}
+                <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link" href="{{ stage.editHref }}">Edit<span class="govuk-visually-hidden"> {{ stage.title }}</span></a></p>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+{% endmacro %}

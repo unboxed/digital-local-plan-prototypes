@@ -1,0 +1,41 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "project-management/make-your-plan/partials/macros.html" import pmTaskCard %}
+
+{% set pageName = "Project Initiation Documentation" %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Project Initiation Documentation" }
+] }) }}
+
+<div class="dlp-pm-title-row">
+  <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Project Initiation Documentation</h1>
+  {{ pmStatusTag(statuses.pid.status) }}
+</div>
+<p class="govuk-body dlp-pm-lede govuk-!-margin-top-4">
+  The Local Plan Project Initiation Documentation (PID) is a practical management tool designed to
+  support the successful delivery of the Local Plan. It helps you define and communicate the
+  plan's scope, governance, and resource needs while ensuring readiness for each stage of
+  plan-making.
+</p>
+{% if pm.pid.lastUpdated %}
+  <p class="govuk-body"><strong>Last updated</strong> {{ formatDate(pm.pid.lastUpdated) }}</p>
+{% endif %}
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+{% for section in sections %}
+  {# A section that lives elsewhere (the timetable, the evidence summary) keeps its "Go to …"
+     button whatever its status, as in the design. #}
+  {{ pmTaskCard({
+    title: section.title,
+    status: section.status,
+    href: section.href,
+    linkText: section.linkText if section.link else ("Start" if section.status == "Not started" else "View"),
+    button: section.link
+  }) }}
+{% endfor %}
+
+{% endblock %}

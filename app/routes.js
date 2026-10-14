@@ -3582,3 +3582,1030 @@ router.post(CR + '/inspector/:repId', (req, res) => {
   crFlash(req, 'Comment saved on ' + rep.id)
   res.redirect(back + '#inspector-comments')
 })
+
+// --- Make your plan (project management) ---
+//
+// /project-management/make-your-plan, built from the Figma frames in the git-ignored
+// `Figma screenshots/Project management/` folder. An officer works through the first tasks of
+// plan-making: the timetable, the Project Initiation Documentation (PID) and the notice of
+// intention to commence.
+//
+//   /                          landing page, with a reset per entry point
+//   /overview                  "Make your plan": every task, its status and progress
+//   /timetable                 the timetable's three steps
+//   /timetable/milestones      add or change plan milestones (?_milestone=<id>)
+//   /timetable/committee       schedule milestones for committee (?_timeline=open for the panel)
+//   /timetable/check           check and publish timetable
+//   /timetable/preview         the published timetable on its own, for a new tab
+//   /timetable/export.csv      the timetable in its data format
+//   /pid, /pid/:section        the PID and its sections; /pid/approval(/send) to sign it off
+//   /notice(/preview)          publish the notice of intention to commence
+//
+// Everything is one object, req.session.data.projectManagement, read only through
+// getProjectManagement. Free-text fields are named `_…` so the kit doesn't copy them into
+// session data. Every status is derived from that object by pmStatuses, never stored.
+
+const PM = '/project-management/make-your-plan'
+const PROJECT_MANAGEMENT_SCHEMA_VERSION = 1
+const PMD = require('./data/project-management.js')
+
+function getProjectManagement (req) {
+  if (req.session.data.projectManagementSchemaVersion !== PROJECT_MANAGEMENT_SCHEMA_VERSION) {
+    req.session.data.projectManagement = JSON.parse(JSON.stringify(sessionDataDefaults.projectManagement))
+    req.session.data.projectManagementOwned = true
+    req.session.data.projectManagementSchemaVersion = PROJECT_MANAGEMENT_SCHEMA_VERSION
+  }
+  if (!req.session.data.projectManagementOwned) {
+    req.session.data.projectManagement = JSON.parse(JSON.stringify(req.session.data.projectManagement))
+    req.session.data.projectManagementOwned = true
+  }
+  return req.session.data.projectManagement
+}
+
+const PM_STARTS = {
+  start: { build: PMD.startingState, redirect: PM + '/overview' },
+  midway: { build: PMD.midwayState, redirect: PM + '/overview' }
+}
+
+// Events after the proposed plan consultation can't be dated yet, so a timetable is complete
+// without them. The timeline shows them as "Date needed".
+const PM_LATER_STAGES = ['gateway-3', 'examination', 'adopted']
+
+const PM_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+  'September', 'October', 'November', 'December']
+
+function pmText (value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function pmToday () {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' })
+}
+
+// "2027-02-01" → "1 February 2027". Anything else comes back empty.
+function pmFormatDate (iso) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '')
+  if (!match) return ''
+  return Number(match[3]) + ' ' + PM_MONTHS[Number(match[2]) - 1] + ' ' + match[1]
+}
+
+function pmDateParts (iso) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '')
+  return match ? { day: String(Number(match[3])), month: String(Number(match[2])), year: match[1] } : {}
+}
+
+// Reads a GOV.UK date input posted as `<name>-day` etc. An empty date is allowed (`iso: ''`);
+// callers decide whether it's required.
+function pmReadDate (body, name) {
+  const day = pmText(body[name + '-day'])
+  const month = pmText(body[name + '-month'])
+  const year = pmText(body[name + '-year'])
+  const parts = { day, month, year }
+  if (!day && !month && !year) return { iso: '', parts }
+  const d = Number(day)
+  const m = Number(month)
+  const y = Number(year)
+  const date = new Date(Date.UTC(y, m - 1, d))
+  const valid = /^\d{1,2}$/.test(day) && /^\d{1,2}$/.test(month) && /^\d{4}$/.test(year) &&
+    date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d
+  if (!valid) return { iso: '', parts, invalid: true }
+  return { iso: year + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'), parts }
+}
+
+function pmMoney (value) {
+  const cleaned = pmText(value).replace(/[£,\s]/g, '')
+  return cleaned
+}
+
+function pmNextId (prefix) {
+  return prefix + Date.now().toString(36) + Math.floor(Math.random() * 1000)
+}
+
+// Errors, and what was typed into the form that caused them, survive the redirect in session
+// data and are cleared as soon as they're shown. A flash message works the same way.
+function pmSetErrors (req, errors, values) {
+  req.session.data.projectManagementErrors = { errors, values: values || {} }
+}
+
+function pmTakeErrors (req) {
+  const stored = req.session.data.projectManagementErrors || { errors: {}, values: {} }
+  delete req.session.data.projectManagementErrors
+  return stored
+}
+
+function pmFlash (req, text) {
+  req.session.data.projectManagementFlash = text
+}
+
+function pmTakeFlash (req) {
+  const text = req.session.data.projectManagementFlash
+  delete req.session.data.projectManagementFlash
+  return text || ''
+}
+
+function pmErrorList (errors) {
+  return Object.keys(errors).map(id => ({ text: errors[id], href: '#' + id }))
+}
+
+function pmLabelForMilestone (item) {
+  const type = PMD.getEventType(item.event)
+  return type ? type.label : (item.reference || 'New milestone')
+}
+
+function pmMilestoneRequired (item) {
+  const type = PMD.getEventType(item.event)
+  return !type || !PM_LATER_STAGES.includes(type.stage)
+}
+
+function pmCommittee (id) {
+  return PMD.COMMITTEES.find(committee => committee.id === id)
+}
+
+function pmCommitteeLabel (committee) {
+  return committee.name + ' - ' + pmFormatDate(committee.date)
+}
+
+// --- Statuses ---
+//
+// Every status and progress bar comes from here, so the overview, the sidebar and each task's
+// own page can't disagree. Progress is the share of a task's steps that are done.
+
+function pmCountStatus (done, total) {
+  if (total && done >= total) return 'Completed'
+  if (done > 0) return 'In progress'
+  return 'Not started'
+}
+
+function pmFilled (pid, fields) {
+  return fields.filter(field => pmText(pid[field])).length
+}
+
+const PM_GOVERNANCE_FIELDS = ['governanceSummary', 'councilLeadName', 'councilLeadEmail', 'sponsorName', 'sponsorEmail', 'seniorEngagement']
+const PM_NOTICE_FIELDS = ['area', 'timetableLink', 'addresses', 'updates']
+
+function pmTimetableSteps (state) {
+  const required = state.milestones.filter(pmMilestoneRequired)
+  const dated = required.filter(item => item.eventDate).length
+  const assigned = state.committeeItems.filter(item => item.committee).length
+  const timetable = state.timetable
+  return [
+    {
+      key: 'milestones',
+      title: 'Add or change plan milestones',
+      description: 'Enter the planned date for each event in your timetable.',
+      href: PM + '/timetable/milestones',
+      status: pmCountStatus(dated, required.length)
+    },
+    {
+      key: 'committee',
+      title: 'Schedule milestones for committee',
+      description: 'Link events from your timetable to your committee dates.',
+      href: PM + '/timetable/committee',
+      status: pmCountStatus(assigned, state.committeeItems.length)
+    },
+    {
+      key: 'check',
+      title: 'Check and publish timetable',
+      description: 'Add a publication statement, check how the timetable will look and publish it.',
+      href: PM + '/timetable/check',
+      status: timetable.published ? 'Completed' : (timetable.statementSaved ? 'In progress' : 'Not started')
+    }
+  ]
+}
+
+function pmBudgetStatus (pid) {
+  const filled = PMD.BUDGET_CATEGORIES.filter(category =>
+    PMD.BUDGET_YEARS.some(year => pmText(pid.budget[category.key + '-' + year]))).length
+  return pmCountStatus(filled, PMD.BUDGET_CATEGORIES.length)
+}
+
+// The PID's sections, in the order the design lists them. `link` sections live elsewhere.
+const PM_PID_SECTIONS = [
+  {
+    slug: 'about',
+    title: 'About the plan',
+    status: pid => pmText(pid.planTitle) ? 'Completed' : (pid.lastUpdated ? 'In progress' : 'Not started')
+  },
+  {
+    slug: 'timetable',
+    title: 'Timetable',
+    link: PM + '/timetable',
+    linkText: 'Go to timetable',
+    status: (pid, state) => state.timetable.published ? 'Completed' : pmCountStatus(
+      pmTimetableSteps(state).filter(step => step.status !== 'Not started').length ? 1 : 0, 2)
+  },
+  {
+    slug: 'governance',
+    title: 'Governance',
+    status: pid => pmCountStatus(pmFilled(pid, PM_GOVERNANCE_FIELDS), PM_GOVERNANCE_FIELDS.length)
+  },
+  {
+    slug: 'staff',
+    title: 'Staff resource and management',
+    crumb: 'Staff resource',
+    status: pid => (pid.saved.staff && pid.staff.length && pid.teamLead)
+      ? 'Completed'
+      : (pid.staff.length || pmText(pid.supportNeeds) ? 'In progress' : 'Not started')
+  },
+  {
+    slug: 'evidence',
+    title: 'Evidence',
+    link: '/evidence',
+    linkText: 'Go to evidence summary',
+    // Lives in the Evidence prototype, which records no progress this one can read.
+    status: () => 'Not started'
+  },
+  {
+    slug: 'related',
+    title: 'Related strategies, papers and documentation',
+    crumb: 'Related documentation',
+    status: pid => pid.saved.related ? 'Completed' : (pid.related.length ? 'In progress' : 'Not started')
+  },
+  {
+    slug: 'stakeholder',
+    title: 'Stakeholder engagement',
+    status: pid => pmText(pid.engagementApproach) ? 'Completed' : 'Not started'
+  },
+  {
+    slug: 'budget',
+    title: 'Budget',
+    status: pid => pmBudgetStatus(pid)
+  },
+  {
+    slug: 'risks',
+    title: 'Risks and mitigations',
+    crumb: 'Risks',
+    status: pid => (pid.saved.risks && pid.risks.length) ? 'Completed' : (pid.risks.length ? 'In progress' : 'Not started')
+  },
+  {
+    slug: 'approval',
+    title: 'Approve this PID',
+    crumb: 'Approval',
+    status: pid => pid.approval.approved ? 'Completed' : (pid.approval.sent ? 'In progress' : 'Not started')
+  }
+]
+
+function pmPidSection (slug) {
+  return PM_PID_SECTIONS.find(section => section.slug === slug)
+}
+
+function pmPidSections (state) {
+  return PM_PID_SECTIONS.map(section => Object.assign({}, section, {
+    status: section.status(state.pid, state),
+    href: section.link || PM + '/pid/' + section.slug
+  }))
+}
+
+// Sections that must be finished before the PID can go for approval: everything this
+// prototype can record, which leaves out Evidence (in another prototype) and approval itself.
+function pmPidOutstanding (state) {
+  return pmPidSections(state).filter(section =>
+    !['evidence', 'approval'].includes(section.slug) && section.status !== 'Completed')
+}
+
+function pmStatuses (state) {
+  const steps = pmTimetableSteps(state)
+  const timetableDone = Boolean(state.timetable.published)
+  const stepsDone = steps.filter(step => step.status === 'Completed').length
+  const timetableStarted = steps.some(step => step.status !== 'Not started')
+
+  const sections = pmPidSections(state).filter(section => !section.link)
+  const pidDone = Boolean(state.pid.approval.approved)
+  const pidCompleted = sections.filter(section => section.status === 'Completed').length
+  const pidStarted = sections.some(section => section.status !== 'Not started')
+
+  const notice = state.notice
+  const noticeFilled = PM_NOTICE_FIELDS.filter(field => pmText(notice[field])).length
+  let noticeStatus = 'Not started'
+  if (notice.published) noticeStatus = 'Completed'
+  else if (!pidDone && (timetableDone || noticeFilled)) noticeStatus = 'Blocked'
+  else if (noticeFilled) noticeStatus = 'In progress'
+
+  return {
+    timetable: {
+      status: timetableDone ? 'Completed' : (timetableStarted ? 'In progress' : 'Not started'),
+      progress: timetableDone ? 1 : stepsDone / steps.length
+    },
+    pid: {
+      status: pidDone ? 'Completed' : (pidStarted ? 'In progress' : 'Not started'),
+      progress: pidDone ? 1 : pidCompleted / sections.length
+    },
+    notice: {
+      status: noticeStatus,
+      progress: notice.published ? 1 : noticeFilled / (PM_NOTICE_FIELDS.length + 1),
+      blockedReason: noticeStatus === 'Blocked' ? 'The Project Initiation Documentation must be approved before you publish the notice.' : ''
+    },
+    scopingActivities: { status: 'Not started', progress: 0 },
+    scopingConsultation: {
+      status: state.scopingConsultationStarted ? 'In progress' : 'Not started',
+      progress: null
+    }
+  }
+}
+
+// The overview's cards, in the design's order. `start` is how a not-started task is begun: a
+// link, or (for the scoping consultation, which lives in another prototype) a form that records
+// it was started on the way there.
+function pmTasks (state) {
+  const statuses = pmStatuses(state)
+  const team = PMD.TEAM
+  return [
+    {
+      key: 'timetable',
+      title: 'Timetable',
+      description: 'Create and publish your timetable',
+      href: PM + '/timetable',
+      assignees: [team.dd, team.sm]
+    },
+    {
+      key: 'notice',
+      title: 'Publish timetable and notice',
+      description: 'Publish your timetable and notification to start the plan making process',
+      href: PM + '/notice',
+      assignees: [team.dd, team.rk]
+    },
+    {
+      key: 'pid',
+      title: 'Project Initiation Documentation',
+      description: 'Decide how you will manage and govern the plan making as a project',
+      href: PM + '/pid',
+      assignees: [team.sm, team.dd, team.jo]
+    },
+    {
+      key: 'scopingActivities',
+      title: 'Scoping activities',
+      description: 'Scope your plan-making and set a vision',
+      href: PM + '/scoping-activities',
+      assignees: [team.jo]
+    },
+    {
+      key: 'scopingConsultation',
+      title: 'Scoping consultation',
+      description: 'Manage public engagement on the scope of the local plan',
+      href: '/consultations/managing-responses',
+      startAction: PM + '/scoping-consultation/start',
+      assignees: [team.rk, team.dd]
+    }
+  ].map(task => Object.assign(task, statuses[task.key], {
+    progressPercent: statuses[task.key].progress === null ? null : Math.round(statuses[task.key].progress * 100)
+  }))
+}
+
+function buildPmSidebar (state, active) {
+  const statuses = pmStatuses(state)
+  const items = [
+    { key: 'timetable', text: 'Create and publish timetable', href: PM + '/timetable' },
+    { key: 'pid', text: 'Project Initiation Documentation', href: PM + '/pid' },
+    { key: 'scopingActivities', text: 'Scoping activities', href: PM + '/scoping-activities' },
+    { key: 'scopingConsultation', text: 'Scoping consultation', href: '/consultations/managing-responses' },
+    { key: 'notice', text: 'Publish notice of plan-making', href: PM + '/notice' }
+  ]
+  return [{
+    items: items.map(item => ({
+      text: item.text,
+      href: item.href,
+      active: item.key === active,
+      status: statuses[item.key].status
+    }))
+  }]
+}
+
+function renderPm (req, res, view, active, locals) {
+  const state = getProjectManagement(req)
+  const stored = pmTakeErrors(req)
+  res.render('project-management/make-your-plan/' + view, Object.assign({
+    pm: state,
+    pmBase: PM,
+    statuses: pmStatuses(state),
+    timetableSteps: pmTimetableSteps(state),
+    errors: stored.errors,
+    values: stored.values,
+    errorList: pmErrorList(stored.errors),
+    flash: pmTakeFlash(req),
+    formatDate: pmFormatDate,
+    dateParts: pmDateParts,
+    guidanceUrl: PMD.GUIDANCE_URL,
+    guidanceSearchUrl: PMD.GUIDANCE_SEARCH_URL,
+    sidebarSections: buildPmSidebar(state, active)
+  }, locals))
+}
+
+router.post(PM + '/reset', (req, res) => {
+  const start = PM_STARTS[req.body._stage] || PM_STARTS.start
+  getProjectManagement(req)
+  req.session.data.projectManagement = start.build()
+  req.session.data.projectManagementOwned = true
+  delete req.session.data.projectManagementErrors
+  delete req.session.data.projectManagementFlash
+  res.redirect(start.redirect)
+})
+
+// --- Overview ---
+
+router.get(PM + '/overview', (req, res) => {
+  const state = getProjectManagement(req)
+  const tasks = pmTasks(state)
+  renderPm(req, res, 'overview', null, {
+    tasks,
+    anyStarted: tasks.some(task => task.status !== 'Not started'),
+    currentTasks: tasks.filter(task => task.status !== 'Completed'),
+    completedTasks: tasks.filter(task => task.status === 'Completed')
+  })
+})
+
+// The scoping consultation is run in the Consultations prototype. Starting it here records that
+// it has begun, so the overview can say so, and then goes there.
+router.post(PM + '/scoping-consultation/start', (req, res) => {
+  getProjectManagement(req).scopingConsultationStarted = true
+  res.redirect('/consultations/managing-responses')
+})
+
+// Not designed yet: say so rather than invent a journey.
+router.get(PM + '/scoping-activities', (req, res) => {
+  renderPm(req, res, 'not-designed', 'scopingActivities', {
+    title: 'Scoping activities',
+    text: 'Scoping your plan-making and setting a vision has not been designed yet.'
+  })
+})
+
+router.get(PM + '/readiness-checker', (req, res) => {
+  renderPm(req, res, 'not-designed', null, {
+    title: 'Readiness checker',
+    text: 'The readiness checker, which would tell you whether you are ready to move to the next stage of plan-making, has not been designed yet.'
+  })
+})
+
+// --- Timetable ---
+
+router.get(PM + '/timetable', (req, res) => {
+  renderPm(req, res, 'timetable/index', 'timetable')
+})
+
+function pmMilestoneView (item) {
+  return Object.assign({}, item, { label: pmLabelForMilestone(item) })
+}
+
+function pmMilestoneSummary (state) {
+  const required = state.milestones.filter(pmMilestoneRequired)
+  return required.filter(item => item.eventDate).length + ' of ' + required.length + ' milestones have dates entered.'
+}
+
+router.get(PM + '/timetable/milestones', (req, res) => {
+  const state = getProjectManagement(req)
+  const isNew = req.query._milestone === 'new'
+  const selected = isNew
+    ? Object.assign(PMD.milestone(''), { id: 'new', reference: '', entryDate: pmToday() })
+    : (state.milestones.find(item => item.id === req.query._milestone) || state.milestones[0])
+  renderPm(req, res, 'timetable/milestones', 'timetable', {
+    milestones: state.milestones.map(pmMilestoneView),
+    selected: pmMilestoneView(selected),
+    isNew,
+    eventTypes: PMD.EVENT_TYPES,
+    today: pmToday(),
+    stepStatus: pmTimetableSteps(state)[0].status
+  })
+})
+
+router.post(PM + '/timetable/milestones/:id', (req, res) => {
+  const state = getProjectManagement(req)
+  const isNew = req.params.id === 'new'
+  const existing = state.milestones.find(item => item.id === req.params.id)
+  if (!isNew && !existing) return res.redirect(PM + '/timetable/milestones')
+  const back = PM + '/timetable/milestones?_milestone=' + encodeURIComponent(req.params.id)
+
+  const reference = pmText(req.body._reference)
+  const plan = pmText(req.body._plan)
+  const event = PMD.getEventType(req.body._event) ? req.body._event : ''
+  const eventDate = pmReadDate(req.body, '_eventDate')
+  const actualDate = pmReadDate(req.body, '_actualDate')
+  const entryDate = pmReadDate(req.body, '_entryDate')
+  const notes = pmText(req.body._notes)
+
+  const errors = {}
+  if (!reference) errors.reference = 'Enter a reference for this event'
+  else if (state.milestones.some(item => item.reference === reference && item.id !== req.params.id)) {
+    errors.reference = 'Another milestone already has this reference. Give each event a unique reference'
+  }
+  if (!plan) errors.plan = 'Enter the reference of the plan this event belongs to'
+  if (!event) errors.event = 'Select the type of plan event'
+  if (eventDate.invalid) errors.eventDate = 'Planned date must be a real date, for example 1 4 2027'
+  if (actualDate.invalid) errors.actualDate = 'Actual date must be a real date, for example 1 4 2027'
+  if (entryDate.invalid) errors.entryDate = 'Entry date must be a real date, for example 20 7 2026'
+  if (Object.keys(errors).length) {
+    pmSetErrors(req, errors, {
+      reference, plan, event, notes,
+      eventDate: eventDate.parts, actualDate: actualDate.parts, entryDate: entryDate.parts
+    })
+    return res.redirect(back)
+  }
+
+  const item = existing || { id: pmNextId('m') }
+  Object.assign(item, {
+    reference,
+    plan,
+    event,
+    eventDate: eventDate.iso,
+    actualDate: actualDate.iso,
+    entryDate: entryDate.iso || pmToday(),
+    notes
+  })
+  if (!existing) state.milestones.push(item)
+  // Changing a published timetable means publishing it again.
+  state.timetable.published = ''
+  pmFlash(req, pmLabelForMilestone(item) + ' saved successfully. ' + pmMilestoneSummary(state))
+  if (req.body._action === 'add-another') return res.redirect(PM + '/timetable/milestones?_milestone=new')
+  res.redirect(PM + '/timetable/milestones?_milestone=' + encodeURIComponent(item.id))
+})
+
+// The timeline panel: every milestone, then every committee item, in the order the design
+// shows them. A milestone that has happened is Completed; one with a date is Upcoming.
+function pmTimeline (state) {
+  const milestones = state.milestones.map(item => {
+    let status = 'Date needed'
+    if (item.actualDate) status = 'Completed'
+    else if (item.eventDate) status = 'Upcoming'
+    return {
+      title: pmLabelForMilestone(item),
+      href: PM + '/timetable/milestones?_milestone=' + encodeURIComponent(item.id),
+      date: pmFormatDate(item.actualDate || item.eventDate),
+      status,
+      sortDate: item.actualDate || item.eventDate || '9999'
+    }
+  })
+  const committeeItems = state.committeeItems.map(item => {
+    const committee = pmCommittee(item.committee)
+    return {
+      title: item.title,
+      href: PM + '/timetable/committee#item-' + item.id,
+      date: committee ? pmFormatDate(committee.date) : '',
+      status: committee ? 'Scheduled' : 'Not yet assigned',
+      committee: committee ? committee.name : '',
+      sortDate: committee ? committee.date : '9999'
+    }
+  })
+  return milestones.concat(committeeItems).sort((a, b) => a.sortDate < b.sortDate ? -1 : (a.sortDate > b.sortDate ? 1 : 0))
+}
+
+router.get(PM + '/timetable/committee', (req, res) => {
+  const state = getProjectManagement(req)
+  const items = state.committeeItems
+  renderPm(req, res, 'timetable/committee', 'timetable', {
+    unassigned: items.filter(item => !pmCommittee(item.committee)),
+    committees: PMD.COMMITTEES.map(committee => ({
+      id: committee.id,
+      label: pmCommitteeLabel(committee),
+      items: items.filter(item => item.committee === committee.id)
+    })),
+    committeeOptions: PMD.COMMITTEES.map(committee => ({ value: committee.id, text: pmCommitteeLabel(committee) })),
+    committeeDatesUrl: PMD.COMMITTEE_DATES_URL,
+    timelineOpen: req.query._timeline === 'open',
+    timeline: pmTimeline(state),
+    stepStatus: pmTimetableSteps(state)[1].status
+  })
+})
+
+router.post(PM + '/timetable/committee', (req, res) => {
+  const state = getProjectManagement(req)
+  state.committeeItems.forEach(item => {
+    const value = req.body['_committee-' + item.id]
+    if (value === undefined) return
+    item.committee = pmCommittee(value) ? value : ''
+  })
+  const assigned = state.committeeItems.filter(item => item.committee).length
+  pmFlash(req, 'Committee schedule saved. ' + assigned + ' of ' + state.committeeItems.length + ' items are assigned to a committee date.')
+  res.redirect(PM + '/timetable/committee')
+})
+
+router.post(PM + '/timetable/committee/items', (req, res) => {
+  const state = getProjectManagement(req)
+  const title = pmText(req.body._title)
+  const description = pmText(req.body._description)
+  if (!title) {
+    pmSetErrors(req, { itemTitle: 'Enter a name for the item' }, { title, description })
+    return res.redirect(PM + '/timetable/committee#add-item')
+  }
+  const item = { id: pmNextId('ci'), title, description, committee: '' }
+  state.committeeItems.push(item)
+  pmFlash(req, title + ' added to events to schedule.')
+  res.redirect(PM + '/timetable/committee#item-' + item.id)
+})
+
+// The timetable as the authority's website would show it: stages, with a consultation's end
+// date as the date representations must be received by.
+function buildPublishedTimetable (state) {
+  return PMD.PUBLISHED_STAGES.map((stage, index) => {
+    const items = state.milestones.filter(item => {
+      const type = PMD.getEventType(item.event)
+      return type && type.stage === stage.stage
+    })
+    const start = items.find(item => (PMD.getEventType(item.event).part || 'start') === 'start')
+    const end = items.find(item => PMD.getEventType(item.event).part === 'end')
+    return Object.assign({}, stage, {
+      number: index + 1,
+      date: start ? pmFormatDate(start.eventDate) : '',
+      endDate: end ? pmFormatDate(end.eventDate) : '',
+      hasEnd: Boolean(end),
+      editHref: start ? PM + '/timetable/milestones?_milestone=' + encodeURIComponent(start.id) : PM + '/timetable/milestones'
+    })
+  })
+}
+
+router.get(PM + '/timetable/check', (req, res) => {
+  const state = getProjectManagement(req)
+  renderPm(req, res, 'timetable/check', 'timetable', {
+    published: buildPublishedTimetable(state),
+    checkAndProvideUrl: PMD.CHECK_AND_PROVIDE_URL,
+    stepStatus: pmTimetableSteps(state)[2].status
+  })
+})
+
+router.post(PM + '/timetable/check', (req, res) => {
+  const state = getProjectManagement(req)
+  const statement = pmText(req.body._statement)
+  const timetable = state.timetable
+  if (!statement) {
+    pmSetErrors(req, { statement: 'Enter a statement confirming that the timetable is to have effect' }, { statement })
+    return res.redirect(PM + '/timetable/check')
+  }
+  if (statement !== timetable.statement) timetable.published = ''
+  timetable.statement = statement
+  timetable.statementSaved = true
+
+  if (req.body._action !== 'publish') {
+    pmFlash(req, 'Statement saved.')
+    return res.redirect(PM + '/timetable/check')
+  }
+  // Only what can be dated now: events after the proposed plan consultation may stay blank.
+  const undated = state.milestones.filter(pmMilestoneRequired).filter(item => !item.eventDate)
+  if (undated.length) {
+    pmSetErrors(req, {
+      milestones: 'Enter a planned date for every milestone up to the proposed plan consultation before you publish the timetable. ' +
+        pmMilestoneSummary(state).replace(/\.$/, '') + ', so ' + undated.length + ' still need one.'
+    })
+    return res.redirect(PM + '/timetable/check')
+  }
+  timetable.published = pmToday()
+  pmFlash(req, 'Your timetable has been published.')
+  res.redirect(PM + '/timetable')
+})
+
+router.get(PM + '/timetable/preview', (req, res) => {
+  const state = getProjectManagement(req)
+  res.render('project-management/make-your-plan/timetable/preview', {
+    pm: state,
+    published: buildPublishedTimetable(state)
+  })
+})
+
+function pmCsvCell (value) {
+  const text = String(value || '')
+  return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text
+}
+
+router.get(PM + '/timetable/export.csv', (req, res) => {
+  const state = getProjectManagement(req)
+  const header = ['reference', 'plan', 'plan-event', 'event-date', 'actual-date', 'entry-date', 'notes']
+  const rows = state.milestones.map(item =>
+    [item.reference, item.plan, item.event, item.eventDate, item.actualDate, item.entryDate, item.notes].map(pmCsvCell).join(','))
+  res.set('Content-Type', 'text/csv; charset=utf-8')
+  res.set('Content-Disposition', 'attachment; filename="local-plan-timetable.csv"')
+  res.send([header.join(',')].concat(rows).join('\n') + '\n')
+})
+
+// --- Project Initiation Documentation ---
+
+router.get(PM + '/pid', (req, res) => {
+  renderPm(req, res, 'pid/index', 'pid', { sections: pmPidSections(getProjectManagement(req)) })
+})
+
+function pmPidStaffView (pid) {
+  return pid.staff.map(member => Object.assign({}, member, { lead: member.id === pid.teamLead }))
+}
+
+// The approval check-your-answers rows, section by section, each with a Change link back to it.
+function pmPidSummary (state) {
+  const pid = state.pid
+  const show = value => pmText(value) || '—'
+  const money = value => pmText(value) ? '£' + Number(value).toLocaleString('en-GB') : ''
+  const lead = pid.staff.find(member => member.id === pid.teamLead)
+  const href = slug => PM + '/pid/' + slug
+  return [
+    {
+      title: 'About the plan',
+      rows: [
+        { key: 'Plan title', value: show(pid.planTitle), href: href('about') },
+        { key: 'Role of the plan', value: show(pid.roleOfPlan), href: href('about') },
+        { key: 'Summary of the scope of the plan', value: 'A summary of the scope of the plan will appear here when the scoping activities have been completed.', href: PM + '/scoping-activities' }
+      ]
+    },
+    {
+      title: 'Governance',
+      rows: [
+        { key: 'Summary of governance', value: show(pid.governanceSummary), href: href('governance') },
+        { key: 'Council Lead (Portfolio Holder) — Name', value: show(pid.councilLeadName), href: href('governance') },
+        { key: 'Council Lead (Portfolio Holder) — Email', value: show(pid.councilLeadEmail), href: href('governance') },
+        { key: 'Local Plan Sponsor (Lead Officer) — Name', value: show(pid.sponsorName), href: href('governance') },
+        { key: 'Local Plan Sponsor (Lead Officer) — Email', value: show(pid.sponsorEmail), href: href('governance') },
+        { key: 'Senior officer engagement approach', value: show(pid.seniorEngagement), href: href('governance') }
+      ]
+    },
+    {
+      title: 'Staff resource and management',
+      rows: [
+        {
+          key: 'Staff members',
+          value: pid.staff.length ? pid.staff.map(member => member.jobTitle + (member.name ? ' (' + member.name + ')' : ' (vacant)')).join(', ') : 'None added',
+          href: href('staff')
+        },
+        { key: 'Team lead', value: lead ? (lead.name || lead.jobTitle) : '—', href: href('staff/team') },
+        { key: 'Additional corporate support needs', value: show(pid.supportNeeds), href: href('staff/team') }
+      ]
+    },
+    {
+      title: 'Related strategies, papers and documentation',
+      rows: [
+        { key: 'Related documents', value: pid.related.length ? pid.related.map(doc => doc.name).join(', ') : 'None added', href: href('related') }
+      ]
+    },
+    {
+      title: 'Stakeholder engagement',
+      rows: [{ key: 'Engagement approach', value: show(pid.engagementApproach), href: href('stakeholder') }]
+    },
+    {
+      title: 'Budget',
+      rows: PMD.BUDGET_CATEGORIES.map(category => {
+        const years = PMD.BUDGET_YEARS
+          .map(year => ({ year, value: money(pid.budget[category.key + '-' + year]) }))
+          .filter(entry => entry.value)
+        return {
+          key: category.label,
+          value: years.length ? years.map(entry => 'Year ' + entry.year + ': ' + entry.value).join(', ') : '—',
+          href: href('budget')
+        }
+      }).concat([{
+        key: 'Budget review date(s)',
+        value: pid.budgetReviews.length ? pid.budgetReviews.map(pmFormatDate).join(', ') : '—',
+        href: href('budget')
+      }])
+    },
+    {
+      title: 'Risks and mitigations',
+      rows: [{ key: 'Risks', value: pid.risks.length ? pid.risks.map(risk => risk.risk).join(', ') : 'None added', href: href('risks') }]
+    }
+  ]
+}
+
+function pmApprovers (state) {
+  const pid = state.pid
+  const status = pid.approval.approved ? 'Approved' : (pid.approval.sent ? 'Awaiting approval' : '-')
+  return [
+    { role: 'Political lead', name: pmText(pid.councilLeadName) || 'Not yet named', status },
+    { role: 'Chief Executive', name: PMD.CHIEF_EXECUTIVE, status },
+    { role: 'Sponsor', name: pmText(pid.sponsorName) || 'Not yet named', status }
+  ]
+}
+
+router.get(PM + '/pid/approval', (req, res) => {
+  renderPm(req, res, 'pid/approval', 'pid', { summary: pmPidSummary(getProjectManagement(req)) })
+})
+
+router.get(PM + '/pid/approval/send', (req, res) => {
+  const state = getProjectManagement(req)
+  renderPm(req, res, 'pid/approval-send', 'pid', {
+    outstanding: pmPidOutstanding(state),
+    approvers: pmApprovers(state)
+  })
+})
+
+router.post(PM + '/pid/approval/send', (req, res) => {
+  const state = getProjectManagement(req)
+  if (pmPidOutstanding(state).length) return res.redirect(PM + '/pid/approval/send')
+  state.pid.approval.sent = pmToday()
+  state.pid.lastUpdated = pmToday()
+  pmFlash(req, 'Project Initiation Documentation sent for approval.')
+  res.redirect(PM + '/pid/approval/send')
+})
+
+// Prototype only: stands in for the three approvers signing it off in the real service.
+router.post(PM + '/pid/approval/approve', (req, res) => {
+  const state = getProjectManagement(req)
+  if (!state.pid.approval.sent) return res.redirect(PM + '/pid/approval/send')
+  state.pid.approval.approved = pmToday()
+  pmFlash(req, 'Project Initiation Documentation approved.')
+  res.redirect(PM + '/pid')
+})
+
+router.get(PM + '/pid/staff/team', (req, res) => {
+  const state = getProjectManagement(req)
+  renderPm(req, res, 'pid/staff-team', 'pid', {
+    section: pmPidSection('staff'),
+    staffOptions: state.pid.staff.map(member => ({
+      value: member.id,
+      text: member.name ? member.name + ' (' + member.jobTitle + ')' : member.jobTitle + ' (vacant)'
+    }))
+  })
+})
+
+router.post(PM + '/pid/staff/team', (req, res) => {
+  const pid = getProjectManagement(req).pid
+  pid.teamLead = pid.staff.some(member => member.id === req.body._teamLead) ? req.body._teamLead : ''
+  pid.supportNeeds = pmText(req.body._supportNeeds)
+  pid.saved.staff = true
+  pid.lastUpdated = pmToday()
+  pmFlash(req, 'Staff resource and management saved.')
+  res.redirect(PM + '/pid')
+})
+
+router.get(PM + '/pid/:section', (req, res) => {
+  const section = pmPidSection(req.params.section)
+  if (!section) return res.redirect(PM + '/pid')
+  if (section.link) return res.redirect(section.link)
+  if (section.slug === 'approval') return res.redirect(PM + '/pid/approval')
+  const pid = getProjectManagement(req).pid
+  renderPm(req, res, 'pid/' + section.slug, 'pid', {
+    section,
+    staff: pmPidStaffView(pid),
+    levels: PMD.LEVELS,
+    budgetCategories: PMD.BUDGET_CATEGORIES,
+    budgetYears: PMD.BUDGET_YEARS
+  })
+})
+
+// Each section's form. List sections (staff, related, risks, budget reviews) post an `_action`
+// of add / remove, which come back to the same page, or save / next, which move on.
+const PM_PID_HANDLERS = {
+  about (req, pid) {
+    pid.planTitle = pmText(req.body._planTitle)
+    pid.roleOfPlan = pmText(req.body._roleOfPlan)
+  },
+  governance (req, pid) {
+    PM_GOVERNANCE_FIELDS.forEach(field => { pid[field] = pmText(req.body['_' + field]) })
+  },
+  stakeholder (req, pid) {
+    pid.engagementApproach = pmText(req.body._engagementApproach)
+  },
+  staff (req, pid) {
+    const action = req.body._action || ''
+    if (action.startsWith('remove:')) {
+      const id = action.slice('remove:'.length)
+      pid.staff = pid.staff.filter(member => member.id !== id)
+      if (pid.teamLead === id) pid.teamLead = ''
+      return '#staff'
+    }
+    if (action !== 'add') return PM + '/pid/staff/team'
+    const values = {
+      jobTitle: pmText(req.body._jobTitle),
+      name: pmText(req.body._name),
+      fte: pmText(req.body._fte),
+      postStatus: ['Filled', 'Vacant'].includes(req.body._postStatus) ? req.body._postStatus : '',
+      timeOnPlan: pmText(req.body._timeOnPlan).replace(/%$/, '')
+    }
+    const errors = {}
+    if (!values.jobTitle) errors.jobTitle = 'Enter a job title'
+    if (!values.fte) errors.fte = 'Enter the full-time equivalent, for example 1 or 0.6'
+    else if (!/^\d*\.?\d+$/.test(values.fte) || Number(values.fte) <= 0 || Number(values.fte) > 1) errors.fte = 'Full-time equivalent must be a number between 0.1 and 1'
+    if (!values.postStatus) errors.postStatus = 'Select whether the post is filled or vacant'
+    if (values.timeOnPlan && (!/^\d+$/.test(values.timeOnPlan) || Number(values.timeOnPlan) > 100)) errors.timeOnPlan = 'Percentage of time must be a whole number between 0 and 100'
+    if (Object.keys(errors).length) return { errors, values, anchor: '#add-staff' }
+    pid.staff.push(Object.assign({ id: pmNextId('s') }, values))
+    return '#staff'
+  },
+  related (req, pid) {
+    const action = req.body._action || ''
+    if (action.startsWith('remove:')) {
+      const id = action.slice('remove:'.length)
+      pid.related = pid.related.filter(doc => doc.id !== id)
+      return '#related'
+    }
+    if (action !== 'add') {
+      pid.saved.related = true
+      return null
+    }
+    const values = { name: pmText(req.body._docName), link: pmText(req.body._docLink), file: pmText(req.body._docFile) }
+    if (!values.name) return { errors: { docName: 'Enter the name of the strategy, paper or document' }, values, anchor: '#add-related' }
+    pid.related.push(Object.assign({ id: pmNextId('d') }, values))
+    return '#related'
+  },
+  risks (req, pid) {
+    const action = req.body._action || ''
+    if (action.startsWith('remove:')) {
+      const id = action.slice('remove:'.length)
+      pid.risks = pid.risks.filter(risk => risk.id !== id)
+      return '#risks'
+    }
+    if (action !== 'add') {
+      pid.saved.risks = true
+      return null
+    }
+    const values = {
+      risk: pmText(req.body._risk),
+      likelihood: PMD.LEVELS.includes(req.body._likelihood) ? req.body._likelihood : '',
+      impact: PMD.LEVELS.includes(req.body._impact) ? req.body._impact : '',
+      mitigation: pmText(req.body._mitigation)
+    }
+    const errors = {}
+    if (!values.risk) errors.risk = 'Describe the risk'
+    if (!values.likelihood) errors.likelihood = 'Select how likely the risk is'
+    if (!values.impact) errors.impact = 'Select the potential impact'
+    if (!values.mitigation) errors.mitigation = 'Describe how the risk will be mitigated'
+    if (Object.keys(errors).length) return { errors, values, anchor: '#add-risk' }
+    pid.risks.push(Object.assign({ id: pmNextId('r') }, values))
+    return '#risks'
+  },
+  budget (req, pid) {
+    const errors = {}
+    const values = {}
+    PMD.BUDGET_CATEGORIES.forEach(category => PMD.BUDGET_YEARS.forEach(year => {
+      const key = category.key + '-' + year
+      const value = pmMoney(req.body['_budget-' + key])
+      values[key] = value
+      if (value && !/^\d+(\.\d{1,2})?$/.test(value)) errors['budget-' + key] = category.label + ', year ' + year + ' must be an amount in pounds, like 25000'
+    }))
+    if (Object.keys(errors).length) return { errors, values: { budget: values }, anchor: '' }
+    pid.budget = values
+
+    const action = req.body._action || ''
+    if (action.startsWith('remove:')) {
+      const date = action.slice('remove:'.length)
+      pid.budgetReviews = pid.budgetReviews.filter(review => review !== date)
+      return '#reviews'
+    }
+    if (action === 'add-review') {
+      const review = pmReadDate(req.body, '_review')
+      if (!review.iso) {
+        return {
+          errors: { review: review.invalid ? 'Budget review date must be a real date' : 'Enter a budget review date' },
+          values: { budget: values, review: review.parts },
+          anchor: '#reviews'
+        }
+      }
+      if (!pid.budgetReviews.includes(review.iso)) pid.budgetReviews.push(review.iso)
+      pid.budgetReviews.sort()
+      return '#reviews'
+    }
+    return null
+  }
+}
+
+router.post(PM + '/pid/:section', (req, res) => {
+  const section = pmPidSection(req.params.section)
+  const handler = section && PM_PID_HANDLERS[section.slug]
+  if (!handler) return res.redirect(PM + '/pid')
+  const pid = getProjectManagement(req).pid
+  const page = PM + '/pid/' + section.slug
+  const outcome = handler(req, pid)
+  if (outcome && outcome.errors) {
+    pmSetErrors(req, outcome.errors, outcome.values)
+    return res.redirect(page + (outcome.anchor || ''))
+  }
+  pid.lastUpdated = pmToday()
+  // A string is where to go next: an anchor on this page, or another page.
+  if (typeof outcome === 'string') return res.redirect(outcome.startsWith('#') ? page + outcome : outcome)
+  pmFlash(req, section.title + ' saved.')
+  res.redirect(PM + '/pid')
+})
+
+// --- Publish notice of intention to commence ---
+
+function pmNoticeLocals (state) {
+  return {
+    noticeStatus: pmStatuses(state).notice,
+    timetablePublished: Boolean(state.timetable.published),
+    pidApproved: Boolean(state.pid.approval.approved),
+    scoping: buildPublishedTimetable(state).find(stage => stage.stage === 'scoping')
+  }
+}
+
+router.get(PM + '/notice', (req, res) => {
+  const state = getProjectManagement(req)
+  renderPm(req, res, 'notice/index', 'notice', pmNoticeLocals(state))
+})
+
+router.post(PM + '/notice', (req, res) => {
+  const notice = getProjectManagement(req).notice
+  PM_NOTICE_FIELDS.forEach(field => { notice[field] = pmText(req.body['_' + field]) })
+  res.redirect(PM + '/notice/preview')
+})
+
+router.get(PM + '/notice/preview', (req, res) => {
+  const state = getProjectManagement(req)
+  renderPm(req, res, 'notice/preview', 'notice', Object.assign(pmNoticeLocals(state), {
+    organisationName: appConfig.organisationName,
+    missing: PM_NOTICE_FIELDS.filter(field => !pmText(state.notice[field]))
+  }))
+})
+
+router.post(PM + '/notice/publish', (req, res) => {
+  const state = getProjectManagement(req)
+  const errors = {}
+  if (PM_NOTICE_FIELDS.some(field => !pmText(state.notice[field]))) errors.notice = 'Fill in every detail of the notice before you publish it'
+  if (!state.timetable.published) errors.timetable = 'Publish your timetable before or at the same time as this notice'
+  if (!state.pid.approval.approved) errors.pid = 'The Project Initiation Documentation must be approved before you publish the notice'
+  if (Object.keys(errors).length) {
+    pmSetErrors(req, errors)
+    return res.redirect(PM + '/notice/preview')
+  }
+  state.notice.published = pmToday()
+  pmFlash(req, 'Notice of intention to commence published.')
+  res.redirect(PM + '/overview')
+})

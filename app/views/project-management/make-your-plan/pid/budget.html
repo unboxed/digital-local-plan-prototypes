@@ -1,0 +1,84 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmFormActions %}
+
+{% set pageName = section.title %}
+{% set amounts = values.budget if values.budget else pm.pid.budget %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: section.title }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Budget</h1>
+<p class="govuk-body dlp-pm-lede">
+  This section explains the budget over 3-4 years broken down by staff, evidence, including
+  independent examination cost.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<form method="post" action="{{ pmBase }}/pid/budget" novalidate>
+  {# Enter means Save, not Remove on the first review date below. #}
+  <button type="submit" name="_action" value="save" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Save</button>
+
+  {% for category in budgetCategories %}
+    <fieldset class="govuk-fieldset govuk-!-margin-bottom-4">
+      <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">{{ category.label }}</legend>
+      <div class="dlp-pm-budget-row">
+        {% for year in budgetYears %}
+          {% set key = category.key + "-" + year %}
+          {{ govukInput({
+            id: "budget-" + key,
+            name: "_budget-" + key,
+            label: { html: 'Year ' + year + '<span class="govuk-visually-hidden">, ' + (category.label | escape) + '</span>' },
+            prefix: { text: "£" },
+            inputmode: "decimal",
+            spellcheck: false,
+            classes: "govuk-input--width-5",
+            value: amounts[key],
+            formGroup: { classes: "dlp-pm-budget-row__cell govuk-!-margin-bottom-0" },
+            errorMessage: { text: errors["budget-" + key] } if errors["budget-" + key]
+          }) }}
+        {% endfor %}
+      </div>
+    </fieldset>
+  {% endfor %}
+
+  <div id="reviews" class="govuk-!-margin-top-8">
+    <h2 class="govuk-heading-m">Budget review(s)</h2>
+    {% if pm.pid.budgetReviews.length %}
+      <ul class="govuk-list dlp-pm-reviews">
+        {% for review in pm.pid.budgetReviews %}
+          <li class="dlp-pm-reviews__item">
+            {{ formatDate(review) }}
+            <button type="submit" name="_action" value="remove:{{ review }}" class="dlp-pm-link-button">
+              Remove<span class="govuk-visually-hidden"> {{ formatDate(review) }}</span>
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {{ govukDateInput({
+      id: "review",
+      namePrefix: "_review",
+      fieldset: { legend: { text: "Add a budget review date", classes: "govuk-fieldset__legend--s" } },
+      items: [
+        { name: "day", classes: "govuk-input--width-2", value: values.review.day if values.review },
+        { name: "month", classes: "govuk-input--width-2", value: values.review.month if values.review },
+        { name: "year", classes: "govuk-input--width-4", value: values.review.year if values.review }
+      ],
+      errorMessage: { text: errors.review } if errors.review
+    }) }}
+    {{ govukButton({ text: "Add", name: "_action", value: "add-review", classes: "govuk-button--secondary" }) }}
+  </div>
+
+  {{ pmFormActions({ name: "_action", value: "save", backHref: pmBase + "/pid" }) }}
+</form>
+
+{% endblock %}

@@ -47,6 +47,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-select-all]').forEach(safeInit(initSelectAll))
   document.querySelectorAll('[data-dlp-template-picker]').forEach(safeInit(initTemplatePicker))
   document.querySelectorAll('[data-dlp-truncate]').forEach(safeInit(initTruncate))
+  document.querySelectorAll('[data-dlp-committee-board]').forEach(safeInit(initCommitteeBoard))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2420,4 +2421,93 @@ function initTruncate (root) {
     toggle.setAttribute('aria-expanded', String(expanded))
     toggle.textContent = expanded ? 'Show less' : collapsedLabel
   })
+}
+
+// --- Schedule milestones for committee: drag cards onto committee dates ----------------------
+//
+// Each card ([data-dlp-committee-item]) already has a "Committee date" select, which is the
+// whole interface without JavaScript and for keyboard users. Dragging is only an accelerator on
+// top of it: dropping a card on a zone ([data-dlp-committee-zone], whose value is a committee id,
+// or empty for "Events to schedule") sets that select and moves the card there, and changing the
+// select moves the card too, so the two always agree. Nothing is saved until the form is.
+// Drag state is kept in this closure, not at module level — see CLAUDE.md on why init code must
+// not touch module-level bindings.
+function initCommitteeBoard (root) {
+  const zones = Array.prototype.slice.call(root.querySelectorAll('[data-dlp-committee-zone]'))
+  if (!zones.length) return
+  let dragged = null
+
+  function zoneFor (value) {
+    return zones.find(zone => zone.getAttribute('data-dlp-committee-zone') === value)
+  }
+
+  function refreshEmpty () {
+    zones.forEach(zone => {
+      const list = zone.querySelector('[data-dlp-committee-list]')
+      const empty = zone.querySelector('[data-dlp-committee-empty]')
+      if (list && empty) empty.hidden = list.children.length > 0
+    })
+  }
+
+  function moveTo (item, value) {
+    const zone = zoneFor(value)
+    const list = zone && zone.querySelector('[data-dlp-committee-list]')
+    if (!list || item.parentNode === list) return
+    list.appendChild(item)
+    refreshEmpty()
+  }
+
+  root.classList.add('dlp-pm-board--js')
+
+  root.querySelectorAll('[data-dlp-committee-item]').forEach(item => {
+    const select = item.querySelector('[data-dlp-committee-select]')
+    if (!select) return
+    item.draggable = true
+
+    item.addEventListener('dragstart', event => {
+      // Let text in the select be used normally; only the card itself drags.
+      if (event.target !== item) return
+      dragged = item
+      item.classList.add('dlp-pm-event--dragging')
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('text/plain', item.getAttribute('data-dlp-committee-item'))
+    })
+
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dlp-pm-event--dragging')
+      dragged = null
+      zones.forEach(zone => zone.classList.remove('dlp-pm-dropzone--over'))
+    })
+
+    select.addEventListener('change', () => {
+      moveTo(item, select.value)
+      // Moving a focused element can drop focus; put it back where the user was.
+      select.focus()
+    })
+  })
+
+  zones.forEach(zone => {
+    zone.addEventListener('dragover', event => {
+      if (!dragged) return
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      zone.classList.add('dlp-pm-dropzone--over')
+    })
+
+    zone.addEventListener('dragleave', event => {
+      if (!zone.contains(event.relatedTarget)) zone.classList.remove('dlp-pm-dropzone--over')
+    })
+
+    zone.addEventListener('drop', event => {
+      if (!dragged) return
+      event.preventDefault()
+      zone.classList.remove('dlp-pm-dropzone--over')
+      const value = zone.getAttribute('data-dlp-committee-zone')
+      const select = dragged.querySelector('[data-dlp-committee-select]')
+      if (select) select.value = value
+      moveTo(dragged, value)
+    })
+  })
+
+  refreshEmpty()
 }

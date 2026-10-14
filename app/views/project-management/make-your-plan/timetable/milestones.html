@@ -1,0 +1,193 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+
+{% set pageName = "Add or change plan milestones" %}
+
+{# Field values: what was typed, if the last save failed; otherwise the saved record. #}
+{% set retry = errorList.length > 0 %}
+{% set f = {
+  reference: values.reference if retry else selected.reference,
+  plan: values.plan if retry else (selected.plan or "LP-COL-2027"),
+  event: values.event if retry else selected.event,
+  notes: values.notes if retry else selected.notes,
+  eventDate: values.eventDate if retry else dateParts(selected.eventDate),
+  actualDate: values.actualDate if retry else dateParts(selected.actualDate),
+  entryDate: values.entryDate if retry else dateParts(selected.entryDate or today)
+} %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Create timetable", href: pmBase + "/timetable" },
+  { text: "Add or change plan milestones" }
+] }) }}
+
+<div class="dlp-pm-title-row">
+  <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Add or change plan milestones</h1>
+  {{ pmStatusTag(stepStatus) }}
+</div>
+<p class="govuk-body dlp-pm-lede govuk-!-margin-top-4">
+  Select a milestone from the list to view its proposed date and enter or change dates. You can
+  also view each record in its structured data format to check it is correct before exporting.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+{# Choosing a milestone is navigation, so it's a GET form; JavaScript applies it on change. #}
+<form method="get" action="{{ pmBase }}/timetable/milestones" class="dlp-pm-picker" data-dlp-autosubmit novalidate>
+  {% set pickerItems = [] %}
+  {% for item in milestones %}
+    {% set pickerItems = (pickerItems.push({
+      value: item.id,
+      text: item.label + (" — " + formatDate(item.eventDate) if item.eventDate else " — no date yet"),
+      selected: item.id == selected.id
+    }), pickerItems) %}
+  {% endfor %}
+  {% if isNew %}
+    {% set pickerItems = (pickerItems.push({ value: "new", text: "New milestone", selected: true }), pickerItems) %}
+  {% endif %}
+  {{ govukSelect({
+    id: "milestone-picker",
+    name: "_milestone",
+    label: { text: "Select a milestone to edit", classes: "govuk-label--s" },
+    items: pickerItems,
+    classes: "dlp-pm-picker__select"
+  }) }}
+  {{ govukButton({ text: "Show", classes: "govuk-button--secondary dlp-pm-picker__button" }) }}
+</form>
+
+<form method="post" action="{{ pmBase }}/timetable/milestones/{{ selected.id }}" novalidate>
+  <div class="dlp-pm-record">
+    {% if isNew %}<h2 class="govuk-heading-m">New milestone</h2>{% endif %}
+
+    {{ govukInput({
+      id: "reference",
+      name: "_reference",
+      label: { text: "Reference", classes: "govuk-label--s" },
+      hint: { text: "Give each event a unique reference" },
+      value: f.reference,
+      classes: "govuk-!-width-two-thirds",
+      errorMessage: { text: errors.reference } if errors.reference
+    }) }}
+
+    {{ govukInput({
+      id: "plan",
+      name: "_plan",
+      label: { text: "Plan reference", classes: "govuk-label--s" },
+      hint: { text: "The reference of the plan this event belongs to" },
+      value: f.plan,
+      classes: "govuk-!-width-two-thirds",
+      errorMessage: { text: errors.plan } if errors.plan
+    }) }}
+
+    {% set eventItems = [{ value: "", text: "Select an event type" }] %}
+    {% for type in eventTypes %}
+      {% set eventItems = (eventItems.push({ value: type.code, text: type.label, selected: type.code == f.event }), eventItems) %}
+    {% endfor %}
+    {{ govukSelect({
+      id: "event",
+      name: "_event",
+      label: { text: "Event type", classes: "govuk-label--s" },
+      hint: { text: "Select the type of plan event" },
+      items: eventItems,
+      classes: "govuk-!-width-two-thirds",
+      errorMessage: { text: errors.event } if errors.event
+    }) }}
+
+    {{ govukDateInput({
+      id: "eventDate",
+      namePrefix: "_eventDate",
+      fieldset: { legend: { text: "Planned date", classes: "govuk-fieldset__legend--s" } },
+      hint: { text: "When this event is expected to happen" },
+      items: [
+        { name: "day", classes: "govuk-input--width-2", value: f.eventDate.day },
+        { name: "month", classes: "govuk-input--width-2", value: f.eventDate.month },
+        { name: "year", classes: "govuk-input--width-4", value: f.eventDate.year }
+      ],
+      errorMessage: { text: errors.eventDate } if errors.eventDate
+    }) }}
+
+    {{ govukDateInput({
+      id: "actualDate",
+      namePrefix: "_actualDate",
+      fieldset: { legend: { text: "Actual date (if applicable)", classes: "govuk-fieldset__legend--s" } },
+      hint: { text: "When this event actually happened. Leave blank for future events." },
+      items: [
+        { name: "day", classes: "govuk-input--width-2", value: f.actualDate.day },
+        { name: "month", classes: "govuk-input--width-2", value: f.actualDate.month },
+        { name: "year", classes: "govuk-input--width-4", value: f.actualDate.year }
+      ],
+      errorMessage: { text: errors.actualDate } if errors.actualDate
+    }) }}
+
+    {{ govukDateInput({
+      id: "entryDate",
+      namePrefix: "_entryDate",
+      fieldset: { legend: { text: "Entry date", classes: "govuk-fieldset__legend--s" } },
+      hint: { text: "The date you created or last modified this record" },
+      items: [
+        { name: "day", classes: "govuk-input--width-2", value: f.entryDate.day },
+        { name: "month", classes: "govuk-input--width-2", value: f.entryDate.month },
+        { name: "year", classes: "govuk-input--width-4", value: f.entryDate.year }
+      ],
+      errorMessage: { text: errors.entryDate } if errors.entryDate
+    }) }}
+
+    {{ govukTextarea({
+      id: "notes",
+      name: "_notes",
+      rows: 3,
+      label: { text: "Notes", classes: "govuk-label--s" },
+      hint: { text: "Any additional notes or commentary (optional)" },
+      value: f.notes,
+      classes: "govuk-!-width-two-thirds"
+    }) }}
+
+    {% if not isNew %}
+      {% set tableHtml %}
+        <div class="dlp-pm-data">
+          <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Local plan timetable data format</h3>
+          <p class="govuk-body-s">This is the saved record as it will be exported, one field per row. Save your changes to update it.</p>
+          <p class="govuk-body-s"><a class="govuk-link" href="{{ pmBase }}/timetable/export.csv" download>Export data<span class="govuk-visually-hidden"> as CSV</span></a></p>
+          <table class="govuk-table dlp-pm-data__table">
+            <thead class="govuk-table__head">
+              <tr class="govuk-table__row">
+                <th scope="col" class="govuk-table__header">Field</th>
+                <th scope="col" class="govuk-table__header">Value</th>
+              </tr>
+            </thead>
+            <tbody class="govuk-table__body">
+              {% for row in [
+                ["reference", selected.reference],
+                ["plan", selected.plan],
+                ["plan-event", selected.event],
+                ["event-date", selected.eventDate],
+                ["entry-date", selected.entryDate],
+                ["actual-date", selected.actualDate],
+                ["notes", selected.notes]
+              ] %}
+                <tr class="govuk-table__row">
+                  <th scope="row" class="govuk-table__header dlp-pm-code">{{ row[0] }}</th>
+                  <td class="govuk-table__cell dlp-pm-code">{% if row[1] %}{{ row[1] }}{% else %}<em class="dlp-pm-muted">(blank)</em>{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endset %}
+      {{ govukDetails({ summaryText: "View as data table", html: tableHtml, classes: "govuk-!-margin-bottom-0" }) }}
+    {% endif %}
+  </div>
+
+  <div class="govuk-button-group">
+    {{ govukButton({ text: "Save", name: "_action", value: "save" }) }}
+    {{ govukButton({ text: "Save and add another", name: "_action", value: "add-another", classes: "govuk-button--secondary" }) }}
+  </div>
+</form>
+
+{% endblock %}

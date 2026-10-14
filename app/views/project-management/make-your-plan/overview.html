@@ -1,0 +1,42 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "project-management/make-your-plan/partials/macros.html" import pmTaskCard %}
+
+{% set pageName = "Make your plan" %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [{ text: "Home" }] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Make your plan</h1>
+<p class="govuk-body-l dlp-pm-lede">
+  Work through the tasks for your stage of plan-making. Each one shows how far it has got and
+  who is working on it.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+{% if not anyStarted %}
+
+  {% for task in tasks %}{{ pmTaskCard(task) }}{% endfor %}
+
+{% else %}
+
+  <h2 class="govuk-heading-m govuk-!-margin-bottom-2">Current actions</h2>
+  <p class="govuk-body">This is a list of your current tasks for your stage of plan making.</p>
+
+  {% for task in currentTasks %}{{ pmTaskCard(task, { headingLevel: 3 }) }}{% endfor %}
+
+  {% if completedTasks.length %}
+    <details class="dlp-pm-completed" open>
+      <summary class="dlp-pm-completed__summary">
+        <span class="govuk-heading-m dlp-pm-completed__heading">View completed actions ({{ completedTasks.length }})</span>
+      </summary>
+      <div class="dlp-pm-completed__body">
+        {% for task in completedTasks %}{{ pmTaskCard(task, { headingLevel: 3 }) }}{% endfor %}
+      </div>
+    </details>
+  {% endif %}
+
+{% endif %}
+
+{% endblock %}

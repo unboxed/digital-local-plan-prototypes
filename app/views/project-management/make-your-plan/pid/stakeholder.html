@@ -1,0 +1,33 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmFormActions %}
+
+{% set pageName = section.title %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: section.title }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Stakeholder engagement</h1>
+<p class="govuk-body dlp-pm-lede">This section explains how you will engage with stakeholders.</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<form method="post" action="{{ pmBase }}/pid/stakeholder" class="dlp-pm-measure" novalidate>
+  {{ govukTextarea({
+    id: "engagementApproach",
+    name: "_engagementApproach",
+    rows: 5,
+    label: { text: "Engagement approach", classes: "govuk-label--s" },
+    hint: { text: "Briefly explain your intended engagement approach" },
+    value: pm.pid.engagementApproach
+  }) }}
+
+  {{ pmFormActions({ backHref: pmBase + "/pid" }) }}
+</form>
+
+{% endblock %}

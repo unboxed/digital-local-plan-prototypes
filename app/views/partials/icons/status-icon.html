@@ -6,8 +6,9 @@
     {{ statusIcon("Completed") }}
 
   status: one of "Completed" | "In progress" | "Not started" | "Cannot start" | "Action required"
-  (matched case-sensitively against the same status text already used for task/step statuses
-  elsewhere in this project). Anything else renders nothing.
+  | "Blocked" (matched case-sensitively against the same status text already used for task/step statuses
+  elsewhere in this project). Anything else renders nothing. "Blocked" is not from BOPS: it was
+  added for Make your plan, whose design uses it for a task waiting on another one.
 #}
 
 {% macro statusIcon(status) %}
@@ -37,6 +38,11 @@
       <circle cx="12" cy="12" r="12" fill="#fff5c7" />
       <rect x="10.5" y="5" width="3" height="10" rx="1.5" fill="#6b5e00" />
       <circle cx="12" cy="18" r="1.5" fill="#6b5e00" />
+    </svg>
+  {% elif status == "Blocked" %}
+    <svg class="app-status-icon" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blocked">
+      <circle cx="12" cy="12" r="12" fill="#f4cdc6" />
+      <path d="M7 12 H17" fill="none" stroke="#942514" stroke-width="3" stroke-linecap="round" />
     </svg>
   {% endif %}
 {% endmacro %}

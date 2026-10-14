@@ -1,0 +1,51 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Make your plan" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/project-management">Back to Project management</a>
+
+    <h1 class="govuk-heading-xl">Make your plan</h1>
+
+    <p class="govuk-body">
+      The first tasks of plan-making, seen by a policy officer, Danny Dyer. Create the Local Plan
+      timetable and publish it, schedule its milestones for committee, write the Project
+      Initiation Documentation (PID) and send it for approval, and publish the notice of
+      intention to commence.
+    </p>
+
+    <p class="govuk-body">
+      Scoping activities have not been designed yet. The scoping consultation is run in the
+      <a class="govuk-link" href="/consultations">Consultations</a> prototypes.
+    </p>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m" />
+
+    {# Each entry resets the prototype's data to a fitting starting point, so they POST. #}
+    <form method="post" action="/project-management/make-your-plan/reset" class="dlp-pm-start" novalidate>
+      <h2 class="govuk-heading-m">Start from the beginning</h2>
+      <p class="govuk-body">Nothing done yet: every task is waiting to be started.</p>
+      <button type="submit" name="_stage" value="start" class="govuk-button" data-module="govuk-button">
+        Start from the beginning
+      </button>
+    </form>
+
+    <form method="post" action="/project-management/make-your-plan/reset" class="dlp-pm-start" novalidate>
+      <h2 class="govuk-heading-m">Pick up part way through</h2>
+      <p class="govuk-body">
+        The timetable is published, the PID is half written, the scoping consultation is under
+        way, and the notice is waiting on the PID's approval.
+      </p>
+      <button type="submit" name="_stage" value="midway" class="govuk-button govuk-button--secondary" data-module="govuk-button">
+        Pick up part way through
+      </button>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

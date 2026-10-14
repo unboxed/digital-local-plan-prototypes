@@ -1,0 +1,99 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmFormActions %}
+
+{% set pageName = section.title %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: section.crumb }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Risks and mitigations</h1>
+<p class="govuk-body dlp-pm-lede">This section explains headline risks and mitigation and description of risk management process.</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<form method="post" action="{{ pmBase }}/pid/risks" novalidate>
+  {# Pressing Enter submits with the first button in the form, which would otherwise be a
+     Remove button in the table. This invisible one makes Enter mean "Add". #}
+  <button type="submit" name="_action" value="add" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Add</button>
+
+  <div class="dlp-pm-scroll" id="risks">
+    <table class="govuk-table">
+      <caption class="govuk-table__caption govuk-visually-hidden">Risks</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th scope="col" class="govuk-table__header">Risks</th>
+          <th scope="col" class="govuk-table__header">Likelihood</th>
+          <th scope="col" class="govuk-table__header">Potential impact</th>
+          <th scope="col" class="govuk-table__header">Mitigation</th>
+          <th scope="col" class="govuk-table__header">Action</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% for risk in pm.pid.risks %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">{{ risk.risk }}</td>
+            <td class="govuk-table__cell">{{ risk.likelihood }}</td>
+            <td class="govuk-table__cell">{{ risk.impact }}</td>
+            <td class="govuk-table__cell">{{ risk.mitigation }}</td>
+            <td class="govuk-table__cell">
+              <button type="submit" name="_action" value="remove:{{ risk.id }}" class="dlp-pm-link-button">
+                Remove<span class="govuk-visually-hidden"> {{ risk.risk }}</span>
+              </button>
+            </td>
+          </tr>
+        {% else %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell dlp-pm-muted" colspan="5"><strong>None added</strong></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dlp-pm-measure" id="add-risk">
+    <h2 class="govuk-heading-m">Add risk</h2>
+    {{ govukInput({
+      id: "risk",
+      name: "_risk",
+      label: { text: "Risk", classes: "govuk-label--s" },
+      value: values.risk,
+      errorMessage: { text: errors.risk } if errors.risk
+    }) }}
+
+    {% for field in [{ key: "likelihood", legend: "Likelihood" }, { key: "impact", legend: "Potential impact" }] %}
+      {% set levelItems = [] %}
+      {% for level in levels %}
+        {% set levelItems = (levelItems.push({ value: level, text: level, checked: values[field.key] == level }), levelItems) %}
+      {% endfor %}
+      {{ govukRadios({
+        idPrefix: field.key,
+        name: "_" + field.key,
+        classes: "govuk-radios--inline",
+        fieldset: { legend: { text: field.legend, classes: "govuk-fieldset__legend--s" } },
+        items: levelItems,
+        errorMessage: { text: errors[field.key] } if errors[field.key]
+      }) }}
+    {% endfor %}
+
+    {{ govukInput({
+      id: "mitigation",
+      name: "_mitigation",
+      label: { text: "Mitigation", classes: "govuk-label--s" },
+      value: values.mitigation,
+      errorMessage: { text: errors.mitigation } if errors.mitigation
+    }) }}
+
+    {{ govukButton({ text: "Add", name: "_action", value: "add", classes: "govuk-button--secondary" }) }}
+  </div>
+
+  {{ pmFormActions({ name: "_action", value: "save", backHref: pmBase + "/pid" }) }}
+</form>
+
+{% endblock %}

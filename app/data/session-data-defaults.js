@@ -1,4 +1,5 @@
 const { startingState: startingConsultationResponses } = require('./consultation-responses.js')
+const { startingState: startingProjectManagement } = require('./project-management.js')
 
 module.exports = {
 
@@ -685,6 +686,12 @@ module.exports = {
   // The side-by-side views open filtered to the worked example in the designs. These are the
   // sticky filters the kit stores from the query string, so a tester's own choice replaces them.
   crTheme: 'heritage',
-  crPolicy: 'HE1'
+  crPolicy: 'HE1',
+
+  // Make your plan (/project-management/make-your-plan). Read only through
+  // getProjectManagement in routes.js, and stamped with PROJECT_MANAGEMENT_SCHEMA_VERSION, so
+  // bump that when this shape changes. Starts with nothing done (the empty-state frame); the
+  // landing page can swap in midwayState() instead.
+  projectManagement: startingProjectManagement()
 
 }

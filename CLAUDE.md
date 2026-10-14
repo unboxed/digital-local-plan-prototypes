@@ -608,6 +608,51 @@ the header's "Consultations" item, previously a disabled placeholder, now links 
 - **Inert placeholders from the design:** the document viewer's "Download" and "Open in new
   window". Uploads keep only the file name (the form isn't multipart).
 
+## Make your plan (project management)
+
+`/project-management/make-your-plan` (`app/views/project-management/make-your-plan/`) is built
+from the Figma frames in the git-ignored `Figma screenshots/Project management/` folder. A policy
+officer works through the first tasks of plan-making: the timetable, the Project Initiation
+Documentation (PID) and the notice of intention to commence. `/project-management` is now the
+area's hub, listing it under Current prototypes.
+
+- **State** is one object, `projectManagement`, read only through `getProjectManagement` and
+  stamped with `PROJECT_MANAGEMENT_SCHEMA_VERSION`, so **bump that when the seed's shape
+  changes**. Static content (event types, committee dates, the default role-of-the-plan text,
+  budget categories) and both seeds, `startingState()` and `midwayState()`, are in
+  `app/data/project-management.js`. The landing page's two entry points POST to `/reset` with
+  `_stage` (`start`, `midway`), matching the design's empty and completed-state frames.
+- **Every status is derived, never stored**, in `pmStatuses` / `pmTimetableSteps` /
+  `pmPidSections` in routes.js. The overview cards, the sidebar icons and each page's own tag all
+  read from there. Publishing the notice is **Blocked** until the PID is approved; that is a
+  status from the design, added to `statusIcon` for it.
+- **The timetable is complete without its last three events** (Gateway 3, examination,
+  adoption), which can't be dated yet and show as "Date needed" on the timeline. Publishing needs
+  every other milestone dated. Editing a milestone or the statement un-publishes the timetable.
+- **Committee scheduling works without JavaScript.** Every card has a "Committee date" select;
+  `initCommitteeBoard` (`data-dlp-committee-board`) adds dragging on top, setting that select and
+  moving the card. The timeline panel is a server-rendered view (`?_timeline=open`).
+- **The PID's sections are `PM_PID_SECTIONS`** (status rules) and `PM_PID_HANDLERS` (one form
+  handler each) behind one `/pid/:section` route pair; each section has its own template because
+  the forms differ. List sections post an `_action` of `add`, `remove:<id>` or `save`. Each of
+  those forms starts with a visually hidden default "Add" (or "Save") button, because pressing
+  Enter submits with the first button in the form, which would otherwise be a row's Remove.
+  Approval's check-your-answers rows come from `pmPidSummary`. A "Prototype only" panel stands in
+  for the three approvers signing it off.
+- **Linked, not built:** "Scoping consultation" goes to `/consultations/managing-responses`
+  (starting it records `scopingConsultationStarted`), and the PID's Evidence section to
+  `/evidence`. Scoping activities and the Readiness checker have no design, so their pages say so.
+- **The website preview is council-branded**, not GOV.UK: the frame mocked the authority's site
+  with a GOV.UK bar, which this project can't show.
+- **Real outbound links**: guidance and its search go to GOV.UK, "Export" downloads a real CSV
+  (`/timetable/export.csv`), and Check and provide links to the real service. The plan-event
+  codes and CSV fields follow the frames and are written for the prototype, not taken from a
+  published specification.
+- **Deviations from the designs:** one consistent set of dates (the frames mixed 2025 and 2026);
+  the new system's consultation names; real copy in place of lorem ipsum and placeholder text;
+  the second Approval frame's intro (copied from Risks) rewritten. File uploads keep only the
+  file name.
+
 ## Keeping this file current
 
 As conventions evolve (new shared layouts, session data patterns, testing setup, etc.), update
