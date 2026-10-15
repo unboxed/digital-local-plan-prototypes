@@ -1,0 +1,128 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmFormActions %}
+
+{% set pageName = section.title %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: section.crumb }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Staff resource and management</h1>
+<p class="govuk-body dlp-pm-lede">
+  This section identifies officers responsible for project management, staff resource – and any
+  gaps in the latter. This also identifies core team resource (positions and time allocated to
+  plan making activity), corporate resources and any gaps which might give rise to external
+  support needs.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+{# One form: Add and Remove come back to this page; Next moves on to the team lead. #}
+<form method="post" action="{{ pmBase }}/pid/staff" novalidate>
+  {# Pressing Enter submits with the first button in the form, which would otherwise be a
+     Remove button in the table. This invisible one makes Enter mean "Add". #}
+  <button type="submit" name="_action" value="add" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Add</button>
+
+  <div class="dlp-pm-scroll" id="staff">
+    <table class="govuk-table">
+      <caption class="govuk-table__caption govuk-visually-hidden">Staff members</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th scope="col" class="govuk-table__header">Job title</th>
+          <th scope="col" class="govuk-table__header">Name</th>
+          <th scope="col" class="govuk-table__header">FTE</th>
+          <th scope="col" class="govuk-table__header">Post status</th>
+          <th scope="col" class="govuk-table__header">Time on plan</th>
+          <th scope="col" class="govuk-table__header">Action</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% for member in staff %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">{{ member.jobTitle }}{% if member.lead %} <strong class="govuk-tag govuk-tag--blue dlp-pm-tag">Team lead</strong>{% endif %}</td>
+            <td class="govuk-table__cell">{{ member.name or "—" }}</td>
+            <td class="govuk-table__cell">{{ member.fte }}</td>
+            <td class="govuk-table__cell">{{ member.postStatus }}</td>
+            <td class="govuk-table__cell">{{ (member.timeOnPlan + "%") if member.timeOnPlan else "—" }}</td>
+            <td class="govuk-table__cell">
+              <button type="submit" name="_action" value="remove:{{ member.id }}" class="dlp-pm-link-button">
+                Remove<span class="govuk-visually-hidden"> {{ member.jobTitle }}</span>
+              </button>
+            </td>
+          </tr>
+        {% else %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell dlp-pm-muted" colspan="6"><strong>None added</strong></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dlp-pm-measure" id="add-staff">
+    <h2 class="govuk-heading-m">Add staff member</h2>
+
+    {{ govukInput({
+      id: "jobTitle",
+      name: "_jobTitle",
+      label: { text: "Job title", classes: "govuk-label--s" },
+      value: values.jobTitle,
+      errorMessage: { text: errors.jobTitle } if errors.jobTitle
+    }) }}
+
+    {{ govukInput({
+      id: "name",
+      name: "_name",
+      label: { text: "Name", classes: "govuk-label--s" },
+      hint: { text: "If known, leave blank if the role is currently vacant" },
+      value: values.name
+    }) }}
+
+    {{ govukInput({
+      id: "fte",
+      name: "_fte",
+      label: { text: "Full-time Equivalent (FTE)", classes: "govuk-label--s" },
+      hint: { text: "For example, 1 or 0.6" },
+      inputmode: "decimal",
+      classes: "govuk-input--width-4",
+      value: values.fte,
+      errorMessage: { text: errors.fte } if errors.fte
+    }) }}
+
+    {{ govukRadios({
+      idPrefix: "postStatus",
+      name: "_postStatus",
+      classes: "govuk-radios--inline",
+      fieldset: { legend: { text: "Post status", classes: "govuk-fieldset__legend--s" } },
+      items: [
+        { value: "Filled", text: "Filled", checked: values.postStatus == "Filled" },
+        { value: "Vacant", text: "Vacant", checked: values.postStatus == "Vacant" }
+      ],
+      errorMessage: { text: errors.postStatus } if errors.postStatus
+    }) }}
+
+    {{ govukInput({
+      id: "timeOnPlan",
+      name: "_timeOnPlan",
+      label: { text: "Estimate percentage of time working on the Local Plan", classes: "govuk-label--s" },
+      hint: { text: "Consider a typical 12-month period and how much time will be spent working on the Local Plan." },
+      inputmode: "numeric",
+      classes: "govuk-input--width-3",
+      suffix: { text: "%" },
+      value: values.timeOnPlan,
+      errorMessage: { text: errors.timeOnPlan } if errors.timeOnPlan
+    }) }}
+
+    {{ govukButton({ text: "Add", name: "_action", value: "add", classes: "govuk-button--secondary" }) }}
+  </div>
+
+  {{ pmFormActions({ text: "Next", name: "_action", value: "next", backHref: pmBase + "/pid" }) }}
+</form>
+
+{% endblock %}

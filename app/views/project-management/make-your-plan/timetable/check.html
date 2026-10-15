@@ -1,0 +1,117 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/tabs/macro.njk" import govukTabs %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmWebsitePreview %}
+
+{% set pageName = "Check and publish timetable" %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Create timetable", href: pmBase + "/timetable" },
+  { text: "Check and publish timetable" }
+] }) }}
+
+<div class="dlp-pm-title-row">
+  <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Check and publish timetable</h1>
+  {{ pmStatusTag(stepStatus) }}
+</div>
+<p class="govuk-body-l dlp-pm-lede govuk-!-margin-top-4">
+  Review your timetable, add a publication statement, and publish. You can preview how it will
+  appear on your website before publishing.
+</p>
+
+<form method="post" action="{{ pmBase }}/timetable/check" novalidate>
+
+  <h2 class="govuk-heading-m">Add statement</h2>
+  {{ govukTextarea({
+    id: "statement",
+    name: "_statement",
+    rows: 3,
+    label: { text: "Statement", classes: "govuk-visually-hidden" },
+    hint: { text: "Check and edit the statement to confirm that the timetable is to have effect. This will appear on the local authority website." },
+    value: values.statement if errors.statement else pm.timetable.statement,
+    errorMessage: { text: errors.statement } if errors.statement
+  }) }}
+  {{ govukButton({ text: "Save statement", name: "_action", value: "statement", classes: "govuk-button--secondary" }) }}
+
+  <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+  <h2 class="govuk-heading-m" id="milestones">Check timetable</h2>
+  <p class="govuk-body">
+    Review your timetable data alongside how it will appear on your website. You can edit each
+    milestone from the website preview.
+  </p>
+  {% if errors.milestones %}
+    <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ errors.milestones }}</p>
+  {% endif %}
+
+  {% set tableHtml %}
+    <div class="dlp-pm-scroll">
+      <table class="govuk-table dlp-pm-data__table">
+        <caption class="govuk-table__caption govuk-visually-hidden">Timetable data</caption>
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            {% for heading in ["reference", "plan", "plan-event", "event-date", "entry-date"] %}
+              <th scope="col" class="govuk-table__header dlp-pm-code">{{ heading }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for item in pm.milestones %}
+            <tr class="govuk-table__row">
+              <td class="govuk-table__cell dlp-pm-code">
+                <a class="govuk-link" href="{{ pmBase }}/timetable/milestones?_milestone={{ item.id | urlencode }}">{{ item.reference or "(no reference)" }}</a>
+              </td>
+              <td class="govuk-table__cell dlp-pm-code">{{ item.plan }}</td>
+              <td class="govuk-table__cell dlp-pm-code">{{ item.event or "-" }}</td>
+              <td class="govuk-table__cell dlp-pm-code">{{ item.eventDate or "-" }}</td>
+              <td class="govuk-table__cell dlp-pm-code">{{ item.entryDate or "-" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endset %}
+
+  {% set previewHtml %}
+    {{ pmWebsitePreview({ statement: pm.timetable.statement, stages: published, editable: true }) }}
+  {% endset %}
+
+  <div class="dlp-pm-tabs-panel">
+    {{ govukTabs({
+      items: [
+        { label: "Data table", id: "data-table", panel: { html: tableHtml } },
+        { label: "Website preview", id: "website-preview", panel: { html: previewHtml } }
+      ]
+    }) }}
+  </div>
+
+  <a href="{{ pmBase }}/timetable/preview" target="_blank" rel="noopener noreferrer" role="button" draggable="false"
+     class="govuk-button govuk-button--secondary" data-module="govuk-button">
+    Preview timetable in new tab<span class="govuk-visually-hidden"> (opens in a new tab)</span>
+  </a>
+
+  <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+  <h2 class="govuk-heading-m">Export data</h2>
+  <ul class="govuk-list">
+    <li><a class="govuk-link dlp-pm-strong-link" href="{{ pmBase }}/timetable/export.csv" download>Export timetable as CSV</a></li>
+    <li><a class="govuk-link dlp-pm-strong-link" href="{{ checkAndProvideUrl }}" target="_blank" rel="noopener noreferrer">Open the Check and provide planning data service<span class="govuk-visually-hidden"> (opens in a new tab)</span></a></li>
+  </ul>
+  <p class="govuk-body-s dlp-pm-muted">
+    Export your timetable as a CSV, then upload it to the Check and provide planning data service
+    to check it against the data specification.
+  </p>
+
+  <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+  {% if pm.timetable.published %}
+    <p class="govuk-body">Published on {{ formatDate(pm.timetable.published) }}. Publishing again replaces the published version.</p>
+  {% endif %}
+  {{ govukButton({ text: "Save and publish", name: "_action", value: "publish" }) }}
+</form>
+
+{% endblock %}

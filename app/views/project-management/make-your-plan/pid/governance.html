@@ -1,0 +1,70 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmFormActions %}
+
+{% set pageName = section.title %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: section.title }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Governance</h1>
+<p class="govuk-body dlp-pm-lede">This section explains how the plan (and stages of it) are decided on and approved.</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<form method="post" action="{{ pmBase }}/pid/governance" class="dlp-pm-measure" novalidate>
+  {{ govukTextarea({
+    id: "governanceSummary",
+    name: "_governanceSummary",
+    rows: 4,
+    label: { text: "Summary of governance", classes: "govuk-label--s" },
+    hint: { text: "Briefly explain the approval process for the local plan including any specific provisions at each plan stage where these vary" },
+    value: pm.pid.governanceSummary
+  }) }}
+
+  {% for person in [
+    { key: "councilLead", heading: "Council Lead (Portfolio Holder)" },
+    { key: "sponsor", heading: "Local Plan Sponsor (Lead Officer)" }
+  ] %}
+    <fieldset class="govuk-fieldset govuk-!-margin-bottom-6">
+      <legend class="govuk-fieldset__legend govuk-fieldset__legend--m">
+        <h2 class="govuk-fieldset__heading">{{ person.heading }}</h2>
+      </legend>
+      {{ govukInput({
+        id: person.key + "Name",
+        name: "_" + person.key + "Name",
+        label: { text: "Name", classes: "govuk-label--s" },
+        value: pm.pid[person.key + "Name"],
+        autocomplete: "off"
+      }) }}
+      {{ govukInput({
+        id: person.key + "Email",
+        name: "_" + person.key + "Email",
+        type: "email",
+        spellcheck: false,
+        label: { text: "Email address", classes: "govuk-label--s" },
+        value: pm.pid[person.key + "Email"],
+        autocomplete: "off",
+        formGroup: { classes: "govuk-!-margin-bottom-0" }
+      }) }}
+    </fieldset>
+  {% endfor %}
+
+  {{ govukTextarea({
+    id: "seniorEngagement",
+    name: "_seniorEngagement",
+    rows: 4,
+    label: { text: "Senior officer engagement approach", classes: "govuk-label--s" },
+    value: pm.pid.seniorEngagement
+  }) }}
+
+  {{ pmFormActions({ backHref: pmBase + "/pid" }) }}
+</form>
+
+{% endblock %}

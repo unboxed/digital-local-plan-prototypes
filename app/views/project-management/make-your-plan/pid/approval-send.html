@@ -1,0 +1,85 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/warning-text/macro.njk" import govukWarningText %}
+
+{% set pageName = "Send for approval" %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: "Approval", href: pmBase + "/pid/approval" },
+  { text: "Send for approval" }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Approval</h1>
+<p class="govuk-body dlp-pm-lede">
+  Send the Project Initiation Documentation to the political lead, the chief executive and the
+  plan's sponsor to approve.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<div class="dlp-pm-measure">
+  {% if pm.pid.approval.approved %}
+    {{ govukWarningText({ text: "The Project Initiation Documentation was approved on " + formatDate(pm.pid.approval.approved) + ".", iconFallbackText: "Note" }) }}
+  {% elif pm.pid.approval.sent %}
+    {{ govukWarningText({ text: "Sent for approval on " + formatDate(pm.pid.approval.sent) + ". Waiting for every approver to sign it off.", iconFallbackText: "Note" }) }}
+  {% elif outstanding.length %}
+    {{ govukWarningText({ text: "Finish these sections before you send the Project Initiation Documentation for approval.", iconFallbackText: "Warning" }) }}
+    <ul class="govuk-list govuk-list--bullet">
+      {% for section in outstanding %}
+        <li><a class="govuk-link" href="{{ section.href }}">{{ section.title }}</a> ({{ section.status | lower }})</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ govukWarningText({ text: "You can now submit the Project Initiation Documentation for approval.", iconFallbackText: "Note" }) }}
+  {% endif %}
+
+  <table class="govuk-table">
+    <caption class="govuk-table__caption govuk-visually-hidden">Approvers</caption>
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header">Role</th>
+        <th scope="col" class="govuk-table__header">Name</th>
+        <th scope="col" class="govuk-table__header">Status</th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for approver in approvers %}
+        <tr class="govuk-table__row">
+          <th scope="row" class="govuk-table__header">{{ approver.role }}</th>
+          <td class="govuk-table__cell">{{ approver.name }}</td>
+          <td class="govuk-table__cell">{{ approver.status }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+
+{% if not pm.pid.approval.sent %}
+  <form method="post" action="{{ pmBase }}/pid/approval/send" novalidate>
+    <div class="govuk-button-group">
+      {% if outstanding.length %}
+        {{ govukButton({ text: "Send for approval", disabled: true }) }}
+      {% else %}
+        {{ govukButton({ text: "Send for approval" }) }}
+      {% endif %}
+      <a href="{{ pmBase }}/pid/approval" class="govuk-button govuk-button--secondary" role="button" draggable="false" data-module="govuk-button">Back</a>
+    </div>
+  </form>
+{% elif not pm.pid.approval.approved %}
+  {# Stands in for the approvers signing it off, which happens outside this officer's screens. #}
+  <form method="post" action="{{ pmBase }}/pid/approval/approve" class="dlp-ce-handoff" aria-label="Prototype only" novalidate>
+    <p class="dlp-ce-handoff__label">Prototype only — this would not appear in the real service</p>
+    <p class="govuk-body">In the real service each approver would sign the PID off themselves. Skip ahead to when all three have.</p>
+    {{ govukButton({ text: "Record approval from all three", classes: "govuk-button--secondary govuk-!-margin-bottom-0" }) }}
+  </form>
+  <p class="govuk-body"><a class="govuk-link" href="{{ pmBase }}/pid">Back to the PID</a></p>
+{% else %}
+  <p class="govuk-body"><a class="govuk-link" href="{{ pmBase }}/pid">Back to the PID</a></p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% set pageName = title %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: title }
+] }) }}
+
+<h1 class="govuk-heading-xl">{{ title }}</h1>
+
+<div class="govuk-inset-text dlp-pm-measure">
+  <p class="govuk-body">{{ text }}</p>
+  <p class="govuk-body govuk-!-margin-bottom-0">This page stands in for it in the prototype.</p>
+</div>
+
+<p class="govuk-body"><a class="govuk-link" href="{{ pmBase }}/overview">Back to Make your plan</a></p>
+
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% set pageName = "Preview notice" %}
+
+{# A detail that hasn't been filled in shows as a marked placeholder, as in a draft. #}
+{% macro field(value, label) %}
+  {%- if value -%}{{ value }}{%- else -%}<mark class="dlp-pm-placeholder">[{{ label }}]<span class="govuk-visually-hidden"> not filled in</span></mark>{%- endif -%}
+{% endmacro %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Publish Notice of Intention to Commence", href: pmBase + "/notice" },
+  { text: "Preview notice" }
+] }) }}
+
+<div class="dlp-pm-title-row">
+  <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Preview notice</h1>
+  {{ pmStatusTag(noticeStatus.status) }}
+</div>
+<p class="govuk-body dlp-pm-lede govuk-!-margin-top-4">
+  Check the notice as it will be published. To change it, go back and edit the details.
+</p>
+
+{% for key, message in errors %}
+  <p class="govuk-error-message" id="{{ key }}"><span class="govuk-visually-hidden">Error:</span> {{ message }}</p>
+{% endfor %}
+
+<article class="dlp-pm-notice">
+  <p class="dlp-pm-notice__caption">Draft notice — example wording written for this prototype</p>
+  <h2 class="govuk-heading-m">Notice of intention to commence the preparation of a Local Plan</h2>
+  <p class="govuk-body">
+    {{ organisationName }} gives notice that it intends to begin preparing a new Local Plan,
+    reference {{ pm.milestones[0].plan }}, for {{ field(pm.notice.area, "scope and geographic area") }}.
+  </p>
+  <p class="govuk-body">
+    The Local Plan timetable sets out when each stage will take place. You can view it at
+    {{ field(pm.notice.timetableLink, "link to timetable") }}.
+    {% if scoping and scoping.date %}
+      The scoping consultation is planned to start on {{ scoping.date }}{% if scoping.endDate %}, with representations to be received by {{ scoping.endDate }}{% endif %}.
+    {% endif %}
+  </p>
+  <p class="govuk-body">
+    Documents relating to the plan will be available to view in person at
+    {{ field(pm.notice.addresses, "addresses where the plan will be available") }}.
+  </p>
+  <p class="govuk-body govuk-!-margin-bottom-0">
+    To get updates about the Local Plan: {{ field(pm.notice.updates, "how to sign up for updates") }}.
+  </p>
+</article>
+
+{% if not pm.notice.published %}
+  <form method="post" action="{{ pmBase }}/notice/publish" novalidate>
+    <div class="govuk-button-group">
+      {{ govukButton({ text: "Publish notice" }) }}
+      <a href="{{ pmBase }}/notice" class="govuk-button govuk-button--secondary" role="button" draggable="false" data-module="govuk-button">Back</a>
+    </div>
+  </form>
+{% else %}
+  <p class="govuk-body">Published on {{ formatDate(pm.notice.published) }}.</p>
+{% endif %}
+
+{% endblock %}

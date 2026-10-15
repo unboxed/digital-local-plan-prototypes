@@ -1,0 +1,58 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmFormActions %}
+
+{% set pageName = section.title %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: section.crumb }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Staff resource and management</h1>
+<p class="govuk-body dlp-pm-lede">
+  This section identifies officers responsible for project management, staff resource – and any
+  gaps in the latter. This also identifies core team resource (positions and time allocated to
+  plan making activity), corporate resources and any gaps which might give rise to external
+  support needs.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<form method="post" action="{{ pmBase }}/pid/staff/team" class="dlp-pm-measure" novalidate>
+  {% if staffOptions.length %}
+    {% set leadItems = [{ value: "", text: "Select staff member" }] %}
+    {% for option in staffOptions %}
+      {% set leadItems = (leadItems.push({ value: option.value, text: option.text, selected: option.value == pm.pid.teamLead }), leadItems) %}
+    {% endfor %}
+    {{ govukSelect({
+      id: "teamLead",
+      name: "_teamLead",
+      label: { text: "Who is the team lead?", classes: "govuk-label--s" },
+      items: leadItems,
+      classes: "govuk-!-width-full"
+    }) }}
+  {% else %}
+    <h2 class="govuk-heading-s govuk-!-margin-bottom-1">Who is the team lead?</h2>
+    <p class="govuk-body">
+      <a class="govuk-link" href="{{ pmBase }}/pid/staff#add-staff">Add staff members</a> first, then choose the team lead from them.
+    </p>
+  {% endif %}
+
+  {{ govukTextarea({
+    id: "supportNeeds",
+    name: "_supportNeeds",
+    rows: 5,
+    label: { text: "Additional corporate support needs", classes: "govuk-label--s" },
+    hint: { text: "List specific skills required to deliver the Local Plan that are not currently available within the Local Plan team or elsewhere in the council which may necessitate external support or specialist consultancy, such as technical evidence preparation, specialist assessments, or targeted training for staff, including any internal or external programme officers." },
+    value: pm.pid.supportNeeds
+  }) }}
+
+  {{ pmFormActions({ backHref: pmBase + "/pid/staff" }) }}
+</form>
+
+{% endblock %}

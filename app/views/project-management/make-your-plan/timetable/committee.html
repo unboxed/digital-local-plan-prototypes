@@ -1,0 +1,154 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+
+{% set pageName = "Schedule milestones for committee" %}
+
+{#
+  One card per thing to take to committee. Every card carries its own "Committee date" select,
+  which is the whole interface without JavaScript and for keyboard users; dragging a card onto a
+  committee (initCommitteeBoard in application.js) only sets that select and moves the card.
+#}
+{% macro eventCard(item) %}
+  <li class="dlp-pm-event" id="item-{{ item.id }}" data-dlp-committee-item="{{ item.id }}">
+    <h3 class="govuk-heading-s dlp-pm-event__title">
+      <span class="dlp-pm-event__grip" aria-hidden="true"></span>{{ item.title }}
+    </h3>
+    {% if item.description %}<p class="govuk-body-s dlp-pm-event__description">{{ item.description }}</p>{% endif %}
+    {% set options = [{ value: "", text: "Not assigned" }] %}
+    {% for option in committeeOptions %}
+      {% set options = (options.push({ value: option.value, text: option.text, selected: option.value == item.committee }), options) %}
+    {% endfor %}
+    {{ govukSelect({
+      id: "committee-" + item.id,
+      name: "_committee-" + item.id,
+      label: { text: "Committee date", classes: "govuk-label--s dlp-pm-event__label" },
+      items: options,
+      classes: "dlp-pm-event__select",
+      formGroup: { classes: "govuk-!-margin-bottom-2" },
+      attributes: { "data-dlp-committee-select": "" }
+    }) }}
+    <p class="govuk-body-s govuk-!-margin-bottom-0 dlp-pm-event__guidance">
+      <a class="govuk-link" href="{{ guidanceUrl }}" target="_blank" rel="noopener noreferrer">View guidance (opens on GOV.UK)<span class="govuk-visually-hidden"> about {{ item.title }}, in a new tab</span></a>
+    </p>
+  </li>
+{% endmacro %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Create timetable", href: pmBase + "/timetable" },
+  { text: "Schedule milestones for committee" }
+] }) }}
+
+<div class="dlp-pm-page-head">
+  <div class="dlp-pm-title-row">
+    <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Schedule milestones for committee</h1>
+    {{ pmStatusTag(stepStatus) }}
+  </div>
+  <a href="{{ pmBase }}/timetable/export.csv" download role="button" draggable="false"
+     class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">
+    Export<span class="govuk-visually-hidden"> timetable as CSV</span>
+  </a>
+</div>
+<p class="govuk-body dlp-pm-lede govuk-!-margin-top-4">
+  Link events from your timetable to your local authority's planning committee dates. Drag items
+  to the relevant committee date, or use the dropdowns to assign them.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+
+<p class="govuk-body">
+  {% if timelineOpen %}
+    <a class="govuk-link dlp-pm-strong-link" href="{{ pmBase }}/timetable/committee">Hide timeline <span aria-hidden="true">&lsaquo;</span></a>
+  {% else %}
+    <a class="govuk-link dlp-pm-strong-link" href="{{ pmBase }}/timetable/committee?_timeline=open#timeline">View timeline <span aria-hidden="true">&rsaquo;</span></a>
+  {% endif %}
+</p>
+
+<form method="post" action="{{ pmBase }}/timetable/committee" novalidate>
+  <div class="dlp-pm-board" data-dlp-committee-board>
+
+    <section class="dlp-pm-board__column dlp-pm-board__column--events" aria-labelledby="events-heading">
+      <h2 class="govuk-heading-m" id="events-heading">Events to schedule</h2>
+      <div class="dlp-pm-dropzone dlp-pm-dropzone--events" data-dlp-committee-zone="">
+        <ul class="dlp-pm-event-list" data-dlp-committee-list>
+          {% for item in unassigned %}{{ eventCard(item) }}{% endfor %}
+        </ul>
+        <p class="govuk-body-s dlp-pm-dropzone__empty" data-dlp-committee-empty {% if unassigned.length %}hidden{% endif %}>
+          Every event is assigned to a committee date.
+        </p>
+      </div>
+      <p class="govuk-body govuk-!-margin-bottom-0"><a class="govuk-link dlp-pm-strong-link" href="#add-item">+ Add another item</a></p>
+    </section>
+
+    <section class="dlp-pm-board__column dlp-pm-board__column--committees" aria-labelledby="committees-heading">
+      <h2 class="govuk-heading-m govuk-!-margin-bottom-2" id="committees-heading">Committee dates</h2>
+      <p class="govuk-body">
+        <a class="govuk-link dlp-pm-strong-link" href="{{ committeeDatesUrl }}" target="_blank" rel="noopener noreferrer">View dates on website<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>
+      </p>
+      {% for committee in committees %}
+        <div class="dlp-pm-committee dlp-pm-dropzone" data-dlp-committee-zone="{{ committee.id }}">
+          <h3 class="govuk-heading-s dlp-pm-committee__title">{{ committee.label }}</h3>
+          <ul class="dlp-pm-event-list" data-dlp-committee-list>
+            {% for item in committee.items %}{{ eventCard(item) }}{% endfor %}
+          </ul>
+          <p class="govuk-body-s dlp-pm-dropzone__empty" data-dlp-committee-empty {% if committee.items.length %}hidden{% endif %}>
+            <span class="dlp-pm-js-only">Drag an item here</span><span class="dlp-pm-no-js">No items assigned</span>
+          </p>
+        </div>
+      {% endfor %}
+    </section>
+
+  </div>
+
+  {{ govukButton({ text: "Save" }) }}
+</form>
+
+<form method="post" action="{{ pmBase }}/timetable/committee/items" class="dlp-pm-add-item" id="add-item" novalidate>
+  <h2 class="govuk-heading-m">Add another item</h2>
+  <p class="govuk-body">Add something else to take to committee. It joins the events to schedule.</p>
+  {{ govukInput({
+    id: "itemTitle",
+    name: "_title",
+    label: { text: "Name", classes: "govuk-label--s" },
+    value: values.title,
+    errorMessage: { text: errors.itemTitle } if errors.itemTitle
+  }) }}
+  {{ govukTextarea({
+    id: "itemDescription",
+    name: "_description",
+    rows: 2,
+    label: { text: "Description (optional)", classes: "govuk-label--s" },
+    value: values.description
+  }) }}
+  {{ govukButton({ text: "Add item", classes: "govuk-button--secondary" }) }}
+</form>
+
+{% if timelineOpen %}
+  <aside class="dlp-pm-drawer" id="timeline" aria-labelledby="timeline-heading">
+    <div class="dlp-pm-drawer__head">
+      <h2 class="govuk-heading-m govuk-!-margin-bottom-0" id="timeline-heading" tabindex="-1">Timetable</h2>
+      <a class="dlp-pm-drawer__close" href="{{ pmBase }}/timetable/committee">
+        <span aria-hidden="true">&times;</span><span class="govuk-visually-hidden">Close timeline</span>
+      </a>
+    </div>
+    <ol class="dlp-pm-timeline">
+      {% for entry in timeline %}
+        <li class="dlp-pm-timeline__entry {%- if entry.status == 'Date needed' or entry.status == 'Not yet assigned' %} dlp-pm-timeline__entry--open{% endif %}">
+          <span class="dlp-pm-timeline__marker" aria-hidden="true"></span>
+          <a class="govuk-link dlp-pm-timeline__title" href="{{ entry.href }}">{{ entry.title }}</a>
+          <p class="dlp-pm-timeline__meta">
+            <span>{{ entry.date or "—" }}</span>
+            {{ pmStatusTag(entry.status) }}
+          </p>
+          {% if entry.committee %}<p class="dlp-pm-timeline__meta">{{ entry.committee }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </aside>
+{% endif %}
+
+{% endblock %}

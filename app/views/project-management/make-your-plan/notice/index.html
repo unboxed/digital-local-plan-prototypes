@@ -1,0 +1,87 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+
+{% set pageName = "Publish Notice of Intention to Commence" %}
+
+{% macro noticeWarnings() %}
+  {% if not timetablePublished %}
+    <div class="dlp-pm-alert" role="region" aria-label="Timetable not published">
+      <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
+        You have not published your timetable. You must publish your timetable before or at the same time as this notice.
+      </p>
+      <p class="govuk-body govuk-!-margin-bottom-0"><a class="govuk-link govuk-!-font-weight-bold" href="{{ pmBase }}/timetable/check">Publish timetable</a></p>
+    </div>
+  {% endif %}
+  {% if not pidApproved %}
+    <div class="dlp-pm-alert" role="region" aria-label="Blocked">
+      <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
+        {{ pmStatusTag("Blocked") }} The Project Initiation Documentation must be approved before you publish the notice.
+      </p>
+      <p class="govuk-body govuk-!-margin-bottom-0"><a class="govuk-link govuk-!-font-weight-bold" href="{{ pmBase }}/pid">Go to the Project Initiation Documentation</a></p>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Publish Notice of Intention to Commence" }
+] }) }}
+
+{% if not pm.notice.published %}{{ noticeWarnings() }}{% endif %}
+
+<div class="dlp-pm-title-row">
+  <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Publish Notice of Intention to Commence</h1>
+  {{ pmStatusTag(noticeStatus.status) }}
+</div>
+<p class="govuk-body dlp-pm-lede govuk-!-margin-top-4">Fill in the details below to populate the placeholders in your Notice of Intention draft.</p>
+
+{% if pm.notice.published %}
+  <p class="govuk-body">Published on {{ formatDate(pm.notice.published) }}.</p>
+{% endif %}
+
+<form method="post" action="{{ pmBase }}/notice" novalidate>
+  {{ govukTextarea({
+    id: "area",
+    name: "_area",
+    rows: 4,
+    label: { text: "Add scope and geographic area", classes: "govuk-label--s" },
+    hint: { text: "Enter the name of the geographic area covered by the Local Plan, including any joint authority areas." },
+    value: pm.notice.area
+  }) }}
+
+  {{ govukInput({
+    id: "timetableLink",
+    name: "_timetableLink",
+    type: "url",
+    spellcheck: false,
+    label: { text: "Add link to timetable", classes: "govuk-label--s" },
+    hint: { text: "Enter a link to where the Local Plan timetable can be viewed on the website." },
+    value: pm.notice.timetableLink
+  }) }}
+
+  {{ govukTextarea({
+    id: "addresses",
+    name: "_addresses",
+    rows: 4,
+    label: { text: "Add address where the plan will be available", classes: "govuk-label--s" },
+    hint: { text: "Enter an address where members of the public can view the plan in person. This should be your main council office. You can add other locations, such as libraries. Separate addresses by a comma." },
+    value: pm.notice.addresses
+  }) }}
+
+  {{ govukTextarea({
+    id: "updates",
+    name: "_updates",
+    rows: 4,
+    label: { text: "Tell people how to sign up for updates", classes: "govuk-label--s" },
+    hint: { text: "Enter details of how people can get automated updates about the Local Plan. This could be a link to a registration page or an email address." },
+    value: pm.notice.updates
+  }) }}
+
+  {{ govukButton({ text: "Next: preview Notice" }) }}
+</form>
+
+{% endblock %}

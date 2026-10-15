@@ -1,0 +1,55 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "project-management/make-your-plan/partials/macros.html" import pmFormActions %}
+
+{% set pageName = section.title %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "PID", href: pmBase + "/pid" },
+  { text: section.title }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">About the plan</h1>
+<p class="govuk-body dlp-pm-lede">
+  This Project Initiation Document (PID) sets out the management framework and approach for
+  delivering the Local Plan. It provides clarity on the plan's scope, governance arrangements,
+  resources, and timelines. The PID is designed as a reference tool for the team, stakeholders,
+  and council leaders, supporting effective decision-making and ensuring everyone involved
+  understands their roles and responsibilities throughout the plan-making process.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<form method="post" action="{{ pmBase }}/pid/about" class="dlp-pm-measure" novalidate>
+  {{ govukInput({
+    id: "planTitle",
+    name: "_planTitle",
+    label: { text: "Plan title", classes: "govuk-label--s" },
+    value: pm.pid.planTitle
+  }) }}
+
+  <p class="govuk-body"><strong>Last updated</strong>&nbsp; {{ formatDate(pm.pid.lastUpdated) or "Not yet saved" }}</p>
+
+  {{ govukTextarea({
+    id: "roleOfPlan",
+    name: "_roleOfPlan",
+    rows: 14,
+    label: { text: "Role of the plan", classes: "govuk-label--s" },
+    hint: { text: "Update this text as required" },
+    value: pm.pid.roleOfPlan
+  }) }}
+
+  <h2 class="govuk-heading-s govuk-!-margin-bottom-1">Summary of the scope of the plan</h2>
+  <p class="govuk-body dlp-pm-muted">
+    A summary of the scope of the plan will appear here when the
+    <a class="govuk-link" href="{{ pmBase }}/scoping-activities">scoping activities</a> have been completed.
+  </p>
+
+  {{ pmFormActions({ backHref: pmBase + "/pid" }) }}
+</form>
+
+{% endblock %}

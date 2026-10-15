@@ -1,0 +1,14 @@
+{% extends "layouts/main.html" %}
+
+{% from "project-management/make-your-plan/partials/macros.html" import pmWebsitePreview %}
+
+{% set pageName = "Local Plan timetable preview" %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body dlp-pm-muted">Preview — this is how your timetable will appear on your website. It has not been published from this page.</p>
+    {{ pmWebsitePreview({ statement: pm.timetable.statement, stages: published }) }}
+  </div>
+</div>
+{% endblock %}
