@@ -1,5 +1,6 @@
 const { startingState: startingConsultationResponses } = require('./consultation-responses.js')
 const { startingState: startingProjectManagement } = require('./project-management.js')
+const { startingGisLayers } = require('./gis-layers.js')
 
 module.exports = {
 
@@ -116,6 +117,15 @@ module.exports = {
         { id: 'apc-14', text: 'The Temple, the Thames Policy Area & the Key Areas of Change' },
         { id: 'apc-15', text: 'Implementation' }
       ],
+      // Brought in from the GIS connection below; layerId ties each one to its layer in the
+      // shared gisLayers collection. Real layers from the City's COMPASS map.
+      'existing-plan-layers': [
+        { id: 'epl-1', text: 'Conservation Areas', layerId: 'compass-historic-environment-2' },
+        { id: 'epl-2', text: 'Key Areas of Change', layerId: 'compass-draft-policy-16' },
+        { id: 'epl-3', text: 'Principal Shopping Centres', layerId: 'compass-draft-policy-19' },
+        { id: 'epl-4', text: 'Tall Buildings Policy Area', layerId: 'compass-draft-policy-20' },
+        { id: 'epl-5', text: 'London View Management Framework - Protected Silhouettes', layerId: 'compass-draft-policy-18' }
+      ],
       'existing-data-sources': [
         { id: 'eds-1', text: 'Housing Needs Assessment 2020-2040' },
         { id: 'eds-2', text: 'Strategic Flood Risk Assessment' },
@@ -152,6 +162,7 @@ module.exports = {
     },
     blank: {
       'adopted-plan-chapters': [],
+      'existing-plan-layers': [],
       'existing-data-sources': [],
       'current-trends': [],
       'scoping-consultation-themes': [],
@@ -159,6 +170,21 @@ module.exports = {
       'other-plans-policies-strategies': [],
       'nppf-sds-requirements': []
     }
+  },
+
+  // The GIS system the "Add existing plan layers" step is connected to, per variant (null when
+  // not connected). Simulated — see app/data/gis-layers.js. Reset along with
+  // policyStartingPointItems. The API key is never kept, only whether one was given. The layers
+  // themselves go into the shared gisLayers collection below.
+  policyGisConnection: {
+    prefilled: {
+      // The City's real ArcGIS REST address for its COMPASS map. Nothing is requested from it.
+      serviceType: 'arcgis',
+      endpoint: 'https://www.mapping.cityoflondon.gov.uk/arcgis/rest/services',
+      hasApiKey: false,
+      connectedAt: '6 October 2026'
+    },
+    blank: null
   },
 
   policyTopics: {
@@ -674,7 +700,15 @@ module.exports = {
       { at: '24 Sep 2025, 11:00', actor: 'David Chen', action: 'Added comment — overall progress note', link: { text: 'View comment', href: '/evidence/commissioned/review#comment-c3' } }
     ],
     tags: [],
-    acceptedOn: null
+    acceptedOn: null,
+    // The consultant's GIS service, connected on the "Add GIS layers" step. Its layers are in
+    // the shared gisLayers collection, with the origin 'commissioned'.
+    gisConnection: {
+      serviceType: 'arcgis',
+      endpoint: 'https://gis.watersconsultancy.example/arcgis/rest/services/HousingDelivery/MapServer',
+      hasApiKey: true,
+      connectedAt: '2 October 2026'
+    }
   },
 
   // Managing consultation responses. Read only through getConsultationResponses in routes.js.
@@ -692,6 +726,11 @@ module.exports = {
   // getProjectManagement in routes.js, and stamped with PROJECT_MANAGEMENT_SCHEMA_VERSION, so
   // bump that when this shape changes. Starts with nothing done (the empty-state frame); the
   // landing page can swap in midwayState() instead.
-  projectManagement: startingProjectManagement()
+  projectManagement: startingProjectManagement(),
+
+  // Every GIS layer added anywhere in the application, each tagged Plan or Evidence, with the
+  // places it was added from. Read only through getGisLayers in routes.js, and stamped with
+  // GIS_LAYERS_SCHEMA_VERSION. See app/data/gis-layers.js.
+  gisLayers: startingGisLayers()
 
 }

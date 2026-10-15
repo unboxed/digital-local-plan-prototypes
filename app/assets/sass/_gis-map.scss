@@ -1,0 +1,108 @@
+// GIS layers on a map (partials/gis/map.njk, initGisMap). The layer list sits beside the map
+// on wide screens and above it otherwise, or always above it in a narrow panel (--compact).
+
+.dlp-gis-map {
+  display: grid;
+  gap: govuk-spacing(4);
+  margin-bottom: govuk-spacing(6);
+
+  @include govuk-media-query($from: desktop) {
+    grid-template-columns: minmax(16rem, 1fr) minmax(0, 2fr);
+  }
+}
+
+.dlp-gis-map--compact {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dlp-gis-map__layers {
+  min-width: 0;
+}
+
+.dlp-gis-map__list {
+  list-style: none;
+  margin: 0 0 govuk-spacing(3);
+  padding: 0;
+}
+
+.dlp-gis-map__item {
+  border-bottom: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(2) 0;
+
+  .govuk-checkboxes__item {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-gis-map__label {
+  align-items: center;
+  display: flex;
+  gap: govuk-spacing(2);
+}
+
+// The layer's colour and dash, set by initGisMap so it matches the map.
+.dlp-gis-map__swatch {
+  border: 3px solid transparent;
+  display: none;
+  flex: 0 0 auto;
+  height: 14px;
+  width: 22px;
+}
+
+.dlp-gis-map--ready .dlp-gis-map__swatch {
+  display: inline-block;
+}
+
+.dlp-gis-map__meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1) govuk-spacing(2);
+  margin-left: 40px;
+}
+
+.dlp-gis-map__note,
+.dlp-gis-map__status,
+.dlp-gis-map__data {
+  @include govuk-font($size: 16);
+}
+
+.dlp-gis-map__note {
+  color: $dlp-muted-text;
+  font-style: italic;
+}
+
+.dlp-gis-map__status {
+  color: $dlp-muted-text;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.dlp-gis-map__zoom {
+  margin-bottom: 0;
+}
+
+.dlp-gis-map__frame {
+  min-width: 0;
+}
+
+.dlp-gis-map__canvas {
+  background: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  height: 420px;
+  // Leaflet's panes sit at z-index 400+; keep them under the site's sticky headers and dialogs.
+  isolation: isolate;
+  position: relative;
+  z-index: 0;
+}
+
+.dlp-gis-map--compact .dlp-gis-map__canvas {
+  height: 320px;
+}
+
+.dlp-gis-map__fallback {
+  color: $dlp-muted-text;
+  margin-top: govuk-spacing(2);
+}

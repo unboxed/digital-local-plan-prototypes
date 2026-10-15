@@ -1,6 +1,8 @@
 {% extends "layouts/main-with-sidebar.html" %}
 
 {% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "partials/gis/macro.njk" import gisConnect, gisLayerGroup, gisLayerTag, gisLayerTypeSwitch %}
 
 {% set pageName = step.navLabel %}
 
@@ -21,9 +23,20 @@
       </ol>
     </nav>
 
+    {% if step.gis and gis.errorList.length %}
+      {{ govukErrorSummary({ titleText: "There is a problem", errorList: gis.errorList }) }}
+    {% endif %}
+
     <h1 class="govuk-heading-xl">{{ step.navLabel }}</h1>
 
     <p class="govuk-body">{{ step.hint }}</p>
+
+    {# Plan layers come from the connected GIS system, so this step connects one instead of
+       typing items in. See partials/gis/macro.njk. #}
+    {% if step.gis %}
+      {{ gisConnect(gis) }}
+      <h2 class="govuk-heading-m govuk-!-margin-top-6" id="added-layers">Plan layers added</h2>
+    {% endif %}
 
     <table class="govuk-table dlp-wizard-table">
       <caption class="govuk-table__caption govuk-table__caption--m govuk-visually-hidden">{{ step.itemLabel }}s added so far</caption>
@@ -37,9 +50,15 @@
         {% if items.length %}
           {% for item in items %}
           <tr class="govuk-table__row">
-            <td class="govuk-table__cell">{{ item.text }}</td>
+            {% set layer = gisLayerById[item.layerId] if (step.gis and item.layerId) else null %}
             <td class="govuk-table__cell">
-              <a class="govuk-link" href="?edit={{ item.id }}">Edit</a>
+              {{ item.text }}
+              {% if layer %}<br>{{ gisLayerGroup(layer) }}<br>{{ gisLayerTag(layer) }}{% endif %}
+            </td>
+            <td class="govuk-table__cell">
+              {# A layer's name comes from the GIS system, so it can be removed but not renamed. #}
+              {% if not step.gis %}<a class="govuk-link" href="?edit={{ item.id }}">Edit</a>{% endif %}
+              {% if layer %}{{ gisLayerTypeSwitch(layer, gisReturnTo) }}{% endif %}
               <form class="dlp-inline-form" action="/policy-writing/{{ variant }}/starting-points/{{ step.slug }}/{{ item.id }}/remove" method="post">
                 <button type="submit" class="dlp-link-button">Remove</button>
               </form>
@@ -54,6 +73,7 @@
       </tbody>
     </table>
 
+    {% if not step.gis %}
     <form action="/policy-writing/{{ variant }}/starting-points/{{ step.slug }}" method="post">
       {% if editItem %}
         <input type="hidden" name="itemId" value="{{ editItem.id }}">
@@ -68,6 +88,7 @@
         {{ "Save" if editItem else "Add" }}
       </button>
     </form>
+    {% endif %}
 
     <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
 

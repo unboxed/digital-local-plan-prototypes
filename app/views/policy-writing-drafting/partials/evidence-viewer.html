@@ -3,15 +3,54 @@
   headings and tables), a consultation summary, or
   a note that there's nothing to show. Used in the draft page's side panel and on the
   stand-alone viewer page. Content comes from VIEWER_CONTENT in app/data/policy-drafting.js.
+  A GIS layer shows its details and a map (partials/gis/map.njk) of the chapter's layers; pages
+  using it include partials/gis/map-assets.html.
 
   Usage:
     {% from "policy-writing-drafting/partials/evidence-viewer.html" import evidenceViewerContent %}
-    {{ evidenceViewerContent(viewerSource, viewerContent) }}
+    {{ evidenceViewerContent(viewerSource, viewerContent, viewerLayers) }}
 #}
 
-{% macro evidenceViewerContent(source, content) %}
+{% from "partials/gis/map.njk" import gisMap %}
+
+{% macro evidenceViewerContent(source, content, layers) %}
   {% if not source %}
     <p class="govuk-body dlp-pd-muted">This chapter has no sources yet. Add some to read them here.</p>
+  {% elif source.layer %}
+    {# A GIS layer from the shared collection. The prototype has no map, so it says what the
+       layer is, its tag and where it was added from. #}
+    <h3 class="govuk-heading-m govuk-!-margin-bottom-2">{{ source.name }}</h3>
+    <p class="govuk-body">
+      <strong class="govuk-tag dlp-gis-tag dlp-gis-tag--{{ source.layer.type }}">{{ source.layer.typeLabel }}</strong>
+    </p>
+    <dl class="govuk-summary-list govuk-summary-list--no-border">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Geometry</dt>
+        <dd class="govuk-summary-list__value">{{ source.layer.geometry }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Features</dt>
+        <dd class="govuk-summary-list__value">{{ source.layer.features }}</dd>
+      </div>
+      {% if source.layer.group %}
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Map folder</dt>
+          <dd class="govuk-summary-list__value">{{ source.layer.group }}</dd>
+        </div>
+      {% endif %}
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Added from</dt>
+        <dd class="govuk-summary-list__value">{{ source.layer.originLabels | join(", ") }}</dd>
+      </div>
+    </dl>
+    {# The map lists every layer on the chapter, with this one ticked, so others can be laid
+       over it. #}
+    {{ gisMap({ id: "pd-viewer-map", layers: layers, selected: [source.layer.id], compact: true }) }}
+    {% if source.layer.url %}
+      <p class="govuk-body">
+        <a class="govuk-link" href="{{ source.layer.url }}" target="_blank" rel="noopener noreferrer">View this layer's data on the City of London's map server<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>
+      </p>
+    {% endif %}
   {% elif not content %}
     <h3 class="govuk-heading-m">{{ source.name }}</h3>
     <p class="govuk-body dlp-pd-muted">

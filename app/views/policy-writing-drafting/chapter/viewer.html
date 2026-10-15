@@ -16,9 +16,11 @@
     {% endif %}
 
     <div class="dlp-pd-viewer govuk-!-margin-top-6">
-      {{ evidenceViewerContent(viewerSource, viewerContent) }}
+      {{ evidenceViewerContent(viewerSource, viewerContent, viewerLayers) }}
     </div>
   </div>
 </div>
 
 {% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

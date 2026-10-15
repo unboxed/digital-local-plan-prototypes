@@ -1,0 +1,76 @@
+{% extends "evidence/commissioned/partials/layout.html" %}
+
+{% from "partials/gis/macro.njk" import gisConnect, gisLayerGroup, gisLayerTag, gisLayerTypeSwitch %}
+
+{% set pageName = "Add GIS layers" %}
+{% set returnTo = "/evidence/commissioned/layers#added-layers" %}
+
+{% block content %}
+
+{# Held to the GOV.UK page width — see .dlp-ce-page. #}
+<div class="dlp-ce-page">
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: "/evidence/commissioned" },
+  { text: "Add GIS layers" }
+] }) }}
+
+{% if gis.errorList.length %}
+  {{ govukErrorSummary({ titleText: "There is a problem", errorList: gis.errorList }) }}
+{% endif %}
+
+<h1 class="govuk-heading-l govuk-!-margin-bottom-2">Add GIS layers</h1>
+<p class="govuk-body-s dlp-ce-muted">Logged in as {{ viewer }}</p>
+
+<div class="dlp-ce-measure">
+  <p class="govuk-body">
+    Bring in the spatial data that goes with {{ commission.report.title or commission.brief.title }}.
+    Layers are added as Evidence layers. You can change any layer to a Plan layer here, or
+    wherever else it is listed, and use it as a source when drafting policy.
+  </p>
+
+  {{ gisConnect(gis) }}
+
+  <h2 class="govuk-heading-m govuk-!-margin-top-6" id="added-layers">Layers added</h2>
+  <table class="govuk-table">
+    <caption class="govuk-table__caption govuk-visually-hidden">GIS layers added to this evidence</caption>
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header">Layer</th>
+        <th scope="col" class="govuk-table__header">Type</th>
+        <th scope="col" class="govuk-table__header">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for layer in layers %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">
+            {{ layer.name }}
+            <br>{{ gisLayerGroup(layer) }}
+            <br><span class="govuk-body-s dlp-ce-muted">{{ layer.geometry }}, {{ layer.features }} feature{{ "" if layer.features == 1 else "s" }}</span>
+          </td>
+          <td class="govuk-table__cell">{{ gisLayerTag(layer) }}</td>
+          <td class="govuk-table__cell">
+            {{ gisLayerTypeSwitch(layer, returnTo) }}
+            <form class="dlp-inline-form" method="post" action="/evidence/commissioned/layers/{{ layer.id }}/remove">
+              <button type="submit" class="dlp-link-button">Remove<span class="govuk-visually-hidden"> {{ layer.name }}</span></button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell" colspan="3">No layers added</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="govuk-button-group">
+    {{ govukButton({ text: "Continue to accept and save", href: "/evidence/commissioned/accept" }) }}
+    <a class="govuk-link" href="/evidence/commissioned/review">Back to review and comment</a>
+  </div>
+</div>
+
+</div>
+
+{% endblock %}

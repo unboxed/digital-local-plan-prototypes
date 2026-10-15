@@ -7,6 +7,8 @@
 
 {% set pageName = paragraph.policyRef + " " + paragraph.policyTitle %}
 
+{% from "partials/gis/map.njk" import gisMap %}
+
 {% block header %}
   {{ super() }}
   {{ appExternalHeader({ title: "Examination - inspector view" }) }}
@@ -200,6 +202,17 @@
       No NPPF or SDS policies for this policy in this prototype yet.
     </p>
     {% endif %}
+
+    <h2 class="govuk-heading-m govuk-!-margin-top-6" id="map-layers">Map layers</h2>
+    <p class="govuk-body">
+      Layers from the City of London's map that bear on {{ paragraph.policyArea | lower }} policy.
+      Tick a layer to see it on the map.
+    </p>
+    {% if mapLayers.length %}
+      {{ gisMap({ id: "exam-map", layers: mapLayers, compact: true }) }}
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No map layers for this policy in this prototype yet.</p>
+    {% endif %}
   </div>
 
   <div class="govuk-grid-column-one-third">
@@ -245,3 +258,5 @@
 </div>
 
 {% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

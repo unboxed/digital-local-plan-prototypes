@@ -48,6 +48,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-template-picker]').forEach(safeInit(initTemplatePicker))
   document.querySelectorAll('[data-dlp-truncate]').forEach(safeInit(initTruncate))
   document.querySelectorAll('[data-dlp-committee-board]').forEach(safeInit(initCommitteeBoard))
+  document.querySelectorAll('[data-dlp-gis-map]').forEach(safeInit(initGisMap))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2510,4 +2511,164 @@ function initCommitteeBoard (root) {
   })
 
   refreshEmpty()
+}
+
+// --- GIS layers on a map ---------------------------------------------------------------------
+//
+// partials/gis/map.njk: tick a layer and it is drawn, untick it and it goes. Each layer's
+// GeoJSON comes from /gis-layers/:id/geojson (a cached proxy to the City's ArcGIS server, or
+// generated shapes for invented layers) and is fetched once per page. Every layer gets a colour
+// AND a dash pattern, shown in the swatch beside its checkbox, so colour isn't the only key.
+// Needs Leaflet (partials/gis/map-assets.html); without it the fallback text stays.
+// Everything lives in this closure, not at module level — see CLAUDE.md on why init code must
+// not touch module-level bindings.
+function initGisMap (root) {
+  const canvas = root.querySelector('[data-dlp-gis-canvas]')
+  const fallback = root.querySelector('[data-dlp-gis-fallback]')
+  const zoomButton = root.querySelector('[data-dlp-gis-zoom]')
+  const checkboxes = Array.prototype.slice.call(root.querySelectorAll('[data-dlp-gis-layer]'))
+  const L = window.L
+  if (!canvas || !L) return
+
+  // GOV.UK palette colours that stay distinct on the base map, each with its own dash.
+  const styles = [
+    { color: '#1d70b8', dashArray: null },
+    { color: '#d4351c', dashArray: '8 4' },
+    { color: '#00703c', dashArray: '2 4' },
+    { color: '#54319f', dashArray: '12 4 2 4' },
+    { color: '#f47738', dashArray: '6 6' },
+    { color: '#158187', dashArray: '1 3' },
+    { color: '#912b88', dashArray: '10 2' },
+    { color: '#594d00', dashArray: '4 2 4 8' }
+  ]
+  // The City of London, which every map opens on.
+  const cityBounds = L.latLngBounds([51.5085, -0.1120], [51.5215, -0.0745])
+  const loaded = {}
+  const drawn = {}
+
+  if (fallback) fallback.hidden = true
+  root.classList.add('dlp-gis-map--ready')
+
+  const map = L.map(canvas, { scrollWheelZoom: false }).fitBounds(cityBounds)
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map)
+
+  // The map is drawn inside panes that change size (the drafting split pane, accordions), and
+  // Leaflet only measures itself when told to.
+  if (window.ResizeObserver) new window.ResizeObserver(() => map.invalidateSize()).observe(canvas)
+
+  function styleFor (index) {
+    return styles[index % styles.length]
+  }
+
+  checkboxes.forEach((checkbox, index) => {
+    const style = styleFor(index)
+    const swatch = checkbox.closest('[data-dlp-gis-map-item]').querySelector('[data-dlp-gis-swatch]')
+    if (swatch) {
+      swatch.style.borderColor = style.color
+      swatch.style.borderStyle = style.dashArray ? 'dashed' : 'solid'
+      swatch.style.backgroundColor = style.color + '33'
+    }
+  })
+
+  function statusFor (checkbox) {
+    return checkbox.closest('[data-dlp-gis-map-item]').querySelector('[data-dlp-gis-status]')
+  }
+
+  function setStatus (checkbox, text) {
+    const status = statusFor(checkbox)
+    if (status) status.textContent = text
+  }
+
+  // A feature's popup: its first few attributes, as text (attribute values are data from
+  // elsewhere, so never HTML).
+  function popupFor (feature, layerName) {
+    const box = document.createElement('div')
+    const heading = document.createElement('strong')
+    heading.textContent = layerName
+    box.appendChild(heading)
+    const properties = feature.properties || {}
+    const skip = /^(objectid|fid|shape|globalid|illustrative)/i
+    Object.keys(properties)
+      .filter(key => !skip.test(key) && properties[key] !== null && properties[key] !== '')
+      .slice(0, 5)
+      .forEach(key => {
+        const line = document.createElement('div')
+        line.textContent = key + ': ' + properties[key]
+        box.appendChild(line)
+      })
+    return box
+  }
+
+  function draw (checkbox, index, data) {
+    const style = styleFor(index)
+    const name = checkbox.getAttribute('data-dlp-gis-layer-name') || ''
+    const layer = L.geoJSON(data, {
+      style: () => ({ color: style.color, weight: 2, dashArray: style.dashArray, fillOpacity: 0.15 }),
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 5, color: style.color, weight: 2, dashArray: style.dashArray, fillOpacity: 0.6
+      }),
+      onEachFeature: (feature, featureLayer) => featureLayer.bindPopup(() => popupFor(feature, name))
+    })
+    drawn[checkbox.getAttribute('data-dlp-gis-layer')] = layer
+    return layer
+  }
+
+  function updateZoom () {
+    if (zoomButton) zoomButton.hidden = !checkboxes.some(checkbox => checkbox.checked)
+  }
+
+  function show (checkbox, index) {
+    const id = checkbox.getAttribute('data-dlp-gis-layer')
+    if (drawn[id]) {
+      drawn[id].addTo(map)
+      return
+    }
+    setStatus(checkbox, 'Loading…')
+    if (!loaded[id]) {
+      loaded[id] = fetch('/gis-layers/' + encodeURIComponent(id) + '/geojson')
+        .then(response => response.ok ? response.json() : Promise.reject(new Error(response.status)))
+    }
+    loaded[id].then(data => {
+      const count = (data.features || []).length
+      setStatus(checkbox, count + (count === 1 ? ' feature' : ' features'))
+      const layer = draw(checkbox, index, data)
+      // Unticked while it was loading: keep it ready, but don't show it.
+      if (checkbox.checked) layer.addTo(map)
+    }).catch(() => {
+      delete loaded[id]
+      setStatus(checkbox, 'Couldn’t load this layer')
+    })
+  }
+
+  function hide (checkbox) {
+    const layer = drawn[checkbox.getAttribute('data-dlp-gis-layer')]
+    if (layer) map.removeLayer(layer)
+  }
+
+  checkboxes.forEach((checkbox, index) => {
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) show(checkbox, index)
+      else hide(checkbox)
+      updateZoom()
+    })
+    if (checkbox.checked) show(checkbox, index)
+  })
+
+  if (zoomButton) {
+    zoomButton.addEventListener('click', () => {
+      let bounds = null
+      checkboxes.forEach(checkbox => {
+        const layer = drawn[checkbox.getAttribute('data-dlp-gis-layer')]
+        if (!checkbox.checked || !layer || !layer.getBounds) return
+        const layerBounds = layer.getBounds()
+        if (!layerBounds.isValid()) return
+        bounds = bounds ? bounds.extend(layerBounds) : L.latLngBounds(layerBounds.getSouthWest(), layerBounds.getNorthEast())
+      })
+      map.fitBounds(bounds || cityBounds)
+    })
+  }
+  updateZoom()
 }

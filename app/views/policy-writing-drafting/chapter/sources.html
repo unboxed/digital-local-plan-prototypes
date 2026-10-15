@@ -4,6 +4,7 @@
 {% from "govuk/components/select/macro.njk" import govukSelect %}
 {% from "govuk/components/pagination/macro.njk" import govukPagination %}
 {% from "policy-writing-drafting/partials/chapter-breadcrumbs.html" import chapterBreadcrumbs %}
+{% from "partials/gis/macro.njk" import gisLayerGroup, gisLayerTag, gisLayerTypeSwitch %}
 
 {% set pageName = "Add sources" %}
 {% set sourcesUrl = "/policy-writing-drafting/chapters/" + chapter.id + "/sources" %}
@@ -48,9 +49,13 @@
   <tbody class="govuk-table__body">
     {% for source in chapterSources %}
       <tr class="govuk-table__row">
-        <td class="govuk-table__cell">{{ source.name }}</td>
-        <td class="govuk-table__cell govuk-!-font-size-16">{{ source.type }}</td>
+        <td class="govuk-table__cell">{{ source.name }}{% if source.layer %}<br>{{ gisLayerGroup(source.layer) }}{% endif %}</td>
+        <td class="govuk-table__cell govuk-!-font-size-16">
+          {% if source.layer %}{{ gisLayerTag(source.layer) }}{% else %}{{ source.type }}{% endif %}
+        </td>
         <td class="govuk-table__cell govuk-table__cell--numeric">
+          {# A layer's tag can be switched wherever it's listed; it changes everywhere. #}
+          {% if source.layer %}{{ gisLayerTypeSwitch(source.layer, pdLayerReturnTo) }}{% endif %}
           <form class="dlp-inline-form" method="post" action="{{ sourcesUrl }}/{{ source.id }}/remove">
             <input type="hidden" name="_page" value="{{ page }}">
             <button type="submit" class="dlp-link-button">Remove<span class="govuk-visually-hidden"> {{ source.name }}</span></button>
@@ -165,10 +170,17 @@
               </td>
               <td class="govuk-table__cell">
                 {{ source.name }}
+                {% if source.layer %}<br>{{ gisLayerGroup(source.layer) }}{% endif %}
               </td>
-              <td class="govuk-table__cell govuk-!-font-size-16">{{ source.type }}</td>
+              <td class="govuk-table__cell govuk-!-font-size-16">
+                {% if source.layer %}{{ gisLayerTag(source.layer) }}{% else %}{{ source.type }}{% endif %}
+              </td>
               <td class="govuk-table__cell">
-                <strong class="govuk-tag govuk-tag--{{ statusColours[source.status] }}">{{ source.status }}</strong>
+                {% if source.status %}
+                  <strong class="govuk-tag govuk-tag--{{ statusColours[source.status] }}">{{ source.status }}</strong>
+                {% else %}
+                  <span class="dlp-pd-muted">Not applicable<span class="govuk-visually-hidden">: GIS layers have no status</span></span>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}

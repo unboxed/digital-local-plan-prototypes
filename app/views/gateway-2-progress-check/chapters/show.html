@@ -8,6 +8,8 @@
 
 {% set pageName = area %}
 
+{% from "partials/gis/map.njk" import gisMap %}
+
 {% block header %}
   {{ super() }}
   {{ appExternalHeader({ title: "Gateway 2 progress check" }) }}
@@ -22,6 +24,7 @@
       { text: "Brief", href: "#brief", status: stageStatuses.brief },
       { text: "Sources", href: "#sources", status: stageStatuses.sources },
       { text: "Evidence", href: "#evidence", status: stageStatuses.evidence },
+      { text: "Map layers", href: "#map-layers" },
       { text: "Representations", href: "#representations", status: stageStatuses.representations },
       { text: "Policy Text", href: "#policy-text", status: stageStatuses.policyText }
     ]
@@ -134,6 +137,19 @@
 
     <p class="govuk-body"><a class="govuk-link" href="#top">Back to top</a></p>
 
+    <h2 class="govuk-heading-l govuk-!-margin-top-6" id="map-layers">Map layers</h2>
+    <p class="govuk-body">
+      Layers from the City of London's map that bear on this chapter. Tick a layer to see it on the
+      map.
+    </p>
+    {% if mapLayers.length %}
+      {{ gisMap({ id: "g2-map", layers: mapLayers }) }}
+    {% else %}
+      <p class="govuk-body-s dlp-document-hint">No map layers for this chapter in this prototype yet.</p>
+    {% endif %}
+
+    <p class="govuk-body"><a class="govuk-link" href="#top">Back to top</a></p>
+
     <h2 class="govuk-heading-l govuk-!-margin-top-6" id="representations">Representations</h2>
     {% if resources.representations.length %}
       <table class="govuk-table">
@@ -215,3 +231,5 @@
 </div>
 
 {% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

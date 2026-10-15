@@ -114,3 +114,53 @@
   border-radius: 4px;
   padding: govuk-spacing(3);
 }
+
+// "Add existing plan layers": the GIS connection (starting-points/gis-connect.html).
+.dlp-gis-connect {
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(4);
+}
+
+.dlp-gis-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+}
+
+// Endpoint URLs are long and unbroken; let them wrap rather than push the page sideways.
+.dlp-gis-break {
+  overflow-wrap: anywhere;
+}
+
+// GIS layer tags (partials/gis/macro.njk). Plan and Evidence differ in wording and in the edge
+// as well as the fill, so the tag doesn't rely on colour alone.
+.dlp-gis-tag--plan {
+  background-color: govuk-colour("purple", $variant: "tint-80");
+  border-left: 4px solid govuk-colour("purple");
+  color: govuk-colour("purple", $variant: "shade-50");
+}
+
+.dlp-gis-tag--evidence {
+  background-color: govuk-colour("teal", $variant: "tint-80");
+  border-left: 4px dashed govuk-colour("teal");
+  color: govuk-colour("teal", $variant: "shade-50");
+}
+
+.dlp-gis-switch {
+  margin-right: govuk-spacing(3);
+}
+
+.dlp-gis-list__item {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2) govuk-spacing(3);
+}
+
+// The folder a layer sits in on its source map, under its name.
+.dlp-gis-group {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+}
