@@ -639,9 +639,12 @@ area's hub, listing it under Current prototypes.
   Enter submits with the first button in the form, which would otherwise be a row's Remove.
   Approval's check-your-answers rows come from `pmPidSummary`. A "Prototype only" panel stands in
   for the three approvers signing it off.
-- **Linked, not built:** "Scoping consultation" goes to `/consultations/managing-responses`
-  (starting it records `scopingConsultationStarted`), and the PID's Evidence section to
-  `/evidence`. Scoping activities and the Readiness checker have no design, so their pages say so.
+- **Timetable placeholder:** the overview card, sidebar item and the PID's Timetable section all
+  link to `/timetable-placeholder` ("Coded prototype is being built for this flow"). The existing
+  timetable flow under `/timetable` is still there, reachable by URL.
+- **Linked, not built:** the PID's Evidence section goes to `/evidence`. Scoping activities,
+  the Scoping consultation (starting it still records `scopingConsultationStarted`) and the
+  Readiness checker are not built, so their pages say so.
 - **The website preview is council-branded**, not GOV.UK: the frame mocked the authority's site
   with a GOV.UK bar, which this project can't show.
 - **Real outbound links**: guidance and its search go to GOV.UK, "Export" downloads a real CSV
