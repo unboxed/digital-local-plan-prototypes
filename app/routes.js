@@ -4210,7 +4210,7 @@ const PM_PID_SECTIONS = [
   {
     slug: 'timetable',
     title: 'Timetable',
-    link: PM + '/timetable',
+    link: PM + '/timetable-placeholder',
     linkText: 'Go to timetable',
     status: (pid, state) => state.timetable.published ? 'Completed' : pmCountStatus(
       pmTimetableSteps(state).filter(step => step.status !== 'Not started').length ? 1 : 0, 2)
@@ -4335,7 +4335,7 @@ function pmTasks (state) {
       key: 'timetable',
       title: 'Timetable',
       description: 'Create and publish your timetable',
-      href: PM + '/timetable',
+      href: PM + '/timetable-placeholder',
       assignees: [team.dd, team.sm]
     },
     {
@@ -4363,7 +4363,7 @@ function pmTasks (state) {
       key: 'scopingConsultation',
       title: 'Scoping consultation',
       description: 'Manage public engagement on the scope of the local plan',
-      href: '/consultations/managing-responses',
+      href: PM + '/scoping-consultation',
       startAction: PM + '/scoping-consultation/start',
       assignees: [team.rk, team.dd]
     }
@@ -4375,10 +4375,10 @@ function pmTasks (state) {
 function buildPmSidebar (state, active) {
   const statuses = pmStatuses(state)
   const items = [
-    { key: 'timetable', text: 'Create and publish timetable', href: PM + '/timetable' },
+    { key: 'timetable', text: 'Create and publish timetable', href: PM + '/timetable-placeholder' },
     { key: 'pid', text: 'Project Initiation Documentation', href: PM + '/pid' },
     { key: 'scopingActivities', text: 'Scoping activities', href: PM + '/scoping-activities' },
-    { key: 'scopingConsultation', text: 'Scoping consultation', href: '/consultations/managing-responses' },
+    { key: 'scopingConsultation', text: 'Scoping consultation', href: PM + '/scoping-consultation' },
     { key: 'notice', text: 'Publish notice of plan-making', href: PM + '/notice' }
   ]
   return [{
@@ -4434,11 +4434,19 @@ router.get(PM + '/overview', (req, res) => {
   })
 })
 
-// The scoping consultation is run in the Consultations prototype. Starting it here records that
-// it has begun, so the overview can say so, and then goes there.
+// The scoping consultation isn't built yet. Starting it here records that it has begun, so the
+// overview can say so, and then goes to its placeholder.
 router.post(PM + '/scoping-consultation/start', (req, res) => {
   getProjectManagement(req).scopingConsultationStarted = true
-  res.redirect('/consultations/managing-responses')
+  res.redirect(PM + '/scoping-consultation')
+})
+
+router.get(PM + '/scoping-consultation', (req, res) => {
+  renderPm(req, res, 'not-designed', 'scopingConsultation', {
+    title: 'Scoping consultation',
+    text: 'This section of the prototype has not been built yet.',
+    standIn: false
+  })
 })
 
 // Not designed yet: say so rather than invent a journey.
@@ -4457,6 +4465,16 @@ router.get(PM + '/readiness-checker', (req, res) => {
 })
 
 // --- Timetable ---
+
+// The timetable's entry points (overview card, sidebar, PID) go here while its coded prototype
+// is rebuilt. The flow below is still reachable by URL.
+router.get(PM + '/timetable-placeholder', (req, res) => {
+  renderPm(req, res, 'not-designed', 'timetable', {
+    title: 'Timetable',
+    text: 'Coded prototype is being built for this flow.',
+    standIn: false
+  })
+})
 
 router.get(PM + '/timetable', (req, res) => {
   renderPm(req, res, 'timetable/index', 'timetable')

@@ -12,8 +12,10 @@
 <h1 class="govuk-heading-xl">{{ title }}</h1>
 
 <div class="govuk-inset-text dlp-pm-measure">
-  <p class="govuk-body">{{ text }}</p>
+  <p class="govuk-body{% if standIn === false %} govuk-!-margin-bottom-0{% endif %}">{{ text }}</p>
+  {% if standIn !== false %}
   <p class="govuk-body govuk-!-margin-bottom-0">This page stands in for it in the prototype.</p>
+  {% endif %}
 </div>
 
 <p class="govuk-body"><a class="govuk-link" href="{{ pmBase }}/overview">Back to Make your plan</a></p>
