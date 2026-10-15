@@ -76,7 +76,8 @@ function startingCommission () {
     notes: [],
     history: [],
     tags: [],
-    acceptedOn: null
+    acceptedOn: null,
+    gisConnection: null
   }
 }
 

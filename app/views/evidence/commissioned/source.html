@@ -3,6 +3,7 @@
 {% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
 {% from "evidence/commissioned/partials/comment.html" import ceComment %}
 {% from "evidence/commissioned/partials/document-history.html" import ceDocumentHistory %}
+{% from "partials/gis/macro.njk" import gisLayerTag, gisLayerTypeSwitch %}
 
 {% set title = commission.report.title or commission.brief.title %}
 {% set pageName = "Manage source: " + title %}
@@ -67,6 +68,26 @@
     <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link dlp-ce-placeholder" aria-hidden="true" tabindex="-1">Download PDF</a></p>
   </aside>
 </div>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
+
+<div class="dlp-ce-section-head">
+  <h2 class="govuk-heading-m govuk-!-margin-bottom-0" id="gis-layers">GIS layers</h2>
+  <a class="govuk-link" href="/evidence/commissioned/layers">Add or remove layers</a>
+</div>
+{% if layers.length %}
+  <ul class="govuk-list dlp-gis-list">
+    {% for layer in layers %}
+      <li class="dlp-gis-list__item">
+        <span>{{ layer.name }}</span>
+        {{ gisLayerTag(layer) }}
+        {{ gisLayerTypeSwitch(layer, "/evidence/commissioned/source#gis-layers") }}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="govuk-body">No GIS layers.</p>
+{% endif %}
 
 <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
 

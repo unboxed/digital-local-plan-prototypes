@@ -169,7 +169,7 @@
     {% endif %}
 
     <div class="dlp-pw2-pane__body">
-      {{ evidenceViewerContent(viewerSource, viewerContent) }}
+      {{ evidenceViewerContent(viewerSource, viewerContent, viewerLayers) }}
     </div>
   </section>
 </div>
@@ -177,3 +177,5 @@
 {% endif %}
 
 {% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

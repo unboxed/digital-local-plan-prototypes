@@ -229,7 +229,10 @@ list" steps), don't write a template and a route per step. Instead: define one c
 template that renders purely from the config object and its data, and one parameterised route
 (`/prefix/:step`) that looks up the step by slug. See `STARTING_POINT_STEPS` and
 `app/views/policy-writing/starting-points/step.html` in the policy-writing prototype for a
-worked example covering seven steps from a single template/route pair.
+worked example covering eight steps from a single template/route pair.
+
+One of those steps, "Add existing plan layers", is flagged `gis: true`: instead of typing items
+in, the user connects a GIS system and ticks the layers to bring in. See "GIS layers" below.
 
 ## Parallel journey variants (same routes/templates, different starting state)
 
@@ -525,7 +528,7 @@ comments, adds notes and accepts it into the library.
   POST to `/reset` with `_stage` (`start`, `consultant`, `review`), which swap in a fitting state.
   Static content (themes, previous consultants, `startingCommission()`) is in
   `app/data/commissioned-evidence.js`. Every action is logged to `history`, shown as Document
-  history.
+  history. The "Add GIS layers" step is not from the Figma frames; see "GIS layers" below.
 - **Screens seen by an external user.** The consultant's pages
   (`consultant/submit-report`, `consultant/submitted`) extend
   `evidence/commissioned/partials/external-layout.html`, which overrides the `header` block
@@ -655,6 +658,74 @@ area's hub, listing it under Current prototypes.
   the new system's consultation names; real copy in place of lorem ipsum and placeholder text;
   the second Approval frame's intro (copied from Risks) rewritten. File uploads keep only the
   file name.
+
+## GIS layers
+
+GIS layers are **one shared collection across the application**, `gisLayers` in session data,
+read only through `getGisLayers` and stamped with `GIS_LAYERS_SCHEMA_VERSION`. Static content
+(service types, the two layer catalogues, the seed) is in `app/data/gis-layers.js`; the shared
+templates are `partials/gis/macro.njk`.
+
+- **Every layer is tagged Plan or Evidence.** Layers added in the policy-writing starting
+  points ("Add existing plan layers") start as Plan layers; layers added in Managing commissioned
+  evidence (its "Add GIS layers" step, `/evidence/commissioned/layers`) start as Evidence layers.
+- **The tag can be switched wherever a layer is listed**: the starting points table, the
+  commissioned layers page and Manage source, and a chapter's sources in Policy drafting. All of
+  them use `gisLayerTypeSwitch`, posting to the one `/gis-layers/:layerId/type` route, which comes
+  back to a `_returnTo` path (only paths on this site are followed). Switching changes the layer
+  everywhere, because there is only one copy.
+- **A layer is stored once, keyed by its catalogue id, with `origins`**: where it was added from
+  (`starting-points:<variant>`, `commissioned`). Removing it from one place removes that origin;
+  it leaves the collection only when none are left, so a layer still added elsewhere survives.
+  The commissioned evidence reset clears its origin and re-adds the review state's two seeded
+  layers. Both starting point variants feed the same collection.
+- **Layers are sources in Policy drafting with starting points.** A chapter's `sources` hold
+  library ids or `gis-<layer id>`; `pdSource` resolves either, so a layer's tag is read live and a
+  removed layer drops out. "Add sources" search returns layers alongside the library (by name,
+  tag and "GIS layer"), and there is a "GIS layer" source type filter. The evidence viewer shows
+  a layer's details; there is no map.
+- **The layers offered are real City of London layers**, from the COMPASS map
+  (https://www.mapping.cityoflondon.gov.uk/geocortex/mapping/?viewer=compass): its "City Plan
+  2040 - Draft Policies", "Local Plan Supplementary Guidance", "Historic Environment" and
+  "Boundaries" folders, 36 layers in `COMPASS_LAYERS`. Names, folders, geometry types and each
+  layer's ArcGIS REST address (`url`, linked from the drafting evidence viewer) are as published;
+  feature counts were read on 15 October 2026 and are not refreshed. Two layers are both called
+  "Smoke Control Orders", so lists show a layer's folder (`gisLayerGroup`) under its name. The
+  commissioned evidence default, a consultant's study data, is still invented.
+- **The connection is simulated**: nothing is requested from the endpoint. Any https URL
+  connects; `catalogueFor` returns COMPASS for an address on `www.mapping.cityoflondon.gov.uk`,
+  otherwise the place's default (COMPASS for starting points, the consultant's data for
+  commissioned evidence). The API key is never stored (its field is `_`-prefixed and the
+  connection keeps only `hasApiKey`). Starting points keep a connection per variant
+  (`policyGisConnection`, through `getGisConnection`, sharing
+  `POLICY_STARTING_POINTS_SCHEMA_VERSION`); the commission keeps its own as
+  `commissionedEvidence.gisConnection`.
+
+### Maps
+
+Layers can be seen on a map in three places: the Policy drafting evidence viewer (when the open
+source is a layer, the map lists every layer on the chapter with that one ticked), Gateway 2
+progress check's chapter page ("Map layers" section) and Examination – inspector view's
+paragraph page ("Map layers" section).
+
+- **The component** is `gisMap` in `partials/gis/map.njk` plus `initGisMap`
+  (`data-dlp-gis-map`). Tick a layer and it's drawn; untick it and it goes. Each layer has a
+  colour **and** a dash pattern, shown in the swatch by its checkbox. Pages using it include
+  `partials/gis/map-assets.html` in their `pageScripts` block: Leaflet 1.9.4 from cdnjs (with
+  integrity hashes) on an OpenStreetMap base map, so **the map needs internet**. Without
+  JavaScript or Leaflet, the list and each layer's data link still work and the map area says so.
+  A `ResizeObserver` keeps Leaflet's size right inside the drafting split pane.
+- **Features come from `GET /gis-layers/:layerId/geojson`**, which serves only catalogue layers
+  (never a typed-in address). A COMPASS layer is fetched from the City's ArcGIS server as GeoJSON
+  in WGS84, simplified by `gisSimplification` (about 2m for City layers, more for London-wide and
+  national boundaries: Local Authorities is 15MB unsimplified), and cached in memory for the life
+  of the process. If the server can't be reached it returns 502 and the map says "Couldn't load
+  this layer". An invented layer gets `generateIllustrativeGeoJSON`: deterministic made-up shapes
+  inside the City, matching its feature count, and labelled "Illustrative shapes, not real data".
+- **The inspector screens use a fixed list of layers per policy area**, `MAP_LAYERS_BY_AREA` in
+  `gis-layers.js`, each with its own Plan/Evidence tag. They don't read the session's shared
+  collection, so nothing testers add elsewhere changes them. Examination uses the paragraph's
+  policy area.
 
 ## Keeping this file current
 

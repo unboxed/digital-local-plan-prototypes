@@ -663,7 +663,7 @@ router.post('/evidence/results', (req, res) => {
 // getCommission. Free-text fields are named `_…` so the kit doesn't copy them into session data.
 
 const CE = '/evidence/commissioned'
-const COMMISSIONED_EVIDENCE_SCHEMA_VERSION = 1
+const COMMISSIONED_EVIDENCE_SCHEMA_VERSION = 2
 
 const {
   THEMES: CE_THEMES,
@@ -697,6 +697,7 @@ function briefSentCommission () {
   commission.comments = []
   commission.notes = []
   commission.history = commission.history.slice(0, 1)
+  commission.gisConnection = null
   return commission
 }
 
@@ -756,12 +757,13 @@ function ceCommentLabel (comment) {
 // Sidebar statuses follow from where the commission has got to. Only three states here, by
 // design: Not started, In progress (the page you're on) and Completed. A step that can't be
 // done yet reads as Not started rather than showing a lock; its page redirects back anyway.
-function buildCommissionSidebar (commission, active) {
+function buildCommissionSidebar (commission, active, layerCount) {
   const briefSent = commission.stage !== 'not-started'
   const accepted = commission.status === 'accepted'
   const steps = [
     { key: 'brief', text: 'Create brief', href: briefSent ? CE + '/brief' : CE + '/create-brief', done: briefSent },
     { key: 'review', text: 'Review and comment', href: CE + '/review', done: accepted },
+    { key: 'layers', text: 'Add GIS layers', href: CE + '/layers', done: layerCount > 0 },
     { key: 'accept', text: 'Accept and save', href: CE + '/accept', done: accepted },
     { key: 'source', text: 'Manage source', href: CE + '/source', done: false }
   ]
@@ -808,8 +810,13 @@ function renderCommissionPage (req, res, view, active, locals) {
     viewer: CE_OFFICER.name,
     errors,
     errorList: ceErrorList(errors),
-    sidebarSections: buildCommissionSidebar(commission, active)
+    sidebarSections: buildCommissionSidebar(commission, active, commissionLayers(req).length)
   }, locals))
+}
+
+// The commission's GIS layers: those in the shared collection added from here.
+function commissionLayers (req) {
+  return getGisLayers(req).filter(layer => layer.origins.includes('commissioned')).map(gisLayerView)
 }
 
 router.get(CE, (req, res) => {
@@ -822,6 +829,12 @@ router.post(CE + '/reset', (req, res) => {
   req.session.data.commissionedEvidence = start.build()
   req.session.data.commissionedEvidenceOwned = true
   delete req.session.data.commissionedEvidenceErrors
+  // The commission's layers are part of its state: clear them, then put back the ones the
+  // review state is seeded with (startingGisLayers in app/data/gis-layers.js).
+  getGisLayers(req).slice().forEach(layer => removeGisLayerOrigin(req, layer.id, 'commissioned'))
+  if (req.session.data.commissionedEvidence.gisConnection) {
+    GIS.COMMISSIONED_SEED_LAYERS.forEach(id => addGisLayer(req, id, 'evidence', 'commissioned'))
+  }
   res.redirect(start.redirect)
 })
 
@@ -972,7 +985,67 @@ router.get(CE + '/consultant/submitted', (req, res) => {
   renderConsultantPage(req, res, 'submitted')
 })
 
-// --- Review and comment ---
+// --- Add GIS layers ---
+//
+// The officer connects the GIS service holding the evidence's spatial data and brings layers
+// in. They join the shared gisLayers collection tagged Evidence, with the origin
+// 'commissioned', and can be switched to Plan from here or anywhere else they are listed.
+
+function renderCommissionLayers (req, res) {
+  const commission = getCommission(req)
+  if (commission.stage === 'not-started') return res.redirect(CE + '/create-brief')
+  const layers = commissionLayers(req)
+  renderCommissionPage(req, res, 'layers', 'layers', {
+    layers,
+    gis: gisConnectLocals(req, {
+      action: CE + '/layers',
+      connection: commission.gisConnection,
+      catalogue: GIS.catalogueFor(commission.gisConnection, 'evidence'),
+      addedIds: layers.map(layer => layer.id),
+      intro: 'Connect the GIS service that holds the spatial data for this evidence, such as the consultant\'s or your own. You can then choose which of its layers to bring in. They are added as Evidence layers.'
+    })
+  })
+}
+
+router.get(CE + '/layers', renderCommissionLayers)
+
+router.post(CE + '/layers/connect', (req, res) => {
+  const commission = getCommission(req)
+  const result = readGisConnection(req.body)
+  if (result.errors) {
+    setGisErrors(req, result.errors, result.values)
+    return res.redirect(CE + '/layers#gis-connect')
+  }
+  commission.gisConnection = result.connection
+  ceLog(commission, CE_OFFICER.name, 'Connected a GIS service')
+  res.redirect(CE + '/layers#gis-layers')
+})
+
+// Disconnecting keeps the layers already added.
+router.post(CE + '/layers/disconnect', (req, res) => {
+  getCommission(req).gisConnection = null
+  res.redirect(CE + '/layers#gis-connect')
+})
+
+router.post(CE + '/layers/layers', (req, res) => {
+  const commission = getCommission(req)
+  if (!commission.gisConnection) return res.redirect(CE + '/layers')
+  const catalogue = GIS.getCatalogue(GIS.catalogueFor(commission.gisConnection, 'evidence'))
+  const selected = asArray(req.body._layers).map(id => catalogue.find(layer => layer.id === id)).filter(Boolean)
+  if (!selected.length) {
+    setGisErrors(req, { layers: 'Select at least one layer to add' })
+    return res.redirect(CE + '/layers#gis-layers')
+  }
+  selected.forEach(layer => addGisLayer(req, layer.id, 'evidence', 'commissioned'))
+  ceLog(commission, CE_OFFICER.name, 'Added GIS layers: ' + selected.map(layer => layer.name).join(', '))
+  res.redirect(CE + '/layers#added-layers')
+})
+
+router.post(CE + '/layers/:layerId/remove', (req, res) => {
+  removeGisLayerOrigin(req, req.params.layerId, 'commissioned')
+  res.redirect(CE + '/layers#added-layers')
+})
+
 
 router.get(CE + '/review', (req, res) => {
   const commission = getCommission(req)
@@ -1122,7 +1195,8 @@ router.get(CE + '/source', (req, res) => {
     openCount: commission.comments.filter(comment => !comment.resolved).length,
     history: commission.history.slice().reverse(),
     file: report.file || { name: (slug || 'report') + '.pdf', meta: 'Generated from the submitted report' },
-    summary: commission.summary || (report.paragraphs[0] && report.paragraphs[0].text) || ''
+    summary: commission.summary || (report.paragraphs[0] && report.paragraphs[0].text) || '',
+    layers: commissionLayers(req)
   })
 })
 
@@ -1164,6 +1238,17 @@ const STARTING_POINT_STEPS = [
     hint: 'Enter in the chapters in your currently adopted plan, these might be called themes or sections. You do not need to enter in each policy now, this will happen later.',
     itemLabel: 'Adopted plan chapter',
     sourceLabel: 'Adopted plan'
+  },
+  {
+    slug: 'existing-plan-layers',
+    group: 'now',
+    navLabel: 'Add existing plan layers',
+    hint: 'Connect your GIS system to bring in the layers on your adopted plan\'s policies map, such as conservation areas, site allocations or protected views.',
+    itemLabel: 'Plan layer',
+    sourceLabel: 'Existing plan layer',
+    // Layers come from a connected GIS system rather than being typed in: step.html shows the
+    // connection form instead of the usual add box. See app/data/gis-layers.js.
+    gis: true
   },
   {
     slug: 'existing-data-sources',
@@ -1215,6 +1300,204 @@ const STARTING_POINT_STEPS = [
   }
 ]
 
+// --- GIS layers: one shared collection across the application ---
+//
+// Layers are added in the starting points (tagged Plan by default) and in Managing commissioned
+// evidence (tagged Evidence by default), and can be sources in Policy drafting with starting
+// points. Each is stored once in `gisLayers`, keyed by its catalogue id, with the places it was
+// added from as `origins`. Removing it from one place removes that origin; the layer goes when
+// none are left. Its tag can be switched from anywhere it is listed, through one route. The
+// connection itself is simulated — see app/data/gis-layers.js.
+
+const GIS = require('./data/gis-layers.js')
+const GIS_LAYERS_SCHEMA_VERSION = 2
+
+function getGisLayers (req) {
+  if (req.session.data.gisLayersSchemaVersion !== GIS_LAYERS_SCHEMA_VERSION) {
+    req.session.data.gisLayers = JSON.parse(JSON.stringify(sessionDataDefaults.gisLayers))
+    req.session.data.gisLayersOwned = true
+    req.session.data.gisLayersSchemaVersion = GIS_LAYERS_SCHEMA_VERSION
+  }
+  if (!req.session.data.gisLayersOwned) {
+    req.session.data.gisLayers = JSON.parse(JSON.stringify(req.session.data.gisLayers || []))
+    req.session.data.gisLayersOwned = true
+  }
+  return req.session.data.gisLayers
+}
+
+function findGisLayer (req, id) {
+  return getGisLayers(req).find(layer => layer.id === id)
+}
+
+// Adds a catalogue layer, or records another place it was added from if it's already in the
+// collection. An existing layer keeps the tag it has: someone may have switched it.
+function addGisLayer (req, id, type, origin) {
+  const source = GIS.getCatalogueLayer(id)
+  if (!source) return null
+  const layers = getGisLayers(req)
+  let layer = layers.find(candidate => candidate.id === id)
+  if (!layer) {
+    layer = Object.assign({}, source, { type, origins: [] })
+    layers.push(layer)
+  }
+  if (!layer.origins.includes(origin)) layer.origins.push(origin)
+  return layer
+}
+
+function removeGisLayerOrigin (req, id, origin) {
+  const layers = getGisLayers(req)
+  const index = layers.findIndex(layer => layer.id === id)
+  if (index === -1) return
+  layers[index].origins = layers[index].origins.filter(candidate => candidate !== origin)
+  if (!layers[index].origins.length) layers.splice(index, 1)
+}
+
+// What templates show for a layer: its tag, the tag it would switch to, and where it came from.
+function gisLayerView (layer) {
+  const type = GIS.LAYER_TYPES[layer.type] || GIS.LAYER_TYPES.evidence
+  return Object.assign({}, layer, {
+    typeLabel: type.label,
+    otherType: type.other,
+    otherLabel: GIS.LAYER_TYPES[type.other].label,
+    originLabels: layer.origins.map(GIS.describeOrigin)
+  })
+}
+
+// Validates the "Connect your GIS system" form. The API key is never kept, only whether one
+// was given.
+function readGisConnection (body) {
+  const serviceType = GIS.getGisServiceType(body._serviceType) ? body._serviceType : ''
+  const endpoint = (body._endpoint || '').trim()
+  const errors = {}
+  if (!serviceType) errors.serviceType = 'Select the type of GIS service'
+  if (!endpoint) {
+    errors.endpoint = 'Enter the endpoint URL for your GIS service'
+  } else {
+    let url = null
+    try { url = new URL(endpoint) } catch (error) {}
+    if (!url) errors.endpoint = 'Enter the endpoint URL in the correct format, like https://gis.example.gov.uk/arcgis/rest/services/PoliciesMap/MapServer'
+    else if (url.protocol !== 'https:') errors.endpoint = 'The endpoint URL must start with https://'
+  }
+  if (Object.keys(errors).length) return { errors, values: { serviceType, endpoint } }
+  return {
+    connection: {
+      serviceType,
+      endpoint,
+      hasApiKey: Boolean((body._apiKey || '').trim()),
+      connectedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' })
+    }
+  }
+}
+
+// Errors from the connect and add forms survive the redirect in session data, cleared once shown.
+function setGisErrors (req, errors, values) {
+  req.session.data.gisErrors = { errors, values: values || {} }
+}
+
+// Everything partials/gis/macro.njk's gisConnect needs, for a page that adds layers from
+// `catalogue`. `addedIds` are the layers this place has already added, shown ticked.
+function gisConnectLocals (req, { action, connection, catalogue, addedIds, intro }) {
+  const stored = req.session.data.gisErrors || { errors: {}, values: {} }
+  delete req.session.data.gisErrors
+  return {
+    action,
+    intro,
+    connection,
+    serviceType: connection ? GIS.getGisServiceType(connection.serviceType) : null,
+    serviceTypes: GIS.GIS_SERVICE_TYPES,
+    layers: connection ? GIS.getCatalogue(catalogue).map(layer => Object.assign({ added: addedIds.includes(layer.id) }, layer)) : [],
+    // The same layers in their folders, as the source map groups them, for the checkbox lists.
+    groups: connection ? gisGroupLayers(GIS.getCatalogue(catalogue).map(layer => Object.assign({ added: addedIds.includes(layer.id) }, layer))) : [],
+    errors: stored.errors,
+    errorList: Object.keys(stored.errors).map(id => ({ text: stored.errors[id], href: '#' + id })),
+    values: stored.values
+  }
+}
+
+function gisGroupLayers (layers) {
+  const groups = []
+  layers.forEach(layer => {
+    let group = groups.find(candidate => candidate.name === layer.group)
+    if (!group) groups.push(group = { name: layer.group, layers: [] })
+    group.layers.push(layer)
+  })
+  return groups
+}
+
+// Only a path on this site, so a crafted form can't send someone elsewhere.
+function gisReturnTo (value, fallback) {
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : fallback
+}
+
+// --- Map data ---
+//
+// A layer's features as GeoJSON, for the map component (partials/gis/map.njk, initGisMap).
+// Only catalogue layers are served, so this never fetches an address someone typed in. A real
+// COMPASS layer is fetched from the City's ArcGIS server once and kept in memory for the life of
+// the process, simplified a little for drawing; an invented layer gets generated, illustrative
+// shapes. Proxying rather than fetching in the browser works from wherever the prototype is
+// deployed, and saves every page view re-downloading large layers.
+const gisGeoJSONCache = new Map()
+
+// How far a simplified line may stray, in degrees, scaled to how far the layer reaches: about
+// 2m for City layers, invisible at that scale; about 40m for London-wide boundaries and 150m for
+// national ones, which are otherwise megabytes (Local Authorities is 15MB unsimplified).
+const GIS_NATIONAL_LAYERS = ['compass-boundaryline-2', 'compass-boundaryline-5', 'compass-boundaryline-7']
+
+function gisSimplification (layer) {
+  if (GIS_NATIONAL_LAYERS.includes(layer.id)) return '0.002'
+  if (layer.group === 'Boundaries') return '0.0005'
+  if (layer.features > 400) return '0.00005'
+  return '0.00002'
+}
+
+function gisQueryUrl (layer) {
+  const params = new URLSearchParams({
+    where: '1=1',
+    outFields: '*',
+    outSR: '4326',
+    f: 'geojson',
+    geometryPrecision: '6',
+    maxAllowableOffset: gisSimplification(layer)
+  })
+  return layer.url + '/query?' + params.toString()
+}
+
+router.get('/gis-layers/:layerId/geojson', async (req, res) => {
+  const layer = GIS.getCatalogueLayer(req.params.layerId)
+  if (!layer) return res.status(404).json({ error: 'No such layer' })
+  if (!layer.url) return res.json(GIS.generateIllustrativeGeoJSON(layer))
+
+  if (gisGeoJSONCache.has(layer.id)) return res.json(gisGeoJSONCache.get(layer.id))
+  try {
+    const response = await fetch(gisQueryUrl(layer), { signal: AbortSignal.timeout(20000) })
+    if (!response.ok) throw new Error('Map server responded ' + response.status)
+    const data = await response.json()
+    if (!data || data.type !== 'FeatureCollection') throw new Error('Map server returned no features')
+    gisGeoJSONCache.set(layer.id, data)
+    res.json(data)
+  } catch (error) {
+    console.error('Could not load map layer ' + layer.id + ':', error.message)
+    res.status(502).json({ error: 'The City of London map server could not be reached' })
+  }
+})
+
+// What a map's checkbox list shows for each layer: everything gisLayerView gives, plus whether
+// its shapes are made up.
+function gisMapRows (layers) {
+  return layers.map(layer => Object.assign(gisLayerView(Object.assign({ origins: [] }, layer)), {
+    illustrative: !layer.url
+  }))
+}
+
+// Switch a layer between Plan and Evidence, from wherever it is listed.
+router.post('/gis-layers/:layerId/type', (req, res) => {
+  const layer = findGisLayer(req, req.params.layerId)
+  if (layer && GIS.LAYER_TYPES[req.body._type]) layer.type = req.body._type
+  res.redirect(gisReturnTo(req.body._returnTo, '/'))
+})
+
+
 const EXISTING_DOCUMENTS = [
   'SHLAA 2025', 'Brownfield register v2.0', 'Housing needs assessment study',
   'Strategic Flood Risk Assessment', 'Employment Land Review'
@@ -1238,13 +1521,39 @@ function findStartingPointStep (slug) {
 // containing real seed data. An explicit schema version sidesteps that whole class of bug:
 // anything not stamped with the current version is fully reseeded, no structural guessing.
 const POLICY_WRITING_SESSION_SCHEMA_VERSION = 2
+// Starting points are versioned on their own, so adding a step (and its seed) reseeds them
+// without also throwing away the topics a tester has built. 3 added existing plan layers; 4 their
+// GIS connection, which is reset with them because the layers come from it; 5 the real COMPASS
+// layers.
+const POLICY_STARTING_POINTS_SCHEMA_VERSION = 5
 
 function ensureStartingPointItemsShape (req) {
-  if (req.session.data.policyStartingPointItemsSchemaVersion !== POLICY_WRITING_SESSION_SCHEMA_VERSION) {
+  if (req.session.data.policyStartingPointItemsSchemaVersion !== POLICY_STARTING_POINTS_SCHEMA_VERSION) {
     req.session.data.policyStartingPointItems = JSON.parse(JSON.stringify(sessionDataDefaults.policyStartingPointItems))
     req.session.data.policyStartingPointItemsOwned = { prefilled: true, blank: true }
-    req.session.data.policyStartingPointItemsSchemaVersion = POLICY_WRITING_SESSION_SCHEMA_VERSION
+    req.session.data.policyGisConnection = JSON.parse(JSON.stringify(sessionDataDefaults.policyGisConnection))
+    req.session.data.policyGisConnectionOwned = { prefilled: true, blank: true }
+    req.session.data.policyStartingPointItemsSchemaVersion = POLICY_STARTING_POINTS_SCHEMA_VERSION
   }
+}
+
+// The GIS connection for a variant, or null. Shares the starting points' schema stamp, and is
+// deep-cloned on first touch like every other seeded object.
+function getGisConnection (req, variant) {
+  ensureStartingPointItemsShape(req)
+  if (!req.session.data.policyGisConnectionOwned) req.session.data.policyGisConnectionOwned = {}
+  if (!req.session.data.policyGisConnection) req.session.data.policyGisConnection = {}
+  if (!req.session.data.policyGisConnectionOwned[variant]) {
+    const seeded = req.session.data.policyGisConnection[variant]
+    req.session.data.policyGisConnection[variant] = seeded ? JSON.parse(JSON.stringify(seeded)) : null
+    req.session.data.policyGisConnectionOwned[variant] = true
+  }
+  return req.session.data.policyGisConnection[variant]
+}
+
+function setGisConnection (req, variant, connection) {
+  getGisConnection(req, variant)
+  req.session.data.policyGisConnection[variant] = connection
 }
 
 function ensurePolicyTopicsShape (req) {
@@ -1331,7 +1640,7 @@ function buildStartingPointsSidebar (req, variant, activeHref) {
   ]
 }
 
-// --- Starting points wizard: one shared route pair for all 7 steps ---
+// --- Starting points wizard: one shared route pair for all 8 steps ---
 
 router.get('/policy-writing/:variant/starting-points/:step', (req, res) => {
   const { variant } = req.params
@@ -1341,13 +1650,75 @@ router.get('/policy-writing/:variant/starting-points/:step', (req, res) => {
   const items = getStartingPointItems(req, variant, step.slug)
   const editItem = req.query.edit ? items.find(item => item.id === req.query.edit) : null
 
-  res.render('policy-writing/starting-points/step', {
+  res.render('policy-writing/starting-points/step', Object.assign({
     variant,
     step,
     items,
     editItem,
     sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/starting-points/' + step.slug)
+  }, step.gis ? gisStepLocals(req, variant, items) : {}))
+})
+
+// --- Existing plan layers: the (simulated) GIS connection ---
+//
+// Layers added here go into the shared gisLayers collection, tagged Plan, with the origin
+// 'starting-points:<variant>'; each is also a starting point item carrying its layerId.
+
+const GIS_STEP = 'existing-plan-layers'
+
+function gisStepHref (variant) {
+  return '/policy-writing/' + variant + '/starting-points/' + GIS_STEP
+}
+
+function gisStepLocals (req, variant, items) {
+  const layers = {}
+  getGisLayers(req).forEach(layer => { layers[layer.id] = gisLayerView(layer) })
+  return {
+    gis: gisConnectLocals(req, {
+      action: gisStepHref(variant),
+      connection: getGisConnection(req, variant),
+      catalogue: GIS.catalogueFor(getGisConnection(req, variant), 'compass'),
+      addedIds: items.map(item => item.layerId).filter(Boolean),
+      intro: 'Connect the GIS system that holds your adopted plan\'s policies map. You can then choose which of its layers to bring in as starting points. They are added as Plan layers.'
+    }),
+    gisLayerById: layers,
+    gisReturnTo: gisStepHref(variant) + '#added-layers'
+  }
+}
+
+router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/connect', (req, res) => {
+  const { variant } = req.params
+  const result = readGisConnection(req.body)
+  if (result.errors) {
+    setGisErrors(req, result.errors, result.values)
+    return res.redirect(gisStepHref(variant) + '#gis-connect')
+  }
+  setGisConnection(req, variant, result.connection)
+  res.redirect(gisStepHref(variant) + '#gis-layers')
+})
+
+// Disconnecting keeps the layers already added: they are starting points now, not live data.
+router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/disconnect', (req, res) => {
+  setGisConnection(req, req.params.variant, null)
+  res.redirect(gisStepHref(req.params.variant) + '#gis-connect')
+})
+
+router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/layers', (req, res) => {
+  const { variant } = req.params
+  if (!getGisConnection(req, variant)) return res.redirect(gisStepHref(variant))
+  const items = getStartingPointItems(req, variant, GIS_STEP)
+  const catalogue = GIS.getCatalogue(GIS.catalogueFor(getGisConnection(req, variant), 'compass'))
+  const selected = asArray(req.body._layers).map(id => catalogue.find(layer => layer.id === id)).filter(Boolean)
+  if (!selected.length) {
+    setGisErrors(req, { layers: 'Select at least one layer to add' })
+    return res.redirect(gisStepHref(variant) + '#gis-layers')
+  }
+  selected.forEach(layer => {
+    addGisLayer(req, layer.id, 'plan', 'starting-points:' + variant)
+    if (items.some(item => item.layerId === layer.id)) return
+    items.push({ id: 'psp-' + Date.now() + '-' + layer.id, text: layer.name, layerId: layer.id })
   })
+  res.redirect(gisStepHref(variant) + '#added-layers')
 })
 
 router.post('/policy-writing/:variant/starting-points/:step', (req, res) => {
@@ -1376,12 +1747,16 @@ router.post('/policy-writing/:variant/starting-points/:step/:itemId/remove', (re
   if (step) {
     const items = getStartingPointItems(req, variant, step.slug)
     const index = items.findIndex(item => item.id === req.params.itemId)
-    if (index !== -1) items.splice(index, 1)
+    if (index !== -1) {
+      // A layer leaves the shared collection only if nowhere else added it too.
+      if (items[index].layerId) removeGisLayerOrigin(req, items[index].layerId, 'starting-points:' + variant)
+      items.splice(index, 1)
+    }
   }
   res.redirect('/policy-writing/' + variant + '/starting-points/' + req.params.step)
 })
 
-// --- Review starting points: aggregate table across all 7 steps ---
+// --- Review starting points: aggregate table across all 8 steps ---
 
 router.get('/policy-writing/:variant/topics/review-starting-points', (req, res) => {
   const { variant } = req.params
@@ -1746,7 +2121,9 @@ router.get('/examination-inspector-view/paragraphs/:id', (req, res) => {
     previousParagraph: PLAN_PARAGRAPHS[index - 1] || null,
     nextParagraph: PLAN_PARAGRAPHS[index + 1] || null,
     relatedResources: buildRelatedResources(policy, paragraph.id),
-    sidebarSections: buildLocalPlanSidebarSections(paragraph.policyRef)
+    sidebarSections: buildLocalPlanSidebarSections(paragraph.policyRef),
+    // A fixed set of the City's COMPASS layers for the policy's area (MAP_LAYERS_BY_AREA).
+    mapLayers: gisMapRows(GIS.getMapLayersForArea(paragraph.policyArea))
   })
 })
 
@@ -2192,7 +2569,9 @@ router.get('/gateway-2-progress-check/chapters/:area', (req, res) => {
     brief: getChapterBrief(area),
     auditLog: getChapterAuditLog(area),
     stageStatuses: getStageStatuses(status),
-    resources: buildChapterResources(area)
+    resources: buildChapterResources(area),
+    // A fixed set of the City's COMPASS layers for this chapter (MAP_LAYERS_BY_AREA).
+    mapLayers: gisMapRows(GIS.getMapLayersForArea(area))
   })
 })
 
@@ -2638,6 +3017,45 @@ router.post(PD + '/chapters/:pdChapterId/explanatory-text', (req, res) => {
   res.redirect(pdChapterUrl(chapter, 'sources'))
 })
 
+// GIS layers as sources. A chapter's sources are library ids, or 'gis-<layer id>' for a layer
+// from the shared gisLayers collection, so a layer's tag is always read live: switching it
+// anywhere shows here too. A layer that has since been removed simply drops out.
+const PD_LAYER_PREFIX = 'gis-'
+const PD_LAYER_SOURCE_TYPE = 'GIS layer'
+
+function pdLayerSource (layer) {
+  const view = gisLayerView(layer)
+  return {
+    id: PD_LAYER_PREFIX + layer.id,
+    name: layer.name,
+    type: view.typeLabel,
+    status: null,
+    layer: view
+  }
+}
+
+function pdSource (req, id) {
+  if (typeof id !== 'string') return null
+  if (id.startsWith(PD_LAYER_PREFIX)) {
+    const layer = findGisLayer(req, id.slice(PD_LAYER_PREFIX.length))
+    return layer ? pdLayerSource(layer) : null
+  }
+  return getLibrarySource(id)
+}
+
+// Layers matching a search, by the same AND-of-words rule as searchLibrary, over the layer's
+// name, its tag and "gis layer map". Layers have no policy area, designation or site, so any of
+// those filters leaves them out, as does a source type other than "GIS layer".
+function pdSearchLayers (req, filters) {
+  if (filters.type && filters.type !== PD_LAYER_SOURCE_TYPE) return []
+  if (filters.area || filters.designation || filters.site) return []
+  const words = String(filters.query || '').toLowerCase().split(/\s+/).filter(Boolean)
+  return getGisLayers(req).map(pdLayerSource).filter(source => {
+    const haystack = (source.name + ' ' + source.type + ' gis layer map spatial').toLowerCase()
+    return words.every(word => haystack.includes(word))
+  })
+}
+
 // Search and filters are sticky in session (the kit stores req.query there), named pd* so they
 // can't collide with the evidence library's own evidenceSearch filter. The page number is
 // "_page" so it isn't sticky: a new search should start from the first page.
@@ -2652,13 +3070,13 @@ router.get(PD + '/chapters/:pdChapterId/sources', (req, res) => {
     site: session.pdSite || ''
   }
   const searched = Object.values(filters).some(Boolean)
-  const results = searched ? searchLibrary(filters) : []
+  const results = searched ? searchLibrary(filters).concat(pdSearchLayers(req, filters)) : []
   const pageCount = Math.max(1, Math.ceil(results.length / PD_RESULTS_PER_PAGE))
   const page = Math.min(pageCount, Math.max(1, parseInt(req.query._page, 10) || 1))
   const start = (page - 1) * PD_RESULTS_PER_PAGE
 
   renderChapterPage(req, res, 'chapter/sources', 'sources', {
-    chapterSources: chapter.sources.map(getLibrarySource).filter(Boolean),
+    chapterSources: chapter.sources.map(id => pdSource(req, id)).filter(Boolean),
     filters,
     searched,
     results: results.slice(start, start + PD_RESULTS_PER_PAGE),
@@ -2671,7 +3089,8 @@ router.get(PD + '/chapters/:pdChapterId/sources', (req, res) => {
     searchTermsJson: JSON.stringify(getLibrarySearchTerms()),
     // Set after "Add selected sources", for the confirmation banner.
     addedCount: parseInt(req.query._added, 10) || 0,
-    sourceTypes: SOURCE_TYPES,
+    sourceTypes: SOURCE_TYPES.concat([PD_LAYER_SOURCE_TYPE]),
+    pdLayerReturnTo: pdChapterUrl(chapter, 'sources') + '#pd-existing',
     policyAreas: POLICY_AREAS,
     designations: PLANNING_DESIGNATIONS,
     sites: SITES
@@ -2692,7 +3111,7 @@ function sourcesReturnUrl (chapter, page, extra) {
 router.post(PD + '/chapters/:pdChapterId/sources/add', (req, res) => {
   const chapter = req.pdChapter
   const incoming = asArray(req.body._sourceIds)
-    .filter(id => getLibrarySource(id) && !chapter.sources.includes(id))
+    .filter(id => pdSource(req, id) && !chapter.sources.includes(id))
     .filter((id, index, all) => all.indexOf(id) === index)
   chapter.sources.push(...incoming)
   res.redirect(sourcesReturnUrl(chapter, req.body._page, incoming.length ? '_added=' + incoming.length : ''))
@@ -2756,21 +3175,23 @@ router.post(PD + '/chapters/:pdChapterId/policies/:areaId/edit', (req, res) => {
 
 // The sources the evidence viewer can show: the chapter's own, plus any consultation summary
 // that covers this chapter.
-function viewerSourcesFor (chapter) {
+function viewerSourcesFor (req, chapter) {
   return chapter.sources
     .concat(getConsultationsForChapter(chapter.name))
     .filter((id, index, all) => all.indexOf(id) === index)
-    .map(getLibrarySource)
+    .map(id => pdSource(req, id))
     .filter(Boolean)
 }
 
-function viewerLocals (chapter, sourceId) {
-  const viewerSources = viewerSourcesFor(chapter)
+function viewerLocals (req, chapter, sourceId) {
+  const viewerSources = viewerSourcesFor(req, chapter)
   const viewerSource = viewerSources.find(source => source.id === sourceId) || viewerSources[0] || null
   return {
     viewerSources,
     viewerSource,
-    viewerContent: viewerSource ? getViewerContent(viewerSource.id) : null
+    viewerContent: viewerSource ? getViewerContent(viewerSource.id) : null,
+    // Every layer on the chapter, for the map the viewer shows when a layer is open.
+    viewerLayers: gisMapRows(viewerSources.filter(source => source.layer).map(source => source.layer))
   }
 }
 
@@ -2783,7 +3204,7 @@ router.get(PD + '/chapters/:pdChapterId/draft', (req, res) => {
     policyAreas: areas,
     policyArea,
     draft: (policyArea && chapter.drafts[policyArea.id]) || {}
-  }, viewerLocals(chapter, req.query._source)))
+  }, viewerLocals(req, chapter, req.query._source)))
 })
 
 router.post(PD + '/chapters/:pdChapterId/draft/:areaId', (req, res) => {
@@ -2807,7 +3228,7 @@ router.post(PD + '/chapters/:pdChapterId/draft/:areaId', (req, res) => {
 router.get(PD + '/chapters/:pdChapterId/viewer', (req, res) => {
   res.render('policy-writing-drafting/chapter/viewer', Object.assign({
     chapter: req.pdChapter
-  }, viewerLocals(req.pdChapter, req.query._source)))
+  }, viewerLocals(req, req.pdChapter, req.query._source)))
 })
 
 // What can be viewed or exported: each drafted-for policy in this chapter, the chapter, or the

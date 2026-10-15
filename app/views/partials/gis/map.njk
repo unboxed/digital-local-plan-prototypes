@@ -1,0 +1,67 @@
+{#
+  A map of GIS layers you choose by ticking them.
+
+  Usage:
+    {% from "partials/gis/map.njk" import gisMap %}
+    {{ gisMap({ id: "chapter-map", layers: mapLayers, selected: ["compass-…"] }) }}
+  and include partials/gis/map-assets.html in the page's pageScripts block.
+
+  params.id: unique on the page; prefixes the checkbox ids.
+  params.layers: map rows from gisMapRows in routes.js — a gisLayerView (name, group, type tag)
+    plus `illustrative` (made-up shapes) and `url` (the layer's real data, where it has some).
+  params.selected: layer ids ticked when the page opens (optional).
+  params.compact: true to stack the list above the map, for narrow panels (optional).
+
+  initGisMap (application.js, data-dlp-gis-map) draws the map: each ticked layer's features come
+  from /gis-layers/:id/geojson, coloured to match the swatch beside its checkbox, with a dash
+  pattern too so colour isn't the only difference. Without JavaScript the list and data links
+  still work, and the map area says it needs JavaScript.
+#}
+
+{% from "partials/gis/macro.njk" import gisLayerGroup, gisLayerTag %}
+
+{% macro gisMap(params) %}
+<div class="dlp-gis-map {%- if params.compact %} dlp-gis-map--compact{% endif %}" data-dlp-gis-map>
+  <fieldset class="govuk-fieldset dlp-gis-map__layers">
+    <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Choose layers to show on the map</legend>
+    <ul class="dlp-gis-map__list">
+      {% for layer in params.layers %}
+        {% set checkboxId = params.id + "-" + layer.id %}
+        <li class="dlp-gis-map__item" data-dlp-gis-map-item>
+          <div class="govuk-checkboxes govuk-checkboxes--small">
+            <div class="govuk-checkboxes__item">
+              <input class="govuk-checkboxes__input" type="checkbox" id="{{ checkboxId }}"
+                     data-dlp-gis-layer="{{ layer.id }}" data-dlp-gis-layer-name="{{ layer.name }}"
+                     {%- if params.selected and layer.id in params.selected %} checked{% endif %}>
+              <label class="govuk-label govuk-checkboxes__label dlp-gis-map__label" for="{{ checkboxId }}">
+                <span class="dlp-gis-map__swatch" data-dlp-gis-swatch aria-hidden="true"></span>
+                {{ layer.name }}
+              </label>
+            </div>
+          </div>
+          <div class="dlp-gis-map__meta">
+            {{ gisLayerGroup(layer) }}
+            {{ gisLayerTag(layer) }}
+            {% if layer.illustrative %}<span class="dlp-gis-map__note">Illustrative shapes, not real data</span>{% endif %}
+            <span class="dlp-gis-map__status" data-dlp-gis-status aria-live="polite"></span>
+            {% if layer.url %}
+              <a class="govuk-link dlp-gis-map__data" href="{{ layer.url }}" target="_blank" rel="noopener noreferrer">Layer data<span class="govuk-visually-hidden"> for {{ layer.name }} (opens in a new tab)</span></a>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    <button type="button" class="govuk-button govuk-button--secondary dlp-gis-map__zoom" data-dlp-gis-zoom hidden>
+      Zoom to selected layers
+    </button>
+  </fieldset>
+
+  <div class="dlp-gis-map__frame">
+    <div class="dlp-gis-map__canvas" data-dlp-gis-canvas
+         role="region" aria-label="Map of the selected layers. The layer list is the way to choose what it shows."></div>
+    <p class="govuk-body-s dlp-gis-map__fallback" data-dlp-gis-fallback>
+      The map needs JavaScript and an internet connection. You can still open each layer's data.
+    </p>
+  </div>
+</div>
+{% endmacro %}

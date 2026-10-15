@@ -1,0 +1,152 @@
+{#
+  GIS layers — shared pieces for anywhere layers are added or listed. Layers live in one shared
+  collection (`gisLayers`, see app/data/gis-layers.js and getGisLayers in app/routes.js), each
+  tagged Plan or Evidence.
+
+  gisLayerGroup(layer)
+    The folder a layer sits in on its source map, as a caption. Two COMPASS layers share a name,
+    so lists show this under the name.
+
+  gisLayerTag(layer)
+    The layer's tag. Plan and Evidence differ in wording as well as colour.
+
+  gisLayerTypeSwitch(layer, returnTo)
+    "Change to Evidence layer" / "Change to Plan layer": a one-button form posting to
+    /gis-layers/:id/type, which comes back to `returnTo` (a path on this site). Every list of
+    added layers carries one, so a layer can be switched wherever it is.
+    layer: a gisLayerView (has otherType and otherLabel).
+
+  gisConnect(gis)
+    The (simulated) connection: the "Connect your GIS system" form, or, once connected, the
+    service's details, a Disconnect button and the layers it offers to add. Posts to
+    `gis.action` + /connect, /disconnect and /layers. Built by gisConnectLocals in routes.js.
+    Field names start with `_`, so the kit doesn't copy them (or the API key) into session data.
+#}
+
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/password-input/macro.njk" import govukPasswordInput %}
+{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% from "govuk/components/tag/macro.njk" import govukTag %}
+
+{% macro gisLayerGroup(layer) %}
+  {% if layer.group %}<span class="dlp-gis-group">{{ layer.group }}</span>{% endif %}
+{% endmacro %}
+
+{% macro gisLayerTag(layer) %}
+  {{ govukTag({ text: layer.typeLabel, classes: "dlp-gis-tag dlp-gis-tag--" + layer.type }) }}
+{% endmacro %}
+
+{% macro gisLayerTypeSwitch(layer, returnTo) %}
+  <form class="dlp-inline-form dlp-gis-switch" method="post" action="/gis-layers/{{ layer.id }}/type">
+    <input type="hidden" name="_type" value="{{ layer.otherType }}">
+    <input type="hidden" name="_returnTo" value="{{ returnTo }}">
+    <button type="submit" class="dlp-link-button">Change to {{ layer.otherLabel }}<span class="govuk-visually-hidden">: {{ layer.name }}</span></button>
+  </form>
+{% endmacro %}
+
+{% macro gisConnect(gis) %}
+  {% if not gis.connection %}
+
+    <form action="{{ gis.action }}/connect" method="post" id="gis-connect" class="dlp-gis-connect" novalidate>
+      <h2 class="govuk-heading-m">Connect your GIS system</h2>
+      {% if gis.intro %}<p class="govuk-body">{{ gis.intro }}</p>{% endif %}
+
+      {% set serviceItems = [] %}
+      {% for type in gis.serviceTypes %}
+        {% set serviceItems = (serviceItems.push({
+          value: type.value,
+          text: type.text,
+          hint: { text: type.hint },
+          checked: type.value == gis.values.serviceType
+        }), serviceItems) %}
+      {% endfor %}
+      {{ govukRadios({
+        idPrefix: "serviceType",
+        name: "_serviceType",
+        fieldset: { legend: { text: "Type of service", classes: "govuk-fieldset__legend--s" } },
+        items: serviceItems,
+        errorMessage: { text: gis.errors.serviceType } if gis.errors.serviceType
+      }) }}
+
+      {{ govukInput({
+        id: "endpoint",
+        name: "_endpoint",
+        type: "url",
+        spellcheck: false,
+        autocomplete: "off",
+        label: { text: "Endpoint URL", classes: "govuk-label--s" },
+        hint: { text: "The web address of the service. Your GIS team can give you this." },
+        value: gis.values.endpoint,
+        errorMessage: { text: gis.errors.endpoint } if gis.errors.endpoint
+      }) }}
+
+      {{ govukPasswordInput({
+        id: "apiKey",
+        name: "_apiKey",
+        label: { text: "API key (optional)", classes: "govuk-label--s" },
+        hint: { text: "Only needed if your service is not public." },
+        autocomplete: "off"
+      }) }}
+
+      {{ govukButton({ text: "Connect" }) }}
+    </form>
+
+    {{ govukInsetText({ text: "Prototype only: nothing is requested from the endpoint you enter. Any https address connects and shows an example set of layers." }) }}
+
+  {% else %}
+
+    <div id="gis-connection">
+      <div class="dlp-gis-heading">
+        <h2 class="govuk-heading-m govuk-!-margin-bottom-0">Connected GIS system</h2>
+        {{ govukTag({ text: "Connected", classes: "govuk-tag--green" }) }}
+      </div>
+      {{ govukSummaryList({
+        classes: "govuk-!-margin-top-4",
+        rows: [
+          { key: { text: "Type of service" }, value: { text: gis.serviceType.text if gis.serviceType else gis.connection.serviceType } },
+          { key: { text: "Endpoint URL" }, value: { html: '<span class="dlp-gis-break">' + (gis.connection.endpoint | escape) + '</span>' } },
+          { key: { text: "API key" }, value: { text: "Provided" if gis.connection.hasApiKey else "None" } },
+          { key: { text: "Connected" }, value: { text: gis.connection.connectedAt } }
+        ]
+      }) }}
+      <form action="{{ gis.action }}/disconnect" method="post" novalidate>
+        {{ govukButton({ text: "Disconnect", classes: "govuk-button--secondary" }) }}
+      </form>
+    </div>
+
+    {# One checkbox list per folder, as the source map groups its layers. They share the field
+       name, so ticks across folders arrive together. #}
+    <form action="{{ gis.action }}/layers" method="post" id="gis-layers" novalidate>
+      <h2 class="govuk-heading-m">Layers available from this service</h2>
+      <p class="govuk-hint">Select the layers to add.</p>
+      {% if gis.errors.layers %}
+        <p class="govuk-error-message" id="layers"><span class="govuk-visually-hidden">Error:</span> {{ gis.errors.layers }}</p>
+      {% endif %}
+      {% for group in gis.groups %}
+        {% set layerItems = [] %}
+        {% for layer in group.layers %}
+          {% set layerItems = (layerItems.push({
+            value: layer.id,
+            text: layer.name,
+            hint: { text: layer.geometry + " layer, " + (layer.features | string) + (" feature" if layer.features == 1 else " features") + (". Already added" if layer.added else "") },
+            checked: layer.added,
+            disabled: layer.added
+          }), layerItems) %}
+        {% endfor %}
+        {{ govukCheckboxes({
+          idPrefix: "layers-" + loop.index,
+          name: "_layers",
+          classes: "govuk-checkboxes--small",
+          fieldset: { legend: { text: group.name, classes: "govuk-fieldset__legend--s" } },
+          items: layerItems
+        }) }}
+      {% endfor %}
+      {{ govukButton({ text: "Add selected layers", classes: "govuk-button--secondary" }) }}
+    </form>
+
+  {% endif %}
+{% endmacro %}
