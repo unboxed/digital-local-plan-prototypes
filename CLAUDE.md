@@ -646,8 +646,10 @@ area's hub, listing it under Current prototypes.
   link to `/timetable-placeholder` ("Coded prototype is being built for this flow"). The existing
   timetable flow under `/timetable` is still there, reachable by URL.
 - **Linked, not built:** the PID's Evidence section goes to `/evidence`. Scoping activities,
-  the Scoping consultation (starting it still records `scopingConsultationStarted`) and the
-  Readiness checker are not built, so their pages say so.
+  the Scoping consultation (`/scoping-consultation`, "This section of the prototype has not been
+  built yet"; starting it from the overview still records `scopingConsultationStarted`) and the
+  Readiness checker are not built, so their pages say so. They share the `not-designed` template;
+  pass `standIn: false` to drop its "This page stands in for it" line.
 - **The website preview is council-branded**, not GOV.UK: the frame mocked the authority's site
   with a GOV.UK bar, which this project can't show.
 - **Real outbound links**: guidance and its search go to GOV.UK, "Export" downloads a real CSV
@@ -689,7 +691,15 @@ templates are `partials/gis/macro.njk`.
   2040 - Draft Policies", "Local Plan Supplementary Guidance", "Historic Environment" and
   "Boundaries" folders, 36 layers in `COMPASS_LAYERS`. Names, folders, geometry types and each
   layer's ArcGIS REST address (`url`, linked from the drafting evidence viewer) are as published;
-  feature counts were read on 15 October 2026 and are not refreshed. Two layers are both called
+  feature counts were read on 15 October 2026 and are not refreshed. **A layer's id and `url` end in
+  its index on the ArcGIS server, and that index must be checked against the server's own layer
+  list** (`<service>/MapServer/layers?f=json`), not inferred from the viewer's order: the Draft
+  Policy service has layers the viewer doesn't show (the 2025 City Cluster contours, Broadgate),
+  and the catalogue once had every Draft Policies name one or two places off its data, so
+  "Fleet Street Valley - Tall Building Areas" drew the identified residential areas. Changing a
+  layer's id means updating `MAP_LAYERS_BY_AREA`, `PREFILLED_PLAN_LAYERS` and the starting
+  points' `existing-plan-layers` seed, and bumping `GIS_LAYERS_SCHEMA_VERSION` and
+  `POLICY_STARTING_POINTS_SCHEMA_VERSION`. Two layers are both called
   "Smoke Control Orders", so lists show a layer's folder (`gisLayerGroup`) under its name. The
   commissioned evidence default, a consultant's study data, is still invented.
 - **The connection is simulated**: nothing is requested from the endpoint. Any https URL

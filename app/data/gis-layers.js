@@ -34,22 +34,22 @@ const COMPASS_HOST = 'www.mapping.cityoflondon.gov.uk'
 // In the COMPASS viewer's own folder order, and its layer order within each folder. Two layers
 // are both called "Smoke Control Orders", in different folders, so lists show the group too.
 const COMPASS_LAYERS = [
-    { id: 'compass-draft-policy-3', name: "Fleet Street Valley - Tall Building Contours", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 155, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/3' },
-    { id: 'compass-draft-policy-6', name: "Highways Hierarchy", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/6' },
-    { id: 'compass-draft-policy-7', name: "Processional Route", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 2, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/7' },
-    { id: 'compass-draft-policy-8', name: "Proposed Improvements to TfL Road Network", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 5, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/8' },
-    { id: 'compass-draft-policy-9', name: "Proposed Walking Improvements", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/9' },
-    { id: 'compass-draft-policy-10', name: "Riverside Walkway", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/10' },
-    { id: 'compass-draft-policy-11', name: "Tower of London World Heritage Site", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 21, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/11' },
-    { id: 'compass-draft-policy-13', name: "Fleet Street Valley - Tall Building Areas", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 10, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/13' },
-    { id: 'compass-draft-policy-15', name: "Identified Residential Areas", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/15' },
-    { id: 'compass-draft-policy-16', name: "Key Areas of Change", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 3, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/16' },
-    { id: 'compass-draft-policy-17', name: "London Plan Legal Cluster", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 4, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/17' },
-    { id: 'compass-draft-policy-18', name: "London View Management Framework - Protected Silhouettes", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 3, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/18' },
-    { id: 'compass-draft-policy-19', name: "Principal Shopping Centres", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 3, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/19' },
-    { id: 'compass-draft-policy-20', name: "Tall Buildings Policy Area", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 3, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/20' },
+    { id: 'compass-draft-policy-4', name: "Fleet Street Valley - Tall Building Contours", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 16, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/4' },
+    { id: 'compass-draft-policy-5', name: "Highways Hierarchy", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 73, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/5' },
+    { id: 'compass-draft-policy-6', name: "Processional Route", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/6' },
+    { id: 'compass-draft-policy-7', name: "Proposed Improvements to TfL Road Network", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 2, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/7' },
+    { id: 'compass-draft-policy-8', name: "Proposed Walking Improvements", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 5, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/8' },
+    { id: 'compass-draft-policy-9', name: "Riverside Walkway", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/9' },
+    { id: 'compass-draft-policy-10', name: "Tower of London World Heritage Site", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/10' },
+    { id: 'compass-draft-policy-12', name: "Fleet Street Valley - Tall Building Areas", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 3, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/12' },
+    { id: 'compass-draft-policy-13', name: "Identified Residential Areas", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 10, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/13' },
+    { id: 'compass-draft-policy-14', name: "Key Areas of Change", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 7, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/14' },
+    { id: 'compass-draft-policy-15', name: "London Plan Legal Cluster", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/15' },
+    { id: 'compass-draft-policy-16', name: "London View Management Framework - Protected Silhouettes", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 3, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/16' },
+    { id: 'compass-draft-policy-17', name: "Principal Shopping Centres", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 4, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/17' },
+    { id: 'compass-draft-policy-18', name: "Tall Buildings Policy Area", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 3, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/18' },
     { id: 'compass-draft-policy-21', name: "Immediate Setting of Bevis Marks Synagogue", group: "City Plan 2040 - Draft Policies", geometry: 'Polygon', features: 1, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/21' },
-    { id: 'compass-draft-policy-1', name: "Cycleways", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 42, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/1' },
+    { id: 'compass-draft-policy-3', name: "Cycleways", group: "City Plan 2040 - Draft Policies", geometry: 'Line', features: 155, url: COMPASS_SERVICES + '/COMPASS_Planning_Draft_Policy/MapServer/3' },
     { id: 'compass-local-plan-supp-guidance-0', name: "Open Space Audit", group: "Local Plan Supplementary Guidance", geometry: 'Polygon', features: 575, url: COMPASS_SERVICES + '/COMPASS_Planning_Local_Plan_Supp_Guidance/MapServer/0' },
     { id: 'compass-local-plan-supp-guidance-1', name: "St Pauls Depth", group: "Local Plan Supplementary Guidance", geometry: 'Polygon', features: 7, url: COMPASS_SERVICES + '/COMPASS_Planning_Local_Plan_Supp_Guidance/MapServer/1' },
     { id: 'compass-local-plan-supp-guidance-2', name: "Protected Squares", group: "Local Plan Supplementary Guidance", geometry: 'Polygon', features: 3, url: COMPASS_SERVICES + '/COMPASS_Planning_Local_Plan_Supp_Guidance/MapServer/2' },
@@ -130,10 +130,10 @@ function seedLayer (id, type, origin) {
 // in, and two from the housing delivery assessment the commissioned evidence prototype opens on.
 const PREFILLED_PLAN_LAYERS = [
   'compass-historic-environment-2',
-  'compass-draft-policy-16',
-  'compass-draft-policy-19',
-  'compass-draft-policy-20',
-  'compass-draft-policy-18'
+  'compass-draft-policy-14',
+  'compass-draft-policy-17',
+  'compass-draft-policy-18',
+  'compass-draft-policy-16'
 ]
 
 function startingGisLayers () {
@@ -171,50 +171,51 @@ module.exports = {
 const MAP_LAYERS_BY_AREA = {
   'Health, inclusion and safety': [
     ['compass-boundaryline-1', 'evidence'],
-    ['compass-draft-policy-15', 'plan'],
+    ['compass-draft-policy-13', 'plan'],
     ['compass-local-plan-supp-guidance-0', 'evidence'],
     ['compass-local-plan-supp-guidance-3', 'plan']
   ],
   Housing: [
-    ['compass-draft-policy-15', 'plan'],
-    ['compass-draft-policy-16', 'plan'],
+    ['compass-draft-policy-13', 'plan'],
+    ['compass-draft-policy-14', 'plan'],
     ['compass-local-plan-supp-guidance-5', 'plan'],
     ['compass-boundaryline-1', 'evidence']
   ],
   Infrastructure: [
-    ['compass-draft-policy-6', 'plan'],
-    ['compass-draft-policy-8', 'plan'],
-    ['compass-draft-policy-16', 'plan'],
+    ['compass-draft-policy-5', 'plan'],
+    ['compass-draft-policy-7', 'plan'],
+    ['compass-draft-policy-14', 'plan'],
     ['compass-boundaryline-1', 'evidence']
   ],
   Design: [
     ['compass-local-plan-supp-guidance-4', 'evidence'],
-    ['compass-draft-policy-3', 'plan'],
+    ['compass-draft-policy-4', 'plan'],
     ['compass-historic-environment-2', 'plan'],
     ['compass-local-plan-supp-guidance-2', 'plan']
   ],
   Offices: [
-    ['compass-draft-policy-17', 'plan'],
-    ['compass-draft-policy-16', 'plan'],
-    ['compass-draft-policy-20', 'plan']
+    ['compass-draft-policy-15', 'plan'],
+    ['compass-draft-policy-14', 'plan'],
+    ['compass-draft-policy-18', 'plan']
   ],
   Retail: [
-    ['compass-draft-policy-19', 'plan'],
-    ['compass-draft-policy-16', 'plan']
+    ['compass-draft-policy-17', 'plan'],
+    ['compass-draft-policy-14', 'plan']
   ],
   'Culture and visitors': [
-    ['compass-draft-policy-7', 'plan'],
+    ['compass-draft-policy-6', 'plan'],
+    ['compass-draft-policy-9', 'plan'],
     ['compass-draft-policy-10', 'plan'],
-    ['compass-draft-policy-11', 'plan'],
     ['compass-historic-environment-3', 'evidence']
   ],
   'Heritage and Tall Buildings': [
     ['compass-historic-environment-2', 'plan'],
     ['compass-historic-environment-4', 'evidence'],
     ['compass-historic-environment-5', 'evidence'],
-    ['compass-draft-policy-20', 'plan'],
     ['compass-draft-policy-18', 'plan'],
-    ['compass-draft-policy-11', 'plan'],
+    ['compass-draft-policy-16', 'plan'],
+    ['compass-draft-policy-10', 'plan'],
+    ['compass-draft-policy-12', 'plan'],
     ['compass-local-plan-supp-guidance-1', 'plan']
   ],
   'Open Spaces and Green Infrastructure': [
@@ -226,14 +227,14 @@ const MAP_LAYERS_BY_AREA = {
   'Climate Resilience': [
     ['compass-local-plan-supp-guidance-3', 'plan'],
     ['compass-local-plan-supp-guidance-0', 'evidence'],
-    ['compass-draft-policy-10', 'plan']
+    ['compass-draft-policy-9', 'plan']
   ],
   Transport: [
-    ['compass-draft-policy-1', 'plan'],
-    ['compass-draft-policy-6', 'plan'],
+    ['compass-draft-policy-3', 'plan'],
+    ['compass-draft-policy-5', 'plan'],
+    ['compass-draft-policy-7', 'plan'],
     ['compass-draft-policy-8', 'plan'],
-    ['compass-draft-policy-9', 'plan'],
-    ['compass-draft-policy-7', 'plan']
+    ['compass-draft-policy-6', 'plan']
   ]
 }
 

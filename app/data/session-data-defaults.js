@@ -121,10 +121,10 @@ module.exports = {
       // shared gisLayers collection. Real layers from the City's COMPASS map.
       'existing-plan-layers': [
         { id: 'epl-1', text: 'Conservation Areas', layerId: 'compass-historic-environment-2' },
-        { id: 'epl-2', text: 'Key Areas of Change', layerId: 'compass-draft-policy-16' },
-        { id: 'epl-3', text: 'Principal Shopping Centres', layerId: 'compass-draft-policy-19' },
-        { id: 'epl-4', text: 'Tall Buildings Policy Area', layerId: 'compass-draft-policy-20' },
-        { id: 'epl-5', text: 'London View Management Framework - Protected Silhouettes', layerId: 'compass-draft-policy-18' }
+        { id: 'epl-2', text: 'Key Areas of Change', layerId: 'compass-draft-policy-14' },
+        { id: 'epl-3', text: 'Principal Shopping Centres', layerId: 'compass-draft-policy-17' },
+        { id: 'epl-4', text: 'Tall Buildings Policy Area', layerId: 'compass-draft-policy-18' },
+        { id: 'epl-5', text: 'London View Management Framework - Protected Silhouettes', layerId: 'compass-draft-policy-16' }
       ],
       'existing-data-sources': [
         { id: 'eds-1', text: 'Housing Needs Assessment 2020-2040' },
