@@ -1,0 +1,82 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Add new data from external source" %}
+
+{% block content %}
+
+{% include "evidence/partials/nav.html" %}
+
+<a class="govuk-back-link" href="/evidence/gis-layers">Back to the library</a>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% if errorList.length %}
+      {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+    {% endif %}
+
+    <span class="govuk-caption-l">GIS layer library</span>
+    <h1 class="govuk-heading-xl">Add new data from external source</h1>
+    <p class="govuk-body">
+      Add spatial data that isn't in your GIS database, such as a consultant's study data or a
+      neighbouring authority's layer. Upload a file or give the address it is published at.
+    </p>
+
+    <form method="post" action="/evidence/gis-layers/{{ tab.slug }}/add/external" novalidate>
+
+      {{ govukInput({
+        id: "name",
+        name: "_name",
+        label: { text: "Layer name", classes: "govuk-label--s" },
+        value: values.name,
+        errorMessage: { text: errors.name } if errors.name
+      }) }}
+
+      {{ govukTextarea({
+        id: "description",
+        name: "_description",
+        label: { text: "Description (optional)", classes: "govuk-label--s" },
+        hint: { text: "What the layer shows and where it came from." },
+        rows: 3,
+        value: values.description
+      }) }}
+
+      {{ govukRadios({
+        idPrefix: "type",
+        name: "_type",
+        fieldset: { legend: { text: "Type of layer", classes: "govuk-fieldset__legend--s" } },
+        items: [
+          { value: "plan", text: "Policy layer", hint: { text: "Part of your policies map" }, checked: values.type == "plan" },
+          { value: "evidence", text: "Evidence base layer", hint: { text: "Data that supports your policies" }, checked: values.type == "evidence" }
+        ],
+        errorMessage: { text: errors.type } if errors.type
+      }) }}
+
+      {{ govukFileUpload({
+        id: "file",
+        name: "_file",
+        label: { text: "Upload a file", classes: "govuk-label--s" },
+        hint: { text: "GeoJSON, a zipped shapefile, GeoPackage or KML." },
+        errorMessage: { text: errors.file } if errors.file
+      }) }}
+
+      {{ govukInput({
+        id: "url",
+        name: "_url",
+        type: "url",
+        spellcheck: false,
+        label: { text: "Or the address of the data", classes: "govuk-label--s" },
+        hint: { text: "For example, a published GeoJSON file or web feature service." },
+        value: values.url,
+        errorMessage: { text: errors.url } if errors.url
+      }) }}
+
+      {{ govukInsetText({ text: "Prototype only: the file is not uploaded and nothing is fetched from the address. The layer is added with no map preview." }) }}
+
+      {{ govukButton({ text: "Add layer" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

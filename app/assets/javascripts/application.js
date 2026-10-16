@@ -49,6 +49,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-truncate]').forEach(safeInit(initTruncate))
   document.querySelectorAll('[data-dlp-committee-board]').forEach(safeInit(initCommitteeBoard))
   document.querySelectorAll('[data-dlp-gis-map]').forEach(safeInit(initGisMap))
+  document.querySelectorAll('[data-dlp-gis-preview]').forEach(safeInit(initGisPreview))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2672,3 +2673,74 @@ function initGisMap (root) {
   }
   updateZoom()
 }
+
+// --- GIS layer preview -----------------------------------------------------------------------
+//
+// A small, still map of one layer, for the GIS layer library's cards (data-dlp-gis-preview="<id>").
+// Built only once the card scrolls near the viewport, so a long list doesn't fetch every layer
+// at once. The shapes come from the same /gis-layers/:id/geojson route as the full map. Without
+// JavaScript or Leaflet the box keeps its "Map preview needs JavaScript" message.
+function initGisPreview (root) {
+  const L = window.L
+  const id = root.getAttribute('data-dlp-gis-preview')
+  const message = root.querySelector('[data-dlp-gis-preview-message]')
+  if (!L || !id) return
+
+  function say (text) {
+    if (message) message.textContent = text
+  }
+
+  function build () {
+    say('Loading map preview…')
+    const canvas = document.createElement('div')
+    canvas.className = 'dlp-gl-preview__canvas'
+    canvas.setAttribute('aria-hidden', 'true')
+    root.appendChild(canvas)
+
+    const cityBounds = L.latLngBounds([51.5085, -0.1120], [51.5215, -0.0745])
+    const map = L.map(canvas, {
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      touchZoom: false,
+      attributionControl: true
+    }).fitBounds(cityBounds)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map)
+
+    fetch('/gis-layers/' + encodeURIComponent(id) + '/geojson')
+      .then(response => response.ok ? response.json() : Promise.reject(new Error(response.status)))
+      .then(data => {
+        const layer = L.geoJSON(data, {
+          style: () => ({ color: '#1d70b8', weight: 2, fillOpacity: 0.25 }),
+          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 4, color: '#1d70b8', weight: 2, fillOpacity: 0.6 })
+        }).addTo(map)
+        const bounds = layer.getBounds()
+        if (bounds.isValid()) map.fitBounds(bounds, { padding: [8, 8], maxZoom: 17 })
+        const count = (data.features || []).length
+        const name = root.getAttribute('data-dlp-gis-preview-name') || 'this layer'
+        say('Map of ' + name + ', ' + count + (count === 1 ? ' feature' : ' features'))
+        root.classList.add('dlp-gl-preview--ready')
+      })
+      .catch(() => {
+        say('Couldn’t load this layer')
+      })
+  }
+
+  if (!window.IntersectionObserver) {
+    build()
+    return
+  }
+  const observer = new window.IntersectionObserver(entries => {
+    if (!entries.some(entry => entry.isIntersecting)) return
+    observer.disconnect()
+    build()
+  }, { rootMargin: '200px' })
+  observer.observe(root)
+}
+

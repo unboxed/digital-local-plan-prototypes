@@ -1310,7 +1310,7 @@ const STARTING_POINT_STEPS = [
 // connection itself is simulated — see app/data/gis-layers.js.
 
 const GIS = require('./data/gis-layers.js')
-const GIS_LAYERS_SCHEMA_VERSION = 3
+const GIS_LAYERS_SCHEMA_VERSION = 5
 
 function getGisLayers (req) {
   if (req.session.data.gisLayersSchemaVersion !== GIS_LAYERS_SCHEMA_VERSION) {
@@ -1497,6 +1497,343 @@ router.post('/gis-layers/:layerId/type', (req, res) => {
   res.redirect(gisReturnTo(req.body._returnTo, '/'))
 })
 
+
+// --- GIS layer library ---
+//
+// /evidence/gis-layers: every layer in the shared gisLayers collection, as Policy layers (tag
+// `plan`) or Evidence base layers (tag `evidence`), with a map preview and metadata. Layers added
+// here have the origin 'library'; layers added in the starting points or commissioned evidence
+// show up here too, because there is one collection. A layer's linked policies are `policyRefs`
+// on the layer itself. Descriptions and versions come from GIS.LAYER_DETAILS (invented) or, for a
+// layer added from an external source, from the layer. "Add to Local Plan timetable stage" and
+// "See connected consultation responses" are inert placeholders from the sketch.
+const GL = '/evidence/gis-layers'
+const GL_TABS = {
+  policy: { slug: 'policy', type: 'plan', title: 'Policy layers', other: 'evidence' },
+  evidence: { slug: 'evidence', type: 'evidence', title: 'Evidence base layers', other: 'policy' }
+}
+const GL_PLAN = 'City Plan 2040'
+const GL_NOT_PUBLISHED = 'Not yet published'
+
+router.param('glTab', (req, res, next, glTab) => {
+  if (!GL_TABS[glTab]) return res.redirect(GL + '/policy')
+  next()
+})
+
+function glTabForType (type) {
+  return type === 'evidence' ? GL_TABS.evidence : GL_TABS.policy
+}
+
+function glFormatDate (iso) {
+  if (!iso) return 'Not recorded'
+  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' })
+}
+
+function glToday () {
+  return new Date().toISOString().slice(0, 10)
+}
+
+// The plan's chapters (policy areas), in plan order.
+function glChapterNames () {
+  return Array.from(new Set(POLICIES.map(policy => policy.policyArea)))
+}
+
+// A connection as a form value: `chapter:<policy area>` or `policy:<ref>`.
+function glReadLink (value) {
+  const match = /^(chapter|policy):(.+)$/.exec(String(value || ''))
+  if (!match) return null
+  if (match[1] === 'chapter') return glChapterNames().includes(match[2]) ? { kind: 'chapter', ref: match[2] } : null
+  return POLICIES.some(policy => policy.ref === match[2]) ? { kind: 'policy', ref: match[2] } : null
+}
+
+// The library's connection to a GIS database, kept apart from the starting points' and the
+// commission's. Starts unconnected.
+function getGisLibraryConnection (req) {
+  return req.session.data.gisLibraryConnection || null
+}
+
+// Everything a library card shows for a layer.
+function glLayerView (layer) {
+  const details = GIS.LAYER_DETAILS[layer.id] || {}
+  const versions = (layer.versions || details.versions || [{ version: '1.0.0', created: layer.addedAt || null, publishedWith: null }])
+    .map(version => Object.assign({}, version, {
+      createdLabel: glFormatDate(version.created),
+      publishedLabel: version.publishedWith || GL_NOT_PUBLISHED
+    }))
+  const policies = (layer.policyRefs || []).map(ref => {
+    const policy = POLICIES.find(candidate => candidate.ref === ref)
+    return { ref, title: policy ? policy.title : '', area: policy ? policy.policyArea : '' }
+  })
+  const wholeChapters = layer.chapters || []
+  // What the layer is connected with, by chapter in plan order: the whole chapter, single
+  // policies in it, or both.
+  const connections = glChapterNames()
+    .filter(name => wholeChapters.includes(name) || policies.some(policy => policy.area === name))
+    .map(name => ({
+      chapter: name,
+      whole: wholeChapters.includes(name),
+      policies: policies.filter(policy => policy.area === name)
+    }))
+  return Object.assign(gisLayerView(Object.assign({ origins: [] }, layer)), {
+    description: layer.description || details.description || '',
+    current: versions[0],
+    previous: versions.slice(1),
+    policies,
+    connections,
+    plan: GL_PLAN,
+    // Only catalogue layers have shapes to preview; a layer from an external source has none.
+    hasPreview: Boolean(GIS.getCatalogueLayer(layer.id)),
+    illustrative: !layer.url,
+    sourceLabel: layer.external ? 'External source' + (layer.source ? ': ' + layer.source : '') : (layer.origins || []).map(GIS.describeOrigin).join(', ')
+  })
+}
+
+// The "Layer type" checkboxes, `glTypes`, are a sticky kit field. Unset means both. The form's
+// hidden `_unchecked` lets unticking one be stored; unticking both makes the kit delete the field,
+// so it falls back to both, as a filter with nothing selected usually does.
+function glTypes (req) {
+  const stored = req.session.data.glTypes
+  if (stored === undefined) return Object.keys(GIS.LAYER_TYPES)
+  return asArray(stored).filter(type => GIS.LAYER_TYPES[type])
+}
+
+function glFilters (req) {
+  return {
+    types: glTypes(req),
+    year: req.session.data.glYear || '',
+    published: req.session.data.glPublished || '',
+    policy: req.session.data.glPolicy || ''
+  }
+}
+
+function glMatches (view, filters) {
+  if (!filters.types.includes(view.type)) return false
+  if (filters.year && !(view.current.created || '').startsWith(filters.year)) return false
+  if (filters.published && view.current.publishedLabel !== filters.published) return false
+  if (filters.policy === 'none') return !view.connections.length
+  const link = glReadLink(filters.policy)
+  if (link && link.kind === 'chapter' && !view.connections.some(connection => connection.chapter === link.ref)) return false
+  if (link && link.kind === 'policy' && !view.policies.some(policy => policy.ref === link.ref)) return false
+  return true
+}
+
+function glSelectItems (values, selected, allLabel) {
+  return [{ value: '', text: allLabel, selected: !selected }].concat(values.map(value => ({
+    value: value.value, text: value.text, selected: value.value === selected
+  })))
+}
+
+// Where a layer's card is, to come back to after acting on it.
+function glLayerHref (layer) {
+  return GL + '#layer-' + layer.id
+}
+
+// The old per-type addresses: show just that type.
+router.get(GL + '/:glTab', (req, res) => {
+  req.session.data.glTypes = [GL_TABS[req.params.glTab].type]
+  res.redirect(GL)
+})
+
+router.get(GL, (req, res) => {
+  const all = getGisLayers(req).map(glLayerView)
+
+  // The year and policy options come from every layer, so ticking a layer type never removes the
+  // option that is selected. A stored value no layer has any more is ignored.
+  const years = Array.from(new Set(all.map(view => (view.current.created || '').slice(0, 4)).filter(Boolean))).sort().reverse()
+  // Each chapter any layer is connected with, followed by the single policies in it that are.
+  const linkedRefs = Array.from(new Set([].concat(...all.map(view => view.policies.map(policy => policy.ref)))))
+  const linkedChapters = Array.from(new Set([].concat(...all.map(view => view.connections.map(connection => connection.chapter)))))
+  const policyOptions = [].concat(...glChapterNames().filter(name => linkedChapters.includes(name)).map(name =>
+    [{ value: 'chapter:' + name, text: name + ' chapter' }].concat(POLICIES
+      .filter(policy => policy.policyArea === name && linkedRefs.includes(policy.ref))
+      .map(policy => ({ value: 'policy:' + policy.ref, text: policy.ref + ' ' + policy.title })))
+  )).concat([{ value: 'none', text: 'Not connected to any' }])
+  const filters = glFilters(req)
+  if (!years.includes(filters.year)) filters.year = ''
+  if (!policyOptions.some(option => option.value === filters.policy)) filters.policy = ''
+  const layers = all.filter(view => glMatches(view, filters))
+
+  // With one type ticked, new layers are added as that type; otherwise as policy layers.
+  const addTab = filters.types.length === 1 ? glTabForType(filters.types[0]) : GL_TABS.policy
+
+  res.render('evidence/gis-layers/index', {
+    layers,
+    total: all.length,
+    filters,
+    filtered: filters.types.length !== Object.keys(GIS.LAYER_TYPES).length || Boolean(filters.year || filters.published || filters.policy),
+    typeItems: Object.keys(GL_TABS).map(slug => ({
+      value: GL_TABS[slug].type, text: GL_TABS[slug].title, checked: filters.types.includes(GL_TABS[slug].type)
+    })),
+    yearItems: glSelectItems(years.map(year => ({ value: year, text: year })), filters.year, 'Any year'),
+    publishedItems: glSelectItems(GIS.PUBLISHED_WITH.concat([GL_NOT_PUBLISHED]).map(stage => ({ value: stage, text: stage })), filters.published, 'Any stage'),
+    policyItems: glSelectItems(policyOptions, filters.policy, 'Any policy or chapter'),
+    addTab,
+    returnTo: GL
+  })
+})
+
+// --- Add from a GIS database ---
+// Under the tab it was started from, so layers come in with that tab's tag. The tab is in the
+// path because the shared gisConnect forms post to `action` + /connect etc. with no extra fields.
+
+function glAddGisHref (tab) {
+  return GL + '/' + tab.slug + '/add/gis'
+}
+
+router.get(GL + '/:glTab/add/gis', (req, res) => {
+  const tab = GL_TABS[req.params.glTab]
+  const connection = getGisLibraryConnection(req)
+  res.render('evidence/gis-layers/add-gis', {
+    tab,
+    otherTab: GL_TABS[tab.other],
+    gis: gisConnectLocals(req, {
+      action: glAddGisHref(tab),
+      connection,
+      catalogue: GIS.catalogueFor(connection, 'compass'),
+      addedIds: getGisLayers(req).map(layer => layer.id),
+      intro: 'Connect the GIS system that holds your plan\'s spatial data. You can then choose which of its layers to bring into the library.'
+    })
+  })
+})
+
+router.post(GL + '/:glTab/add/gis/connect', (req, res) => {
+  const tab = GL_TABS[req.params.glTab]
+  const result = readGisConnection(req.body)
+  if (result.errors) {
+    setGisErrors(req, result.errors, result.values)
+    return res.redirect(glAddGisHref(tab) + '#gis-connect')
+  }
+  req.session.data.gisLibraryConnection = result.connection
+  res.redirect(glAddGisHref(tab) + '#gis-layers')
+})
+
+router.post(GL + '/:glTab/add/gis/disconnect', (req, res) => {
+  req.session.data.gisLibraryConnection = null
+  res.redirect(glAddGisHref(GL_TABS[req.params.glTab]) + '#gis-connect')
+})
+
+router.post(GL + '/:glTab/add/gis/layers', (req, res) => {
+  const tab = GL_TABS[req.params.glTab]
+  const connection = getGisLibraryConnection(req)
+  if (!connection) return res.redirect(glAddGisHref(tab))
+  const catalogue = GIS.getCatalogue(GIS.catalogueFor(connection, 'compass'))
+  const selected = asArray(req.body._layers).map(id => catalogue.find(layer => layer.id === id)).filter(Boolean)
+  if (!selected.length) {
+    setGisErrors(req, { layers: 'Select at least one layer to add' })
+    return res.redirect(glAddGisHref(tab) + '#gis-layers')
+  }
+  selected.forEach(source => {
+    const layer = addGisLayer(req, source.id, tab.type, 'library')
+    if (layer && !layer.addedAt) layer.addedAt = glToday()
+  })
+  res.redirect(GL)
+})
+
+// --- Add from an external source ---
+// Uploads keep only the file name: the form isn't multipart and nothing is stored.
+
+router.get(GL + '/:glTab/add/external', (req, res) => {
+  const stored = req.session.data.glExternalErrors || { errors: {}, values: {} }
+  delete req.session.data.glExternalErrors
+  const tab = GL_TABS[req.params.glTab]
+  res.render('evidence/gis-layers/add-external', {
+    tab,
+    errors: stored.errors,
+    errorList: Object.keys(stored.errors).map(id => ({ text: stored.errors[id], href: '#' + id })),
+    values: Object.assign({ type: tab.type }, stored.values)
+  })
+})
+
+router.post(GL + '/:glTab/add/external', (req, res) => {
+  const tab = GL_TABS[req.params.glTab]
+  const values = {
+    name: (req.body._name || '').trim(),
+    description: (req.body._description || '').trim(),
+    type: GIS.LAYER_TYPES[req.body._type] ? req.body._type : '',
+    file: (req.body._file || '').trim(),
+    url: (req.body._url || '').trim()
+  }
+  const errors = {}
+  if (!values.name) errors.name = 'Enter a name for the layer'
+  if (!values.type) errors.type = 'Select whether this is a policy layer or an evidence base layer'
+  if (!values.file && !values.url) errors.file = 'Upload a file or enter the address of the data'
+  if (values.url) {
+    let url = null
+    try { url = new URL(values.url) } catch (error) {}
+    if (!url || url.protocol !== 'https:') errors.url = 'Enter an address that starts with https://'
+  }
+  if (Object.keys(errors).length) {
+    req.session.data.glExternalErrors = { errors, values }
+    return res.redirect(GL + '/' + tab.slug + '/add/external')
+  }
+  getGisLayers(req).push({
+    id: 'external-' + Date.now(),
+    name: values.name,
+    group: 'External source',
+    geometry: 'Unknown',
+    features: null,
+    type: values.type,
+    origins: ['library'],
+    external: true,
+    source: values.file || values.url,
+    description: values.description,
+    policyRefs: [],
+    chapters: [],
+    addedAt: glToday(),
+    versions: [{ version: '1.0.0', created: glToday(), publishedWith: null }]
+  })
+  res.redirect(GL)
+})
+
+// --- Add to a policy or chapter ---
+// A layer can be connected with a whole chapter (`chapters`, policy area names) or with single
+// policies (`policyRefs`). The form value is `chapter:<area>` or `policy:<ref>`.
+
+router.get(GL + '/layers/:layerId/policy', (req, res) => {
+  const layer = findGisLayer(req, req.params.layerId)
+  if (!layer) return res.redirect(GL)
+  const error = req.session.data.glPolicyError
+  delete req.session.data.glPolicyError
+  const linkedRefs = layer.policyRefs || []
+  const linkedChapters = layer.chapters || []
+  const areas = glChapterNames().map(name => ({
+    name,
+    linked: linkedChapters.includes(name),
+    policies: POLICIES.filter(policy => policy.policyArea === name)
+      .map(policy => ({ ref: policy.ref, title: policy.title, linked: linkedRefs.includes(policy.ref) }))
+  }))
+  res.render('evidence/gis-layers/policy', {
+    layer: glLayerView(layer),
+    areas,
+    error,
+    backHref: glLayerHref(layer)
+  })
+})
+
+router.post(GL + '/layers/:layerId/policy', (req, res) => {
+  const layer = findGisLayer(req, req.params.layerId)
+  if (!layer) return res.redirect(GL)
+  const link = glReadLink(req.body._link)
+  if (!link) {
+    req.session.data.glPolicyError = 'Select a chapter or a policy'
+    return res.redirect(GL + '/layers/' + layer.id + '/policy')
+  }
+  const key = link.kind === 'chapter' ? 'chapters' : 'policyRefs'
+  if (!layer[key]) layer[key] = []
+  if (!layer[key].includes(link.ref)) layer[key].push(link.ref)
+  res.redirect(glLayerHref(layer))
+})
+
+router.post(GL + '/layers/:layerId/links/remove', (req, res) => {
+  const layer = findGisLayer(req, req.params.layerId)
+  if (!layer) return res.redirect(GL)
+  const link = glReadLink(req.body._link)
+  if (link) {
+    const key = link.kind === 'chapter' ? 'chapters' : 'policyRefs'
+    layer[key] = (layer[key] || []).filter(ref => ref !== link.ref)
+  }
+  res.redirect(glLayerHref(layer))
+})
 
 const EXISTING_DOCUMENTS = [
   'SHLAA 2025', 'Brownfield register v2.0', 'Housing needs assessment study',

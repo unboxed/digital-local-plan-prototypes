@@ -1285,3 +1285,6 @@ $dlp-confidence-low: govuk-colour("orange");
 
 // GIS layers on a map. Uses the variables above.
 @import "gis-map";
+
+// GIS layer library. Uses the variables above.
+@import "gis-library";
