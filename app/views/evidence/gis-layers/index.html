@@ -1,0 +1,167 @@
+{% extends "layouts/main.html" %}
+
+{% from "partials/gis/macro.njk" import gisLayerGroup, gisLayerTypeSwitch %}
+
+{% set pageName = "GIS layer library: " + tab.title %}
+
+{% block content %}
+
+{% include "evidence/partials/nav.html" %}
+
+<a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+
+<div class="dlp-gl-head">
+  <div>
+    <h1 class="govuk-heading-xl govuk-!-margin-bottom-2">GIS layer library</h1>
+    <h2 class="govuk-heading-l">{{ tab.title }}</h2>
+  </div>
+  <nav class="dlp-gl-tabs" aria-label="Layer types">
+    {% for t in [{ slug: "evidence", text: "Go to evidence base layers" }, { slug: "policy", text: "Go to policy layers" }] %}
+      <a class="govuk-button {%- if t.slug != tab.slug %} govuk-button--secondary{% endif %} govuk-!-margin-bottom-0" href="/evidence/gis-layers/{{ t.slug }}"
+         {%- if t.slug == tab.slug %} aria-current="page"{% endif %}>{{ t.text }}</a>
+    {% endfor %}
+  </nav>
+</div>
+
+<div class="dlp-gl-intro">
+  <p class="govuk-body">
+    This library shows you all the spatial data related to your plan. Move between layers
+    associated with evidence and your policies map layers. Use it to manage your plan's spatial
+    data and connect it to the rest of the Digital Local Plan.
+  </p>
+  <div class="dlp-gl-add">
+    <a class="govuk-button govuk-!-margin-bottom-0" href="/evidence/gis-layers/{{ tab.slug }}/add/external">Add new data from external source</a>
+    <a class="govuk-button govuk-!-margin-bottom-0" href="/evidence/gis-layers/{{ tab.slug }}/add/gis">Add new data from GIS database</a>
+  </div>
+</div>
+
+<form class="dlp-gl-filters" method="get" action="/evidence/gis-layers/{{ tab.slug }}" data-dlp-autosubmit novalidate>
+  <h2 class="govuk-heading-m govuk-!-margin-bottom-0">Filters</h2>
+  {{ govukSelect({ id: "glYear", name: "glYear", label: { text: "Created" }, items: yearItems, formGroup: { classes: "govuk-!-margin-bottom-0" } }) }}
+  {{ govukSelect({ id: "glPublished", name: "glPublished", label: { text: "Published with" }, items: publishedItems, formGroup: { classes: "govuk-!-margin-bottom-0" } }) }}
+  {{ govukSelect({ id: "glPolicy", name: "glPolicy", label: { text: "Policy" }, items: policyItems, formGroup: { classes: "govuk-!-margin-bottom-0" } }) }}
+  <div class="dlp-gl-filters__actions">
+    {{ govukButton({ text: "Apply filters", classes: "govuk-button--secondary govuk-!-margin-bottom-0" }) }}
+    {% if filtered %}<a class="govuk-link" href="/evidence/gis-layers/{{ tab.slug }}?glYear=&glPublished=&glPolicy=">Clear filters</a>{% endif %}
+  </div>
+</form>
+
+<p class="govuk-body dlp-gl-count" aria-live="polite">
+  {% if filtered %}Showing {{ layers.length }} of {{ total }} {{ tab.title | lower }}{% else %}{{ total }} {{ tab.title | lower }}{% endif %}
+</p>
+
+{% for layer in layers %}
+  <article class="dlp-gl-card" id="layer-{{ layer.id }}" aria-labelledby="layer-{{ layer.id }}-name">
+    <div class="dlp-gl-card__preview">
+      {% if layer.hasPreview %}
+        <div class="dlp-gl-preview" data-dlp-gis-preview="{{ layer.id }}" data-dlp-gis-preview-name="{{ layer.name }}">
+          <p class="dlp-gl-preview__message" data-dlp-gis-preview-message>Map preview needs JavaScript</p>
+        </div>
+        {% if layer.illustrative %}<p class="dlp-gl-card__note">Illustrative shapes, not real data</p>{% endif %}
+      {% else %}
+        <div class="dlp-gl-preview">
+          <p class="dlp-gl-preview__message">No map preview</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="dlp-gl-card__about">
+      <h3 class="govuk-heading-m govuk-!-margin-bottom-1" id="layer-{{ layer.id }}-name">{{ layer.name }}</h3>
+      <p class="govuk-body govuk-!-margin-bottom-2">{{ gisLayerGroup(layer) }}</p>
+      {% if layer.description %}<p class="govuk-body">{{ layer.description }}</p>{% endif %}
+      <p class="govuk-body-s dlp-gl-card__facts">
+        {{ layer.geometry }} layer{% if layer.features or layer.features === 0 %}, {{ layer.features }} feature{{ "" if layer.features == 1 else "s" }}{% endif %}
+        {% if layer.url %}
+          · <a class="govuk-link" href="{{ layer.url }}" target="_blank" rel="noopener noreferrer">Layer data<span class="govuk-visually-hidden"> for {{ layer.name }} (opens in a new tab)</span></a>
+        {% endif %}
+      </p>
+      {{ gisLayerTypeSwitch(layer, returnTo) }}
+    </div>
+
+    <dl class="govuk-summary-list govuk-summary-list--no-border dlp-gl-card__meta">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Version</dt>
+        <dd class="govuk-summary-list__value">{{ layer.current.version }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Policy</dt>
+        <dd class="govuk-summary-list__value">
+          {% for policy in layer.policies %}
+            <span class="dlp-gl-policy">
+              <strong>{{ policy.ref }}</strong> {{ policy.title }}
+              <form class="dlp-inline-form" method="post" action="/evidence/gis-layers/layers/{{ layer.id }}/policy/{{ policy.ref }}/remove">
+                <button type="submit" class="dlp-link-button">Remove<span class="govuk-visually-hidden"> {{ policy.ref }} from {{ layer.name }}</span></button>
+              </form>
+            </span>
+          {% else %}
+            None linked
+          {% endfor %}
+        </dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Plan</dt>
+        <dd class="govuk-summary-list__value">{{ layer.plan }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Created</dt>
+        <dd class="govuk-summary-list__value">{{ layer.current.createdLabel }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Published with</dt>
+        <dd class="govuk-summary-list__value">{{ layer.current.publishedLabel }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Added from</dt>
+        <dd class="govuk-summary-list__value">{{ layer.sourceLabel }}</dd>
+      </div>
+    </dl>
+
+    <div class="dlp-gl-card__actions">
+      <a class="govuk-button govuk-!-margin-bottom-0" href="/evidence/gis-layers/layers/{{ layer.id }}/policy">Add to policy<span class="govuk-visually-hidden">: {{ layer.name }}</span></a>
+      {# Inert placeholders from the sketch, awaiting functionality. #}
+      <button type="button" class="govuk-button govuk-!-margin-bottom-0">Add to Local Plan timetable stage<span class="govuk-visually-hidden">: {{ layer.name }}</span></button>
+      <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0">See connected consultation responses<span class="govuk-visually-hidden">: {{ layer.name }}</span></button>
+    </div>
+
+    {% if layer.previous.length %}
+      <details class="govuk-details dlp-gl-card__versions">
+        <summary class="govuk-details__summary">
+          <span class="govuk-details__summary-text">Previous versions ({{ layer.previous.length }})</span>
+        </summary>
+        <div class="govuk-details__text">
+          <table class="govuk-table govuk-!-margin-bottom-0">
+            <caption class="govuk-table__caption govuk-visually-hidden">Previous versions of {{ layer.name }}</caption>
+            <thead class="govuk-table__head">
+              <tr class="govuk-table__row">
+                <th scope="col" class="govuk-table__header">Version</th>
+                <th scope="col" class="govuk-table__header">Created</th>
+                <th scope="col" class="govuk-table__header">Published with</th>
+              </tr>
+            </thead>
+            <tbody class="govuk-table__body">
+              {% for version in layer.previous %}
+                <tr class="govuk-table__row">
+                  <td class="govuk-table__cell">{{ version.version }}</td>
+                  <td class="govuk-table__cell">{{ version.createdLabel }}</td>
+                  <td class="govuk-table__cell">{{ version.publishedLabel }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    {% endif %}
+  </article>
+{% else %}
+  <div class="govuk-inset-text">
+    {% if filtered %}
+      No {{ tab.title | lower }} match these filters. <a class="govuk-link" href="/evidence/gis-layers/{{ tab.slug }}?glYear=&glPublished=&glPolicy=">Clear filters</a>.
+    {% else %}
+      There are no {{ tab.title | lower }} yet. Add some from your GIS database or an external source.
+    {% endif %}
+  </div>
+{% endfor %}
+
+{% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

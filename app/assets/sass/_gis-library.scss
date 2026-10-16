@@ -1,0 +1,136 @@
+// GIS layer library (/evidence/gis-layers). One card per layer: map preview, about, metadata and
+// actions side by side on desktop, stacked below it.
+
+.dlp-gl-head {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(4);
+  justify-content: space-between;
+}
+
+.dlp-gl-tabs,
+.dlp-gl-add,
+.dlp-gl-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+}
+
+.dlp-gl-intro {
+  align-items: flex-start;
+  display: grid;
+  gap: govuk-spacing(4);
+  margin-bottom: govuk-spacing(4);
+
+  @include govuk-media-query($from: desktop) {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .dlp-gl-add {
+    flex-direction: column;
+  }
+}
+
+.dlp-gl-filters {
+  align-items: flex-end;
+  background-color: $dlp-panel-background;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3) govuk-spacing(4);
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(4);
+
+  .govuk-select {
+    min-width: 12rem;
+  }
+}
+
+.dlp-gl-filters__actions {
+  align-items: center;
+  display: flex;
+  gap: govuk-spacing(3);
+}
+
+// With JavaScript the filters apply as they change.
+.govuk-frontend-supported .dlp-gl-filters .govuk-button {
+  display: none;
+}
+
+.dlp-gl-count {
+  color: $dlp-muted-text;
+}
+
+.dlp-gl-card {
+  border-top: 1px solid $dlp-border-grey;
+  display: grid;
+  gap: govuk-spacing(4);
+  padding: govuk-spacing(6) 0;
+  scroll-margin-top: govuk-spacing(4);
+
+  @include govuk-media-query($from: desktop) {
+    grid-template-areas:
+      "preview about meta"
+      "preview actions actions"
+      "versions versions versions";
+    grid-template-columns: 18rem minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.dlp-gl-card__preview { grid-area: preview; }
+.dlp-gl-card__about { grid-area: about; }
+.dlp-gl-card__meta { grid-area: meta; margin-bottom: 0; }
+.dlp-gl-card__actions { grid-area: actions; align-self: end; }
+.dlp-gl-card__versions { grid-area: versions; margin-bottom: 0; }
+
+.dlp-gl-card__meta .govuk-summary-list__key,
+.dlp-gl-card__meta .govuk-summary-list__value {
+  @include govuk-font($size: 16);
+  padding-bottom: govuk-spacing(1);
+  padding-top: govuk-spacing(1);
+}
+
+.dlp-gl-card__facts,
+.dlp-gl-card__note {
+  color: $dlp-muted-text;
+}
+
+.dlp-gl-card__note {
+  @include govuk-font($size: 16);
+  font-style: italic;
+  margin: govuk-spacing(1) 0 0;
+}
+
+.dlp-gl-policy {
+  display: block;
+}
+
+.dlp-gl-preview {
+  aspect-ratio: 4 / 3;
+  background-color: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  overflow: hidden;
+  position: relative;
+}
+
+.dlp-gl-preview__message {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  left: 50%;
+  margin: 0;
+  position: absolute;
+  text-align: center;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+}
+
+.dlp-gl-preview__canvas {
+  inset: 0;
+  position: absolute;
+}
+
+// Once the map is drawn its message stays for screen readers only, as the map's description.
+.dlp-gl-preview--ready .dlp-gl-preview__message {
+  @include govuk-visually-hidden;
+}

@@ -1,0 +1,62 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Add " + layer.name + " to a policy" %}
+
+{% block content %}
+
+{% include "evidence/partials/nav.html" %}
+
+<a class="govuk-back-link" href="{{ backHref }}">Back to the library</a>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% if error %}
+      {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: error, href: "#policy" }] }) }}
+    {% endif %}
+
+    <form method="post" action="/evidence/gis-layers/layers/{{ layer.id }}/policy" novalidate>
+      <div class="govuk-form-group {%- if error %} govuk-form-group--error{% endif %}">
+        <fieldset class="govuk-fieldset" aria-describedby="policy-hint{% if error %} policy-error{% endif %}">
+          <legend class="govuk-fieldset__legend govuk-fieldset__legend--xl">
+            <span class="govuk-caption-l">{{ layer.name }}</span>
+            <h1 class="govuk-fieldset__heading">Which policy does this layer support?</h1>
+          </legend>
+          <div class="govuk-hint" id="policy-hint">
+            Policies in the City Plan 2040, by policy area. A layer can support more than one
+            policy: add them one at a time.
+          </div>
+          {% if error %}
+            <p class="govuk-error-message" id="policy-error"><span class="govuk-visually-hidden">Error:</span> {{ error }}</p>
+          {% endif %}
+
+          {% for area in areas %}
+            {% set firstArea = loop.first %}
+            <h2 class="govuk-heading-s govuk-!-margin-top-6 govuk-!-margin-bottom-2">{{ area.name }}</h2>
+            <div class="govuk-radios govuk-radios--small" data-module="govuk-radios">
+              {% for policy in area.policies %}
+                {# The first radio carries the id the error summary links to. #}
+                {% set inputId = "policy" if firstArea and loop.first else "policy-" + policy.ref %}
+                <div class="govuk-radios__item">
+                  <input class="govuk-radios__input" id="{{ inputId }}" name="_policy" type="radio" value="{{ policy.ref }}"
+                         {%- if policy.linked %} disabled{% endif %}>
+                  <label class="govuk-label govuk-radios__label" for="{{ inputId }}">
+                    <strong>{{ policy.ref }}</strong> {{ policy.title }}{% if policy.linked %} (already linked){% endif %}
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </fieldset>
+      </div>
+
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Add to policy" }) }}
+        <a class="govuk-link" href="{{ backHref }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

@@ -119,11 +119,27 @@ function describeOrigin (origin) {
   if (origin === 'starting-points:prefilled') return 'Starting points (pre-filled)'
   if (origin === 'starting-points:blank') return 'Starting points (blank)'
   if (origin === 'commissioned') return 'Commissioned evidence'
+  if (origin === 'library') return 'GIS layer library'
   return origin
 }
 
 function seedLayer (id, type, origin) {
-  return Object.assign({}, getCatalogueLayer(id), { type, origins: [origin] })
+  return Object.assign({}, getCatalogueLayer(id), {
+    type,
+    origins: [origin],
+    policyRefs: (SEED_POLICY_REFS[id] || []).slice()
+  })
+}
+
+// The policies each seeded layer starts linked to, as the GIS layer library shows them. Refs are
+// the City Plan 2040's, as in app/data/policies.js.
+const SEED_POLICY_REFS = {
+  'compass-historic-environment-2': ['HE1'],
+  'compass-draft-policy-17': ['RE1'],
+  'compass-draft-policy-18': ['S12'],
+  'compass-draft-policy-16': ['S13'],
+  'housing-completions': ['S3'],
+  'housing-capacity-sites': ['HS1']
 }
 
 // The collection's starting state: the five COMPASS layers the pre-filled starting points bring
@@ -298,3 +314,72 @@ function round (value) {
 
 module.exports.getMapLayersForArea = getMapLayersForArea
 module.exports.generateIllustrativeGeoJSON = generateIllustrativeGeoJSON
+
+// --- GIS layer library -----------------------------------------------------------------------
+//
+// What the library (/evidence/gis-layers) shows about a layer beyond what its map server says.
+// A layer's name, folder, geometry, feature count and data address are real (see COMPASS_LAYERS);
+// THE DESCRIPTIONS, VERSIONS, DATES AND CONSULTATIONS BELOW ARE INVENTED FOR THE PROTOTYPE. The
+// City's server publishes none of them. Versions are newest first; dates are ISO.
+const PUBLISHED_WITH = [
+  'Scoping consultation',
+  'Consultation on proposed plan content and evidence',
+  'Consultation on the proposed local plan'
+]
+
+const LAYER_DETAILS = {
+  'compass-draft-policy-18': {
+    description: 'The areas the City Plan 2040 identifies as appropriate for tall buildings, with the contours that limit their height.',
+    versions: [
+      { version: '1.1.0', created: '2025-02-01', publishedWith: 'Consultation on proposed plan content and evidence' },
+      { version: '1.0.0', created: '2024-02-01', publishedWith: 'Scoping consultation' }
+    ]
+  },
+  'compass-draft-policy-12': {
+    description: 'The proposed tall building area in the Fleet Street Valley.',
+    versions: [
+      { version: '1.1.0', created: '2025-02-01', publishedWith: 'Consultation on proposed plan content and evidence' },
+      { version: '1.0.0', created: '2024-02-01', publishedWith: 'Scoping consultation' }
+    ]
+  },
+  'compass-draft-policy-16': {
+    description: 'The protected silhouettes of St Paul\'s Cathedral and the Tower of London from the London View Management Framework viewpoints.',
+    versions: [{ version: '1.0.0', created: '2024-02-01', publishedWith: 'Scoping consultation' }]
+  },
+  'compass-draft-policy-17': {
+    description: 'The boundaries of the City\'s Principal Shopping Centres, where retail and active frontages are protected.',
+    versions: [
+      { version: '2.0.0', created: '2025-03-14', publishedWith: 'Consultation on proposed plan content and evidence' },
+      { version: '1.0.0', created: '2024-01-22', publishedWith: 'Scoping consultation' }
+    ]
+  },
+  'compass-draft-policy-14': {
+    description: 'The Key Areas of Change, where the plan expects the most significant development over its period.',
+    versions: [{ version: '1.0.0', created: '2025-03-14', publishedWith: 'Consultation on proposed plan content and evidence' }]
+  },
+  'compass-draft-policy-13': {
+    description: 'The City\'s identified residential areas, where new housing is focused and residential amenity protected.',
+    versions: [{ version: '1.0.0', created: '2024-02-01', publishedWith: 'Scoping consultation' }]
+  },
+  'compass-historic-environment-2': {
+    description: 'The City\'s 28 conservation areas, as designated.',
+    versions: [
+      { version: '3.2.0', created: '2025-06-30', publishedWith: null },
+      { version: '3.1.0', created: '2024-02-01', publishedWith: 'Scoping consultation' }
+    ]
+  },
+  'housing-completions': {
+    description: 'Net housing completions recorded across the City from 2020 to 2025, from the housing delivery assessment.',
+    versions: [{ version: '1.0.0', created: '2025-09-12', publishedWith: null }]
+  },
+  'housing-capacity-sites': {
+    description: 'Sites the housing delivery assessment found to have capacity for new homes over the plan period.',
+    versions: [
+      { version: '1.1.0', created: '2025-10-03', publishedWith: null },
+      { version: '1.0.0', created: '2025-09-12', publishedWith: null }
+    ]
+  }
+}
+
+module.exports.PUBLISHED_WITH = PUBLISHED_WITH
+module.exports.LAYER_DETAILS = LAYER_DETAILS

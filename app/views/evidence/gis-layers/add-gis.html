@@ -1,0 +1,33 @@
+{% extends "layouts/main.html" %}
+
+{% from "partials/gis/macro.njk" import gisConnect %}
+
+{% set pageName = "Add new data from GIS database" %}
+
+{% block content %}
+
+{% include "evidence/partials/nav.html" %}
+
+<a class="govuk-back-link" href="/evidence/gis-layers/{{ tab.slug }}">Back to {{ tab.title | lower }}</a>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% if gis.errorList.length %}
+      {{ govukErrorSummary({ titleText: "There is a problem", errorList: gis.errorList }) }}
+    {% endif %}
+
+    <span class="govuk-caption-l">GIS layer library</span>
+    <h1 class="govuk-heading-xl">Add new data from GIS database</h1>
+    <p class="govuk-body">
+      Layers you add here go into the library as {{ tab.title | lower }}. You can move a layer to
+      the other list at any time. They are also available to the policy writing starting points,
+      commissioned evidence and policy drafting, which share the same layers.
+    </p>
+
+    {{ gisConnect(gis) }}
+
+  </div>
+</div>
+
+{% endblock %}

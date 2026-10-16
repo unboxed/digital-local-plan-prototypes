@@ -711,6 +711,41 @@ templates are `partials/gis/macro.njk`.
   `POLICY_STARTING_POINTS_SCHEMA_VERSION`); the commission keeps its own as
   `commissionedEvidence.gisConnection`.
 
+### GIS layer library
+
+`/evidence/gis-layers` (`app/views/evidence/gis-layers/`) is built from a hand-drawn sketch (not
+Figma). It lists every layer in the shared `gisLayers` collection, under two tabs,
+`/evidence/gis-layers/policy` (tag `plan`) and `/evidence/gis-layers/evidence`, guarded by
+`router.param('glTab')`. It is listed on the Evidence hub.
+
+- **Cards, not rows.** Each layer is a card: a map preview, name, folder, description, real
+  geometry/feature count and "Layer data" link, then Version, Policy, Plan, Created, Published
+  with and Added from. Earlier versions sit in a "Previous versions" disclosure on the same card.
+  The sketch drew each version as its own card; one card per layer is a deliberate deviation.
+- **Descriptions, versions, dates and "Published with" are invented**, in `LAYER_DETAILS` in
+  `gis-layers.js` (with that caveat). A layer without an entry is v1.0.0, created the day it was
+  added (`addedAt`), not yet published. Stages are the new system's consultation names
+  (`PUBLISHED_WITH`), never "Regulation 19". The plan is always "City Plan 2040".
+- **Linked policies are `policyRefs` on the layer** in the shared collection, seeded by
+  `SEED_POLICY_REFS`. "Add to policy" (`/layers/:layerId/policy`) offers every policy in
+  `policies.js` by area. **Changing the layer shape means bumping `GIS_LAYERS_SCHEMA_VERSION`.**
+- **Filters** (Created year, Published with, Policy) are sticky kit fields `glYear`,
+  `glPublished`, `glPolicy`, applied as they change via `initAutosubmit`; the Apply button is
+  hidden once JavaScript runs. Their options come from the tab's own layers, and a sticky value the
+  tab doesn't offer is ignored, so moving between tabs never silently empties the list.
+- **Adding.** "Add new data from GIS database" (`/:glTab/add/gis`) reuses `gisConnect`,
+  `readGisConnection` and `gisConnectLocals`, with its own `gisLibraryConnection`; the tab is in
+  the path because the shared connect forms post to `action` + `/connect` etc. with no extra
+  fields. Layers come in with the tab's tag and the origin `library`. "Add new data from
+  external source" (`/:glTab/add/external`) pushes a layer with an `external-` id, its own
+  `description`/`versions`, and only the file name or address as `source`. External layers have
+  no catalogue entry, so the geojson route won't serve them and the card says "No map preview".
+- **`initGisPreview`** (`data-dlp-gis-preview="<id>"`) draws a still, non-interactive Leaflet map
+  of one layer once its card nears the viewport (`IntersectionObserver`), from the same geojson
+  route as the full map. Its message stays as a visually hidden description once drawn.
+- **Inert placeholders from the sketch:** "Add to Local Plan timetable stage" and "See connected
+  consultation responses".
+
 ### Maps
 
 Layers can be seen on a map in three places: the Policy drafting evidence viewer (when the open
