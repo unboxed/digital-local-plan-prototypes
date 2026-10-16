@@ -1,15 +1,6 @@
 // GIS layer library (/evidence/gis-layers). One card per layer: map preview, about, metadata and
 // actions side by side on desktop, stacked below it.
 
-.dlp-gl-head {
-  align-items: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: govuk-spacing(4);
-  justify-content: space-between;
-}
-
-.dlp-gl-tabs,
 .dlp-gl-add,
 .dlp-gl-card__actions {
   display: flex;
@@ -33,13 +24,41 @@
 }
 
 .dlp-gl-filters {
-  align-items: flex-end;
   background-color: $dlp-panel-background;
+  border: 1px solid $dlp-border-grey;
+  margin: govuk-spacing(6) 0 govuk-spacing(4);
+  padding: govuk-spacing(4);
+}
+
+// The heading row, ruled off from the controls under it.
+.dlp-gl-filters__header {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(4);
+  padding-bottom: govuk-spacing(3);
+}
+
+// Layer type beside the selects on wide screens, above them otherwise.
+.dlp-gl-filters__body {
+  display: grid;
+  gap: govuk-spacing(4) govuk-spacing(6);
+
+  @include govuk-media-query($from: desktop) {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+.dlp-gl-filters__group--type {
+  @include govuk-media-query($from: desktop) {
+    border-right: 1px solid $dlp-border-grey;
+    padding-right: govuk-spacing(6);
+  }
+}
+
+.dlp-gl-filters__group--selects {
+  align-content: start;
   display: flex;
   flex-wrap: wrap;
   gap: govuk-spacing(3) govuk-spacing(4);
-  margin-bottom: govuk-spacing(4);
-  padding: govuk-spacing(4);
 
   .govuk-select {
     min-width: 12rem;
@@ -50,10 +69,16 @@
   align-items: center;
   display: flex;
   gap: govuk-spacing(3);
+  margin-top: govuk-spacing(4);
 }
 
 // With JavaScript the filters apply as they change.
 .govuk-frontend-supported .dlp-gl-filters .govuk-button {
+  display: none;
+}
+
+// ...which leaves the actions row empty unless there is a "Clear filters" link to show.
+.govuk-frontend-supported .dlp-gl-filters__actions:not(.dlp-gl-filters__actions--filtered) {
   display: none;
 }
 
@@ -74,13 +99,19 @@
       "preview actions actions"
       "versions versions versions";
     grid-template-columns: 18rem minmax(0, 1fr) minmax(0, 1fr);
+    // A wider gutter between the map and everything beside it, the buttons especially.
+    column-gap: govuk-spacing(7);
   }
 }
 
 .dlp-gl-card__preview { grid-area: preview; }
 .dlp-gl-card__about { grid-area: about; }
 .dlp-gl-card__meta { grid-area: meta; margin-bottom: 0; }
-.dlp-gl-card__actions { grid-area: actions; align-self: end; }
+.dlp-gl-card__actions {
+  grid-area: actions;
+  align-self: end;
+  padding-top: govuk-spacing(2);
+}
 .dlp-gl-card__versions { grid-area: versions; margin-bottom: 0; }
 
 .dlp-gl-card__meta .govuk-summary-list__key,
@@ -101,8 +132,43 @@
   margin: govuk-spacing(1) 0 0;
 }
 
-.dlp-gl-policy {
-  display: block;
+.dlp-gl-card__kind {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+}
+
+.dlp-gl-card__connections {
+  margin: govuk-spacing(3) 0 0;
+}
+
+.dlp-gl-links {
+  margin-bottom: 0;
+
+  > li + li {
+    margin-top: govuk-spacing(2);
+  }
+}
+
+.dlp-gl-links__name {
+  font-weight: $govuk-font-weight-bold;
+}
+
+.dlp-gl-links__whole {
+  color: $dlp-muted-text;
+  margin-left: govuk-spacing(1);
+}
+
+// The single policies under their chapter.
+.dlp-gl-links__policies {
+  border-left: 3px solid $dlp-border-grey;
+  margin: govuk-spacing(1) 0 0;
+  padding-left: govuk-spacing(3);
+
+  li {
+    margin-bottom: govuk-spacing(1);
+  }
 }
 
 .dlp-gl-preview {

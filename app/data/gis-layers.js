@@ -127,8 +127,17 @@ function seedLayer (id, type, origin) {
   return Object.assign({}, getCatalogueLayer(id), {
     type,
     origins: [origin],
-    policyRefs: (SEED_POLICY_REFS[id] || []).slice()
+    policyRefs: (SEED_POLICY_REFS[id] || []).slice(),
+    chapters: (SEED_CHAPTERS[id] || []).slice()
   })
+}
+
+// The whole chapters (policy areas, as named in app/data/policies.js) each seeded layer starts
+// connected to, as well as any single policies below.
+const SEED_CHAPTERS = {
+  'compass-historic-environment-2': ['Heritage and Tall Buildings'],
+  'housing-completions': ['Housing'],
+  'housing-capacity-sites': ['Housing']
 }
 
 // The policies each seeded layer starts linked to, as the GIS layer library shows them. Refs are

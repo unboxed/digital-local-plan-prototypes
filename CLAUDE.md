@@ -714,29 +714,41 @@ templates are `partials/gis/macro.njk`.
 ### GIS layer library
 
 `/evidence/gis-layers` (`app/views/evidence/gis-layers/`) is built from a hand-drawn sketch (not
-Figma). It lists every layer in the shared `gisLayers` collection, under two tabs,
-`/evidence/gis-layers/policy` (tag `plan`) and `/evidence/gis-layers/evidence`, guarded by
-`router.param('glTab')`. It is listed on the Evidence hub.
+Figma). It lists every layer in the shared `gisLayers` collection on one page, policy layers (tag
+`plan`) and evidence base layers together, each card carrying its type tag. It is listed on the
+Evidence hub.
 
 - **Cards, not rows.** Each layer is a card: a map preview, name, folder, description, real
-  geometry/feature count and "Layer data" link, then Version, Policy, Plan, Created, Published
-  with and Added from. Earlier versions sit in a "Previous versions" disclosure on the same card.
+  geometry/feature count and "Layer data" link, then Version, Plan, Created, Published with and
+  Added from. Earlier versions sit in a "Previous versions" disclosure on the same card.
   The sketch drew each version as its own card; one card per layer is a deliberate deviation.
 - **Descriptions, versions, dates and "Published with" are invented**, in `LAYER_DETAILS` in
   `gis-layers.js` (with that caveat). A layer without an entry is v1.0.0, created the day it was
   added (`addedAt`), not yet published. Stages are the new system's consultation names
   (`PUBLISHED_WITH`), never "Regulation 19". The plan is always "City Plan 2040".
-- **Linked policies are `policyRefs` on the layer** in the shared collection, seeded by
-  `SEED_POLICY_REFS`. "Add to policy" (`/layers/:layerId/policy`) offers every policy in
-  `policies.js` by area. **Changing the layer shape means bumping `GIS_LAYERS_SCHEMA_VERSION`.**
-- **Filters** (Created year, Published with, Policy) are sticky kit fields `glYear`,
-  `glPublished`, `glPolicy`, applied as they change via `initAutosubmit`; the Apply button is
-  hidden once JavaScript runs. Their options come from the tab's own layers, and a sticky value the
-  tab doesn't offer is ignored, so moving between tabs never silently empties the list.
-- **Adding.** "Add new data from GIS database" (`/:glTab/add/gis`) reuses `gisConnect`,
-  `readGisConnection` and `gisConnectLocals`, with its own `gisLibraryConnection`; the tab is in
-  the path because the shared connect forms post to `action` + `/connect` etc. with no extra
-  fields. Layers come in with the tab's tag and the origin `library`. "Add new data from
+- **A layer connects with whole chapters and single policies**: `chapters` (policy area names
+  from `policies.js`) and `policyRefs` on the layer in the shared collection, seeded by
+  `SEED_CHAPTERS` and `SEED_POLICY_REFS`. The card's "Policies and chapters (n)" disclosure, closed by
+  default, under the type switch in the card's left-hand column, groups them by chapter in plan
+  order (`connections` in `glLayerView`): a chapter shows "Whole chapter" if it is
+  connected as a whole, with any single policies in it beneath. "Add to policy or chapter"
+  (`/layers/:layerId/policy`) offers each chapter followed by its policies; forms carry
+  `chapter:<area>` or `policy:<ref>` (`glReadLink`), and one `/links/remove` route removes
+  either. **Changing the layer shape means bumping `GIS_LAYERS_SCHEMA_VERSION`.**
+- **Filters** are sticky kit fields: "Layer type" checkboxes `glTypes` (both ticked by default),
+  Created year `glYear`, Published with `glPublished` and Policy or chapter `glPolicy`
+  (a chapter matches layers connected with it whole or through one of its policies), applied as they
+  change via `initAutosubmit`; the Apply button is hidden once JavaScript runs. A hidden
+  `_unchecked` input (the kit's convention) lets unticking one type be stored; unticking both
+  makes the kit delete the field, which reads as both. The old `/policy` and `/evidence`
+  addresses set `glTypes` to that type and redirect to the library. A stored year or policy that
+  no layer has any more is ignored.
+- **Adding.** The add pages keep the type in the path (`/:glTab/add/...`, guarded by
+  `router.param('glTab')`) because it sets the new layer's tag: the library's add buttons use the
+  one ticked type, or policy when both are. "Add new data from GIS database" reuses `gisConnect`,
+  `readGisConnection` and `gisConnectLocals`, with its own `gisLibraryConnection` (the shared
+  connect forms post to `action` + `/connect` etc. with no extra fields, another reason the type
+  is in the path). Layers come in with that type's tag and the origin `library`. "Add new data from
   external source" (`/:glTab/add/external`) pushes a layer with an `external-` id, its own
   `description`/`versions`, and only the file name or address as `source`. External layers have
   no catalogue entry, so the geojson route won't serve them and the card says "No map preview".

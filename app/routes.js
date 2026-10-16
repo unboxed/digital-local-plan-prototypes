@@ -1310,7 +1310,7 @@ const STARTING_POINT_STEPS = [
 // connection itself is simulated — see app/data/gis-layers.js.
 
 const GIS = require('./data/gis-layers.js')
-const GIS_LAYERS_SCHEMA_VERSION = 4
+const GIS_LAYERS_SCHEMA_VERSION = 5
 
 function getGisLayers (req) {
   if (req.session.data.gisLayersSchemaVersion !== GIS_LAYERS_SCHEMA_VERSION) {
@@ -1533,6 +1533,19 @@ function glToday () {
   return new Date().toISOString().slice(0, 10)
 }
 
+// The plan's chapters (policy areas), in plan order.
+function glChapterNames () {
+  return Array.from(new Set(POLICIES.map(policy => policy.policyArea)))
+}
+
+// A connection as a form value: `chapter:<policy area>` or `policy:<ref>`.
+function glReadLink (value) {
+  const match = /^(chapter|policy):(.+)$/.exec(String(value || ''))
+  if (!match) return null
+  if (match[1] === 'chapter') return glChapterNames().includes(match[2]) ? { kind: 'chapter', ref: match[2] } : null
+  return POLICIES.some(policy => policy.ref === match[2]) ? { kind: 'policy', ref: match[2] } : null
+}
+
 // The library's connection to a GIS database, kept apart from the starting points' and the
 // commission's. Starts unconnected.
 function getGisLibraryConnection (req) {
@@ -1549,13 +1562,24 @@ function glLayerView (layer) {
     }))
   const policies = (layer.policyRefs || []).map(ref => {
     const policy = POLICIES.find(candidate => candidate.ref === ref)
-    return { ref, title: policy ? policy.title : '' }
+    return { ref, title: policy ? policy.title : '', area: policy ? policy.policyArea : '' }
   })
+  const wholeChapters = layer.chapters || []
+  // What the layer is connected with, by chapter in plan order: the whole chapter, single
+  // policies in it, or both.
+  const connections = glChapterNames()
+    .filter(name => wholeChapters.includes(name) || policies.some(policy => policy.area === name))
+    .map(name => ({
+      chapter: name,
+      whole: wholeChapters.includes(name),
+      policies: policies.filter(policy => policy.area === name)
+    }))
   return Object.assign(gisLayerView(Object.assign({ origins: [] }, layer)), {
     description: layer.description || details.description || '',
     current: versions[0],
     previous: versions.slice(1),
     policies,
+    connections,
     plan: GL_PLAN,
     // Only catalogue layers have shapes to preview; a layer from an external source has none.
     hasPreview: Boolean(GIS.getCatalogueLayer(layer.id)),
@@ -1564,8 +1588,18 @@ function glLayerView (layer) {
   })
 }
 
+// The "Layer type" checkboxes, `glTypes`, are a sticky kit field. Unset means both. The form's
+// hidden `_unchecked` lets unticking one be stored; unticking both makes the kit delete the field,
+// so it falls back to both, as a filter with nothing selected usually does.
+function glTypes (req) {
+  const stored = req.session.data.glTypes
+  if (stored === undefined) return Object.keys(GIS.LAYER_TYPES)
+  return asArray(stored).filter(type => GIS.LAYER_TYPES[type])
+}
+
 function glFilters (req) {
   return {
+    types: glTypes(req),
     year: req.session.data.glYear || '',
     published: req.session.data.glPublished || '',
     policy: req.session.data.glPolicy || ''
@@ -1573,10 +1607,13 @@ function glFilters (req) {
 }
 
 function glMatches (view, filters) {
+  if (!filters.types.includes(view.type)) return false
   if (filters.year && !(view.current.created || '').startsWith(filters.year)) return false
   if (filters.published && view.current.publishedLabel !== filters.published) return false
-  if (filters.policy === 'none' && view.policies.length) return false
-  if (filters.policy && filters.policy !== 'none' && !view.policies.some(policy => policy.ref === filters.policy)) return false
+  if (filters.policy === 'none') return !view.connections.length
+  const link = glReadLink(filters.policy)
+  if (link && link.kind === 'chapter' && !view.connections.some(connection => connection.chapter === link.ref)) return false
+  if (link && link.kind === 'policy' && !view.policies.some(policy => policy.ref === link.ref)) return false
   return true
 }
 
@@ -1586,35 +1623,52 @@ function glSelectItems (values, selected, allLabel) {
   })))
 }
 
-router.get(GL, (req, res) => res.redirect(GL + '/policy'))
+// Where a layer's card is, to come back to after acting on it.
+function glLayerHref (layer) {
+  return GL + '#layer-' + layer.id
+}
 
+// The old per-type addresses: show just that type.
 router.get(GL + '/:glTab', (req, res) => {
-  const tab = GL_TABS[req.params.glTab]
-  const tabLayers = getGisLayers(req).filter(layer => glTabForType(layer.type) === tab).map(glLayerView)
+  req.session.data.glTypes = [GL_TABS[req.params.glTab].type]
+  res.redirect(GL)
+})
 
-  // The options come from this tab's layers. The filters are sticky across both tabs, so a value
-  // this tab doesn't offer is ignored rather than silently hiding everything.
-  const years = Array.from(new Set(tabLayers.map(view => (view.current.created || '').slice(0, 4)).filter(Boolean))).sort().reverse()
-  const linkedRefs = Array.from(new Set([].concat(...tabLayers.map(view => view.policies.map(policy => policy.ref)))))
-  const policyOptions = POLICIES.filter(policy => linkedRefs.includes(policy.ref))
-    .map(policy => ({ value: policy.ref, text: policy.ref + ' ' + policy.title }))
-    .concat([{ value: 'none', text: 'No policy linked' }])
+router.get(GL, (req, res) => {
+  const all = getGisLayers(req).map(glLayerView)
+
+  // The year and policy options come from every layer, so ticking a layer type never removes the
+  // option that is selected. A stored value no layer has any more is ignored.
+  const years = Array.from(new Set(all.map(view => (view.current.created || '').slice(0, 4)).filter(Boolean))).sort().reverse()
+  // Each chapter any layer is connected with, followed by the single policies in it that are.
+  const linkedRefs = Array.from(new Set([].concat(...all.map(view => view.policies.map(policy => policy.ref)))))
+  const linkedChapters = Array.from(new Set([].concat(...all.map(view => view.connections.map(connection => connection.chapter)))))
+  const policyOptions = [].concat(...glChapterNames().filter(name => linkedChapters.includes(name)).map(name =>
+    [{ value: 'chapter:' + name, text: name + ' chapter' }].concat(POLICIES
+      .filter(policy => policy.policyArea === name && linkedRefs.includes(policy.ref))
+      .map(policy => ({ value: 'policy:' + policy.ref, text: policy.ref + ' ' + policy.title })))
+  )).concat([{ value: 'none', text: 'Not connected to any' }])
   const filters = glFilters(req)
   if (!years.includes(filters.year)) filters.year = ''
   if (!policyOptions.some(option => option.value === filters.policy)) filters.policy = ''
-  const layers = tabLayers.filter(view => glMatches(view, filters))
+  const layers = all.filter(view => glMatches(view, filters))
+
+  // With one type ticked, new layers are added as that type; otherwise as policy layers.
+  const addTab = filters.types.length === 1 ? glTabForType(filters.types[0]) : GL_TABS.policy
 
   res.render('evidence/gis-layers/index', {
-    tab,
-    otherTab: GL_TABS[tab.other],
     layers,
-    total: tabLayers.length,
+    total: all.length,
     filters,
-    filtered: Boolean(filters.year || filters.published || filters.policy),
+    filtered: filters.types.length !== Object.keys(GIS.LAYER_TYPES).length || Boolean(filters.year || filters.published || filters.policy),
+    typeItems: Object.keys(GL_TABS).map(slug => ({
+      value: GL_TABS[slug].type, text: GL_TABS[slug].title, checked: filters.types.includes(GL_TABS[slug].type)
+    })),
     yearItems: glSelectItems(years.map(year => ({ value: year, text: year })), filters.year, 'Any year'),
     publishedItems: glSelectItems(GIS.PUBLISHED_WITH.concat([GL_NOT_PUBLISHED]).map(stage => ({ value: stage, text: stage })), filters.published, 'Any stage'),
-    policyItems: glSelectItems(policyOptions, filters.policy, 'Any policy'),
-    returnTo: GL + '/' + tab.slug
+    policyItems: glSelectItems(policyOptions, filters.policy, 'Any policy or chapter'),
+    addTab,
+    returnTo: GL
   })
 })
 
@@ -1631,6 +1685,7 @@ router.get(GL + '/:glTab/add/gis', (req, res) => {
   const connection = getGisLibraryConnection(req)
   res.render('evidence/gis-layers/add-gis', {
     tab,
+    otherTab: GL_TABS[tab.other],
     gis: gisConnectLocals(req, {
       action: glAddGisHref(tab),
       connection,
@@ -1671,7 +1726,7 @@ router.post(GL + '/:glTab/add/gis/layers', (req, res) => {
     const layer = addGisLayer(req, source.id, tab.type, 'library')
     if (layer && !layer.addedAt) layer.addedAt = glToday()
   })
-  res.redirect(GL + '/' + tab.slug)
+  res.redirect(GL)
 })
 
 // --- Add from an external source ---
@@ -1723,52 +1778,61 @@ router.post(GL + '/:glTab/add/external', (req, res) => {
     source: values.file || values.url,
     description: values.description,
     policyRefs: [],
+    chapters: [],
     addedAt: glToday(),
     versions: [{ version: '1.0.0', created: glToday(), publishedWith: null }]
   })
-  res.redirect(GL + '/' + glTabForType(values.type).slug)
+  res.redirect(GL)
 })
 
-// --- Add to policy ---
+// --- Add to a policy or chapter ---
+// A layer can be connected with a whole chapter (`chapters`, policy area names) or with single
+// policies (`policyRefs`). The form value is `chapter:<area>` or `policy:<ref>`.
 
 router.get(GL + '/layers/:layerId/policy', (req, res) => {
   const layer = findGisLayer(req, req.params.layerId)
   if (!layer) return res.redirect(GL)
   const error = req.session.data.glPolicyError
   delete req.session.data.glPolicyError
-  const linked = layer.policyRefs || []
-  const areas = []
-  POLICIES.forEach(policy => {
-    let area = areas.find(candidate => candidate.name === policy.policyArea)
-    if (!area) areas.push(area = { name: policy.policyArea, policies: [] })
-    area.policies.push({ ref: policy.ref, title: policy.title, linked: linked.includes(policy.ref) })
-  })
+  const linkedRefs = layer.policyRefs || []
+  const linkedChapters = layer.chapters || []
+  const areas = glChapterNames().map(name => ({
+    name,
+    linked: linkedChapters.includes(name),
+    policies: POLICIES.filter(policy => policy.policyArea === name)
+      .map(policy => ({ ref: policy.ref, title: policy.title, linked: linkedRefs.includes(policy.ref) }))
+  }))
   res.render('evidence/gis-layers/policy', {
     layer: glLayerView(layer),
     areas,
     error,
-    backHref: GL + '/' + glTabForType(layer.type).slug + '#layer-' + layer.id
+    backHref: glLayerHref(layer)
   })
 })
 
 router.post(GL + '/layers/:layerId/policy', (req, res) => {
   const layer = findGisLayer(req, req.params.layerId)
   if (!layer) return res.redirect(GL)
-  const ref = req.body._policy
-  if (!POLICIES.some(policy => policy.ref === ref)) {
-    req.session.data.glPolicyError = 'Select a policy'
+  const link = glReadLink(req.body._link)
+  if (!link) {
+    req.session.data.glPolicyError = 'Select a chapter or a policy'
     return res.redirect(GL + '/layers/' + layer.id + '/policy')
   }
-  if (!layer.policyRefs) layer.policyRefs = []
-  if (!layer.policyRefs.includes(ref)) layer.policyRefs.push(ref)
-  res.redirect(GL + '/' + glTabForType(layer.type).slug + '#layer-' + layer.id)
+  const key = link.kind === 'chapter' ? 'chapters' : 'policyRefs'
+  if (!layer[key]) layer[key] = []
+  if (!layer[key].includes(link.ref)) layer[key].push(link.ref)
+  res.redirect(glLayerHref(layer))
 })
 
-router.post(GL + '/layers/:layerId/policy/:ref/remove', (req, res) => {
+router.post(GL + '/layers/:layerId/links/remove', (req, res) => {
   const layer = findGisLayer(req, req.params.layerId)
   if (!layer) return res.redirect(GL)
-  layer.policyRefs = (layer.policyRefs || []).filter(ref => ref !== req.params.ref)
-  res.redirect(GL + '/' + glTabForType(layer.type).slug + '#layer-' + layer.id)
+  const link = glReadLink(req.body._link)
+  if (link) {
+    const key = link.kind === 'chapter' ? 'chapters' : 'policyRefs'
+    layer[key] = (layer[key] || []).filter(ref => ref !== link.ref)
+  }
+  res.redirect(glLayerHref(layer))
 })
 
 const EXISTING_DOCUMENTS = [
