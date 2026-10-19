@@ -694,9 +694,12 @@ templates are `partials/gis/macro.njk`.
   feature counts were read on 15 October 2026 and are not refreshed. **A layer's id and `url` end in
   its index on the ArcGIS server, and that index must be checked against the server's own layer
   list** (`<service>/MapServer/layers?f=json`), not inferred from the viewer's order: the Draft
-  Policy service has layers the viewer doesn't show (the 2025 City Cluster contours, Broadgate),
-  and the catalogue once had every Draft Policies name one or two places off its data, so
-  "Fleet Street Valley - Tall Building Areas" drew the identified residential areas. Changing a
+  Policy service has layers the viewer doesn't show (the Reg 19 and 2025 City Cluster contours,
+  Broadgate). The service was once published with its names one or two places off their data, and
+  the catalogue was remapped to follow the data; when the City republished it correctly (19
+  October 2026) the indices shifted again, and the catalogue now matches the server's names. The
+  server calls the protected silhouettes layer "LVMF Protected Silhouettes"; the catalogue keeps
+  the viewer's longer name. Changing a
   layer's id means updating `MAP_LAYERS_BY_AREA`, `PREFILLED_PLAN_LAYERS` and the starting
   points' `existing-plan-layers` seed, and bumping `GIS_LAYERS_SCHEMA_VERSION` and
   `POLICY_STARTING_POINTS_SCHEMA_VERSION`. Two layers are both called
