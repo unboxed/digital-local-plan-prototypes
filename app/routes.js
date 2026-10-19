@@ -1310,7 +1310,7 @@ const STARTING_POINT_STEPS = [
 // connection itself is simulated — see app/data/gis-layers.js.
 
 const GIS = require('./data/gis-layers.js')
-const GIS_LAYERS_SCHEMA_VERSION = 5
+const GIS_LAYERS_SCHEMA_VERSION = 6
 
 function getGisLayers (req) {
   if (req.session.data.gisLayersSchemaVersion !== GIS_LAYERS_SCHEMA_VERSION) {
@@ -1862,7 +1862,7 @@ const POLICY_WRITING_SESSION_SCHEMA_VERSION = 2
 // without also throwing away the topics a tester has built. 3 added existing plan layers; 4 their
 // GIS connection, which is reset with them because the layers come from it; 5 the real COMPASS
 // layers.
-const POLICY_STARTING_POINTS_SCHEMA_VERSION = 6
+const POLICY_STARTING_POINTS_SCHEMA_VERSION = 7
 
 function ensureStartingPointItemsShape (req) {
   if (req.session.data.policyStartingPointItemsSchemaVersion !== POLICY_STARTING_POINTS_SCHEMA_VERSION) {
