@@ -1,0 +1,68 @@
+{# A version's content: an optional foreword, then chapters of numbered paragraphs. #}
+{% macro planContent(content, headingLevel) %}
+  {% set h = headingLevel or 3 %}
+  {% if content.foreword %}
+  <h{{ h }} class="govuk-heading-s">Foreword</h{{ h }}>
+  {% for paragraph in content.foreword %}
+  <p class="govuk-body-s">{{ paragraph }}</p>
+  {% endfor %}
+  {% endif %}
+  {% for chapter in content.chapters %}
+  <h{{ h }} class="govuk-heading-s govuk-!-margin-top-4 govuk-!-margin-bottom-2">{{ chapter.heading }}</h{{ h }}>
+  {% for paragraph in chapter.paragraphs %}
+  <p class="govuk-body-s dlp-ppv-paragraph"><span class="dlp-ppv-paragraph__number">{{ paragraph.number }}</span> {{ paragraph.text }}</p>
+  {% endfor %}
+  {% endfor %}
+{% endmacro %}
+
+{# One side of the comparison. Changed paragraphs are labelled as well as coloured. #}
+{% macro diffColumn(chapters, otherLabel) %}
+  {% for chapter in chapters %}
+  <h3 class="govuk-heading-m govuk-!-margin-top-6 govuk-!-margin-bottom-3">{{ chapter.heading }}</h3>
+  {% if chapter.missing %}
+  <p class="govuk-body dlp-ppv-muted">Not in this version.</p>
+  {% endif %}
+  {% for paragraph in chapter.paragraphs %}
+    {% if paragraph.mark == "removed" %}
+    <div class="dlp-ppv-change dlp-ppv-change--removed">
+      <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">Removed</p>
+      <p class="govuk-body govuk-!-margin-bottom-0"><del>{{ paragraph.number }}&nbsp; {{ paragraph.text }}</del></p>
+    </div>
+    {% elif paragraph.mark == "added" %}
+    <div class="dlp-ppv-change dlp-ppv-change--added">
+      <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">Added</p>
+      <p class="govuk-body govuk-!-margin-bottom-0"><ins>{{ paragraph.number }}&nbsp; {{ paragraph.text }}</ins></p>
+    </div>
+    {% else %}
+    <p class="govuk-body">{{ paragraph.number }}&nbsp; {{ paragraph.text }}</p>
+    {% endif %}
+  {% endfor %}
+  {% endfor %}
+{% endmacro %}
+
+{# A layer published with a version, with the GIS layer library's map preview. #}
+{% macro layerRow(layer) %}
+<li class="dlp-ppv-layer">
+  <div class="dlp-ppv-layer__preview">
+    {% if layer.hasPreview %}
+    <div class="dlp-gl-preview" data-dlp-gis-preview="{{ layer.id }}" data-dlp-gis-preview-name="{{ layer.name }}">
+      <p class="dlp-gl-preview__message" data-dlp-gis-preview-message>Map preview needs JavaScript</p>
+    </div>
+    {% else %}
+    <div class="dlp-gl-preview"><p class="dlp-gl-preview__message">No map preview</p></div>
+    {% endif %}
+  </div>
+  <div class="dlp-ppv-layer__details">
+    <h3 class="govuk-heading-s govuk-!-margin-bottom-2">
+      {{ layer.name }} <strong class="govuk-tag govuk-tag--grey dlp-ppv-layer__tag">{{ layer.typeLabel }}</strong>
+    </h3>
+    <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Plan: City Plan 2040</p>
+    <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Created: {{ layer.created }}</p>
+    <p class="govuk-body-s dlp-ppv-muted govuk-!-margin-bottom-0">{{ layer.geometry }} layer, {{ layer.features }} feature{% if layer.features != 1 %}s{% endif %}</p>
+  </div>
+  <dl class="dlp-ppv-layer__version">
+    <dt class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Published version</dt>
+    <dd class="govuk-body-s govuk-!-margin-0">{{ layer.version }}</dd>
+  </dl>
+</li>
+{% endmacro %}

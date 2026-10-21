@@ -5696,3 +5696,290 @@ router.post(PM + '/notice/publish', (req, res) => {
   pmFlash(req, 'Notice of intention to commence published.')
   res.redirect(PM + '/overview')
 })
+
+// --- Publish plan versions (project management) ---
+//
+// Built from the Figma frames in `Figma screenshots/Versioning/`. An officer looks back through
+// the plan's published versions, compares two side by side, and publishes or shares the current
+// draft internally, which adds a timestamped entry to the history:
+//   /project-management/publish-plan-versions               - landing page, with a reset
+//   /project-management/publish-plan-versions/history       - step 1: version history and compare
+//   /project-management/publish-plan-versions/versions/:id  - one version, read-only, with its layers
+//   /project-management/publish-plan-versions/compare       - two versions side by side (?_v=a&_v=b)
+//   /project-management/publish-plan-versions/share         - step 2: what to include, and why
+//   /project-management/publish-plan-versions/preview       - step 3: preview, then download or share
+//
+// Everything is one object, req.session.data.planVersions, read only through getPlanVersions.
+// A new version is a snapshot (its content and, when published, the shared GIS layers as they
+// were), so viewing or comparing it later shows what went out, not the current draft.
+
+const PPV = '/project-management/publish-plan-versions'
+const PLAN_VERSIONS_SCHEMA_VERSION = 2
+const PV = require('./data/plan-versions.js')
+
+function getPlanVersions (req) {
+  if (req.session.data.planVersionsSchemaVersion !== PLAN_VERSIONS_SCHEMA_VERSION) {
+    req.session.data.planVersions = PV.startingState()
+    req.session.data.planVersionsSchemaVersion = PLAN_VERSIONS_SCHEMA_VERSION
+  }
+  return req.session.data.planVersions
+}
+
+function ppvNow () {
+  const now = new Date()
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(now).map(part => [part.type, part.value]))
+  return {
+    short: parts.day + ' ' + parts.month + ' ' + parts.year + ', ' + parts.hour + ':' + parts.minute,
+    long: new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'long', year: 'numeric' }).format(now)
+  }
+}
+
+function ppvAsArray (value) {
+  if (value === undefined || value === null || value === '') return []
+  return Array.isArray(value) ? value : [value]
+}
+
+// A layer as shown on a version: seeded layers carry only an id, type, version and date, so
+// their name and shape come from the GIS catalogue; snapshotted layers carry everything.
+function ppvLayerView (layer) {
+  const catalogue = GIS.getCatalogueLayer(layer.id) || {}
+  const type = GIS.LAYER_TYPES[layer.type] || GIS.LAYER_TYPES.evidence
+  return {
+    id: layer.id,
+    name: layer.name || catalogue.name || layer.id,
+    typeLabel: type.label,
+    version: layer.version,
+    created: layer.created,
+    geometry: layer.geometry || catalogue.geometry,
+    features: layer.features !== undefined ? layer.features : catalogue.features,
+    hasPreview: Boolean(GIS.getCatalogueLayer(layer.id))
+  }
+}
+
+// The shared GIS layers as they are now, frozen into a published version.
+function ppvSnapshotLayers (req) {
+  return getGisLayers(req).map(layer => {
+    const view = glLayerView(layer)
+    const catalogue = GIS.getCatalogueLayer(layer.id) || {}
+    return {
+      id: layer.id,
+      name: view.name,
+      type: layer.type,
+      version: view.current.version,
+      created: view.current.createdLabel || 'Not recorded',
+      geometry: layer.geometry || catalogue.geometry,
+      features: layer.features !== undefined ? layer.features : catalogue.features
+    }
+  })
+}
+
+// What a share or publish includes, in words: "Full local plan", or the chosen chapters.
+function ppvIncluded (pending) {
+  if (pending.scope === 'full') return 'Full local plan'
+  const names = pending.chapters.map(id => {
+    const chapter = PV.getChapter(id)
+    return chapter.short || chapter.title
+  })
+  if (names.length <= 3) return names.length === 1 ? names[0] : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]
+  return names.slice(0, 2).join(', ') + ' and ' + (names.length - 2) + ' more chapters'
+}
+
+// Compares two versions' content. Chapters are matched by id and paragraphs by their position in
+// the chapter, since numbering can differ between versions (the draft's Housing is chapter 4, the
+// published excerpts' is chapter 3). Each column lists every chapter in either version, with a
+// note where a chapter is missing from that side.
+function ppvDiff (earlier, later) {
+  const leftChapters = earlier.content.chapters
+  const rightChapters = later.content.chapters
+  const ids = leftChapters.map(c => c.id).concat(rightChapters.map(c => c.id).filter(id => !leftChapters.some(c => c.id === id)))
+  let changes = 0
+
+  function column (own, other, mark) {
+    return ids.map(id => {
+      const chapter = own.find(c => c.id === id)
+      const counterpart = other.find(c => c.id === id)
+      if (!chapter) return { heading: counterpart.heading, missing: true, paragraphs: [] }
+      return {
+        heading: chapter.heading,
+        missing: false,
+        paragraphs: chapter.paragraphs.map((paragraph, index) => {
+          const match = counterpart && counterpart.paragraphs[index]
+          const changed = !match || match.text !== paragraph.text
+          if (changed) changes++
+          return Object.assign({}, paragraph, { mark: changed ? mark : null })
+        })
+      }
+    })
+  }
+
+  const left = column(leftChapters, rightChapters, 'removed')
+  const right = column(rightChapters, leftChapters, 'added')
+  return { left, right, changes }
+}
+
+// Preview and export has no item of its own: it can only be reached from Share or publish, so
+// that item stays current while previewing.
+function ppvSteps (current) {
+  return [{
+    items: [
+      { text: 'View and compare version history', href: PPV + '/history', active: current === 'history' },
+      { text: 'Share or publish', href: PPV + '/share', active: current === 'share' || current === 'preview' }
+    ]
+  }]
+}
+
+function renderPpv (req, res, template, current, locals) {
+  res.render('project-management/publish-plan-versions/' + template, Object.assign({
+    ppv: PPV,
+    planTitle: PV.PLAN_TITLE,
+    draft: PV.DRAFT,
+    sidebarSections: ppvSteps(current)
+  }, locals))
+}
+
+router.get(PPV, (req, res) => {
+  renderPpv(req, res, 'index', null, {})
+})
+
+router.post(PPV + '/reset', (req, res) => {
+  req.session.data.planVersions = PV.startingState()
+  req.session.data.planVersionsSchemaVersion = PLAN_VERSIONS_SCHEMA_VERSION
+  res.redirect(PPV + '/history')
+})
+
+router.get(PPV + '/history', (req, res) => {
+  const state = getPlanVersions(req)
+  const flash = state.flash
+  state.flash = null
+  renderPpv(req, res, 'history', 'history', {
+    versions: state.versions,
+    flash,
+    compareError: req.query._error === 'compare'
+  })
+})
+
+router.get(PPV + '/versions/:id', (req, res) => {
+  const version = getPlanVersions(req).versions.find(v => v.id === req.params.id)
+  if (!version) return res.redirect(PPV + '/history')
+  renderPpv(req, res, 'version', 'history', {
+    version,
+    layers: version.layers.map(ppvLayerView)
+  })
+})
+
+router.get(PPV + '/compare', (req, res) => {
+  const versions = getPlanVersions(req).versions
+  const chosen = ppvAsArray(req.query._v)
+  const picked = versions.filter(v => chosen.includes(v.id))
+  if (picked.length !== 2) return res.redirect(PPV + '/history?_error=compare#compare')
+  // The history is oldest first, so the first picked is the earlier version.
+  const [earlier, later] = picked
+  renderPpv(req, res, 'compare', 'history', {
+    earlier,
+    later,
+    diff: ppvDiff(earlier, later)
+  })
+})
+
+function ppvShareView (req, res, values, errors) {
+  renderPpv(req, res, 'share', 'share', {
+    values,
+    errors,
+    // Each error links to its field's first input, which is where the macros put the id.
+    errorList: Object.keys(errors).map(key => ({ text: errors[key], href: '#' + key })),
+    chapterItems: PV.CHAPTERS.map(chapter => ({
+      value: chapter.id,
+      text: chapter.title,
+      checked: values.chapters.includes(chapter.id)
+    })),
+    milestoneItems: PV.MILESTONES.map(milestone => ({
+      value: milestone,
+      text: milestone,
+      selected: milestone === values.milestone
+    }))
+  })
+}
+
+router.get(PPV + '/share', (req, res) => {
+  const state = getPlanVersions(req)
+  ppvShareView(req, res, state.pending || {
+    scope: '',
+    chapters: PV.CHAPTERS.map(c => c.id),
+    purpose: '',
+    milestone: PV.MILESTONES[0]
+  }, {})
+})
+
+router.post(PPV + '/share', (req, res) => {
+  const values = {
+    scope: ['full', 'selected'].includes(req.body._scope) ? req.body._scope : '',
+    chapters: ppvAsArray(req.body._chapters).filter(id => PV.getChapter(id)),
+    purpose: ['publish', 'share'].includes(req.body._purpose) ? req.body._purpose : '',
+    milestone: PV.MILESTONES.includes(req.body._milestone) ? req.body._milestone : ''
+  }
+  const errors = {}
+  if (!values.scope) errors.scope = 'Select what to share'
+  else if (values.scope === 'selected' && !values.chapters.length) errors.chapters = 'Select at least one chapter'
+  if (!values.purpose) errors.purpose = 'Select whether to publish the draft or share it internally'
+  else if (values.purpose === 'publish' && !values.milestone) errors.milestone = 'Select a milestone'
+  if (Object.keys(errors).length) return ppvShareView(req, res, values, errors)
+
+  getPlanVersions(req).pending = values
+  res.redirect(PPV + '/preview')
+})
+
+function ppvPreviewLocals (pending) {
+  return {
+    pending,
+    included: ppvIncluded(pending),
+    content: PV.draftContent(pending.scope === 'full' ? [] : pending.chapters)
+  }
+}
+
+router.get(PPV + '/preview', (req, res) => {
+  const pending = getPlanVersions(req).pending
+  if (!pending) return res.redirect(PPV + '/share')
+  renderPpv(req, res, 'preview', 'preview', ppvPreviewLocals(pending))
+})
+
+router.get(PPV + '/preview/document', (req, res) => {
+  const pending = getPlanVersions(req).pending
+  if (!pending) return res.redirect(PPV + '/share')
+  renderPpv(req, res, 'document', 'preview', ppvPreviewLocals(pending))
+})
+
+router.post(PPV + '/preview', (req, res) => {
+  const state = getPlanVersions(req)
+  const pending = state.pending
+  if (!pending) return res.redirect(PPV + '/share')
+  const method = req.body._action === 'share' ? 'share' : 'download'
+  const publish = pending.purpose === 'publish'
+  const now = ppvNow()
+  const included = ppvIncluded(pending)
+  const version = {
+    id: 'v' + state.nextId++,
+    title: publish ? pending.milestone : 'Internal review: ' + included,
+    versionDate: PV.DRAFT.versionDate,
+    published: publish ? now.short : null,
+    publishedLong: publish ? now.long : null,
+    sharedAt: now.short,
+    exportedBy: PV.OFFICER,
+    status: publish ? 'published' : 'shared',
+    method,
+    included,
+    content: PV.draftContent(pending.scope === 'full' ? [] : pending.chapters),
+    layers: publish ? ppvSnapshotLayers(req) : []
+  }
+  state.versions.push(version)
+  state.pending = null
+  state.flash = {
+    title: publish ? 'Published: ' + version.title : 'Shared for internal review: ' + included,
+    text: method === 'share'
+      ? 'The internal team would get an email with a link to view it. It has been added to the version history.'
+      : 'The file pack of PDFs and images would download now (the prototype doesn’t produce a file). It has been added to the version history.',
+    id: version.id
+  }
+  res.redirect(PPV + '/history')
+})

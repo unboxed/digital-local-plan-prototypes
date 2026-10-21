@@ -1,0 +1,201 @@
+// Publish plan versions (/project-management/publish-plan-versions). Classes are dlp-ppv-*.
+
+$dlp-ppv-removed: govuk-colour("red");
+$dlp-ppv-removed-fill: govuk-colour("red", $variant: "tint-95");
+$dlp-ppv-added: govuk-colour("green");
+$dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
+
+.dlp-ppv-muted {
+  color: $dlp-muted-text;
+}
+
+// Text pages hold to a readable measure inside the full-width sidebar layout.
+.dlp-ppv-measure {
+  max-width: 46em;
+}
+
+.dlp-ppv {
+  max-width: $govuk-page-width;
+}
+
+// A heading with a link on the right, e.g. "Plan contents" / "View plan layers".
+.dlp-ppv-heading-row {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2) govuk-spacing(4);
+  justify-content: space-between;
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-ppv-box {
+  border: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(4);
+}
+
+.dlp-ppv-paragraph__number {
+  margin-right: govuk-spacing(1);
+}
+
+// The version history table needs more room than a phone has.
+.dlp-ppv-table-wrap {
+  overflow-x: auto;
+}
+
+.dlp-ppv-table {
+  min-width: 52rem;
+
+  .govuk-table__header {
+    background-color: govuk-colour("black", $variant: "tint-95");
+    padding-left: govuk-spacing(2);
+  }
+
+  .govuk-table__cell {
+    padding-left: govuk-spacing(2);
+  }
+
+  .govuk-checkboxes__item {
+    margin-bottom: 0;
+  }
+}
+
+// The entry just published or shared, so it can be found in the table.
+.dlp-ppv-table__row--new .govuk-table__cell {
+  background-color: $dlp-ppv-added-fill;
+}
+
+// Plan layers on a version.
+.dlp-ppv-layers {
+  border-top: 1px solid $dlp-border-grey;
+  margin-top: govuk-spacing(6);
+  padding-top: govuk-spacing(6);
+}
+
+.dlp-ppv-layer-list {
+  border-top: 1px solid $dlp-border-grey;
+}
+
+.dlp-ppv-layer {
+  border-bottom: 1px solid $dlp-border-grey;
+  display: grid;
+  gap: govuk-spacing(3) govuk-spacing(4);
+  grid-template-columns: 9rem minmax(0, 1fr);
+  margin-bottom: 0;
+  padding: govuk-spacing(3) 0;
+
+  @include govuk-media-query($from: tablet) {
+    grid-template-columns: 9rem minmax(0, 1fr) 9rem;
+  }
+}
+
+.dlp-ppv-layer__version {
+  grid-column: 2;
+  margin: 0;
+
+  @include govuk-media-query($from: tablet) {
+    grid-column: auto;
+  }
+}
+
+.dlp-ppv-layer__tag {
+  margin-left: govuk-spacing(1);
+  vertical-align: middle;
+}
+
+// Compare: two read-only versions side by side.
+.dlp-ppv-key {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+}
+
+.dlp-ppv-key__item {
+  padding: 2px govuk-spacing(2);
+}
+
+.dlp-ppv-key__item--removed {
+  background-color: govuk-colour("red", $variant: "tint-80");
+}
+
+.dlp-ppv-key__item--added {
+  background-color: govuk-colour("green", $variant: "tint-80");
+  color: govuk-colour("green", $variant: "shade-50");
+}
+
+.dlp-ppv-compare {
+  display: grid;
+  gap: govuk-spacing(5);
+
+  @include govuk-media-query($from: desktop) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.dlp-ppv-compare__column {
+  border: 1px solid $dlp-border-grey;
+}
+
+.dlp-ppv-compare__head {
+  padding: govuk-spacing(4);
+}
+
+.dlp-ppv-compare__bar {
+  @include govuk-font($size: 16);
+  background-color: govuk-colour("black", $variant: "tint-95");
+  border-bottom: 1px solid $dlp-border-grey;
+  border-top: 1px solid $dlp-border-grey;
+  color: $dlp-muted-text;
+  display: flex;
+  justify-content: space-between;
+  padding: govuk-spacing(2) govuk-spacing(4);
+}
+
+.dlp-ppv-compare__body {
+  padding: 0 govuk-spacing(4) govuk-spacing(4);
+}
+
+.dlp-ppv-change {
+  border-left: 5px solid;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(2) govuk-spacing(3);
+}
+
+.dlp-ppv-change--removed {
+  background-color: $dlp-ppv-removed-fill;
+  border-left-color: $dlp-ppv-removed;
+}
+
+.dlp-ppv-change--added {
+  background-color: $dlp-ppv-added-fill;
+  border-left-color: $dlp-ppv-added;
+
+  ins {
+    text-decoration: underline;
+  }
+}
+
+// Share or publish: the 16 chapters in two columns once there is room.
+.dlp-ppv-chapter-columns {
+  @include govuk-media-query($from: tablet) {
+    column-gap: govuk-spacing(6);
+    columns: 2;
+
+    .govuk-checkboxes__item {
+      break-inside: avoid;
+    }
+  }
+}
+
+// Preview: the document scrolls in its own frame.
+.dlp-ppv-scroll {
+  background-color: govuk-colour("blue", $variant: "tint-95");
+  border: 1px solid $dlp-border-grey;
+  max-height: 28rem;
+  overflow-y: auto;
+  padding: govuk-spacing(4);
+
+  &:focus {
+    outline: $govuk-focus-width solid $govuk-focus-colour;
+  }
+}

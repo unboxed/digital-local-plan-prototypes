@@ -1291,3 +1291,6 @@ $dlp-confidence-low: govuk-colour("orange");
 
 // Viewing and structuring evidence. Uses the variables above.
 @import "viewing-structuring";
+
+// Publish plan versions. Uses the variables above.
+@import "plan-versions";

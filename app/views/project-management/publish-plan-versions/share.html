@@ -1,0 +1,74 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+
+{% set pageName = ("Error: " if errorList.length else "") + "Share or publish" %}
+{% set backLink = { href: ppv + "/history", text: "View version history" } %}
+
+{% block main %}
+<div class="dlp-ppv-measure">
+{% if errorList.length %}
+  {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+{% endif %}
+
+<span class="govuk-caption-m">Plan versions · Step 2 of 3</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">Share or publish</h1>
+<p class="govuk-body-l dlp-ppv-muted">Choose the content to include in your export, then select why you want to share this version.</p>
+
+<h2 class="govuk-heading-m govuk-!-margin-bottom-1">{{ planTitle }}</h2>
+<p class="govuk-body-s dlp-ppv-muted">{{ draft.label }} · Saved {{ draft.saved }}</p>
+
+<form method="post" action="{{ ppv }}/share" novalidate>
+
+  {% set chaptersHtml %}
+  {{ govukCheckboxes({
+    idPrefix: "chapters",
+    name: "_chapters",
+    classes: "govuk-checkboxes--small dlp-ppv-chapter-columns",
+    fieldset: { legend: { text: "Chapters to include", classes: "govuk-visually-hidden" } },
+    errorMessage: { text: errors.chapters } if errors.chapters,
+    items: chapterItems
+  }) }}
+  {% endset %}
+
+  {{ govukRadios({
+    idPrefix: "scope",
+    name: "_scope",
+    fieldset: { legend: { text: "Choose what to share", isPageHeading: false, classes: "govuk-fieldset__legend--m" } },
+    errorMessage: { text: errors.scope } if errors.scope,
+    items: [
+      { value: "full", text: "Full local plan (all chapters)", checked: values.scope == "full" },
+      { value: "selected", text: "Selected chapters", checked: values.scope == "selected", conditional: { html: chaptersHtml } }
+    ]
+  }) }}
+
+  {% set milestoneHtml %}
+  {{ govukSelect({
+    id: "milestone",
+    name: "_milestone",
+    label: { text: "Select a milestone to link to the version you are publishing." },
+    errorMessage: { text: errors.milestone } if errors.milestone,
+    items: milestoneItems
+  }) }}
+  {% endset %}
+
+  {{ govukRadios({
+    idPrefix: "purpose",
+    name: "_purpose",
+    fieldset: { legend: { text: "Why are you sharing this version?", classes: "govuk-fieldset__legend--m" } },
+    errorMessage: { text: errors.purpose } if errors.purpose,
+    items: [
+      { value: "publish", text: "Publish draft", hint: { text: "Published with its plan layers, and linked to a milestone." }, checked: values.purpose == "publish", conditional: { html: milestoneHtml } },
+      { value: "share", text: "Share internally", hint: { text: "For non-public review. Not published." }, checked: values.purpose == "share" }
+    ]
+  }) }}
+
+  <div class="govuk-button-group">
+    <button type="submit" class="govuk-button" data-module="govuk-button">Preview and share</button>
+    <a class="govuk-link" href="{{ ppv }}/history">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}

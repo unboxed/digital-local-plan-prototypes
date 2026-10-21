@@ -1,0 +1,72 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+{% from "project-management/publish-plan-versions/partials/macros.html" import planContent, layerRow %}
+
+{% set pageName = version.title %}
+{% set backLink = { href: ppv + "/history", text: "Back to version history" } %}
+
+{% block main %}
+<div class="dlp-ppv-measure">
+  <span class="govuk-caption-m">{{ planTitle }}</span>
+  <h1 class="govuk-heading-xl govuk-!-margin-bottom-3">{{ version.title }}</h1>
+  <p class="govuk-body">
+    {% if version.status == "published" %}
+    <strong class="govuk-tag govuk-tag--grey">Published</strong>
+    {% else %}
+    <strong class="govuk-tag govuk-tag--yellow">Shared internally</strong>
+    {% endif %}
+    <span class="govuk-body-s dlp-ppv-muted govuk-!-margin-left-2">Read-only version. This content cannot be edited.</span>
+  </p>
+
+  <dl class="govuk-summary-list">
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Version date and time</dt>
+      <dd class="govuk-summary-list__value">{{ version.versionDate }}</dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">{{ "Published date and time" if version.published else "Shared date and time" }}</dt>
+      <dd class="govuk-summary-list__value">{{ version.published or version.sharedAt }}</dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Exported by</dt>
+      <dd class="govuk-summary-list__value">{{ version.exportedBy }}</dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Included</dt>
+      <dd class="govuk-summary-list__value">{{ version.included }}</dd>
+    </div>
+  </dl>
+
+  <div class="dlp-ppv-heading-row">
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-0">Plan contents</h2>
+    {% if layers.length %}<a class="govuk-link govuk-body-s" href="#layers">View plan layers</a>{% endif %}
+  </div>
+  <div class="dlp-ppv-box">
+    <p class="govuk-body-s dlp-ppv-muted">
+      {% if version.published %}Published plan content · {{ version.publishedLong }}{% else %}Shared for internal review · {{ version.sharedAt }}{% endif %}
+    </p>
+    {{ planContent(version.content) }}
+  </div>
+
+  <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+  <p class="govuk-body govuk-!-margin-bottom-1"><a class="govuk-link" href="{{ ppv }}/history#compare">Choose versions to compare</a></p>
+  <p class="govuk-body-s dlp-ppv-muted">Return to version history, select two versions and choose ‘Compare selected versions’.</p>
+</div>
+
+<section class="dlp-ppv-layers" id="layers" aria-labelledby="layers-heading">
+  <div class="dlp-ppv-heading-row">
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-0" id="layers-heading">Plan layers: {{ version.title }}</h2>
+    <a class="govuk-link govuk-body-s" href="/evidence/gis-layers">View GIS layer library</a>
+  </div>
+  {% if layers.length %}
+  <ul class="govuk-list dlp-ppv-layer-list">
+    {% for layer in layers %}{{ layerRow(layer) }}{% endfor %}
+  </ul>
+  <p class="govuk-body-s dlp-ppv-muted">Map previews use illustrative shapes where a layer has no live data.</p>
+  {% else %}
+  <p class="govuk-body">No layers were published with this version.</p>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

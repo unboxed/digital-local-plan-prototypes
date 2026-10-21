@@ -1,0 +1,64 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+{% from "project-management/publish-plan-versions/partials/macros.html" import planContent %}
+
+{% set pageName = "Preview and export" %}
+{% set backLink = { href: ppv + "/share", text: "Select what to share" } %}
+{% set sharing = pending.purpose == "share" %}
+
+{% block main %}
+<div class="dlp-ppv-measure">
+<span class="govuk-caption-m">Plan versions · Step 3 of 3</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">Preview and export</h1>
+<p class="govuk-body-l dlp-ppv-muted">Review your selection before downloading a copy to share.</p>
+
+<h2 class="govuk-heading-m">{{ planTitle }}</h2>
+<dl class="govuk-summary-list govuk-summary-list--no-border">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Version</dt>
+    <dd class="govuk-summary-list__value">{{ draft.label }} · {{ draft.saved }}</dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Included</dt>
+    <dd class="govuk-summary-list__value">{{ included }}</dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Purpose</dt>
+    <dd class="govuk-summary-list__value">{% if sharing %}Share internally, for non-public review{% else %}Publish draft: {{ pending.milestone }}{% endif %}</dd>
+  </div>
+</dl>
+
+{% if not sharing %}
+<p class="govuk-body"><a class="govuk-link" href="/evidence/gis-layers">View plan layers</a> <span class="govuk-body-s dlp-ppv-muted">(published with the plan, as they are when you publish)</span></p>
+{% endif %}
+
+<div class="dlp-ppv-box">
+  <div class="dlp-ppv-heading-row">
+    <div>
+      <p class="govuk-body-s dlp-ppv-muted govuk-!-margin-bottom-1">Document preview</p>
+      <h2 class="govuk-heading-m govuk-!-margin-bottom-0">{{ planTitle }}</h2>
+    </div>
+    <a class="govuk-link govuk-body-s" href="{{ ppv }}/preview/document" target="_blank" rel="noopener noreferrer">View in new window<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>
+  </div>
+  <div class="dlp-ppv-scroll" tabindex="0" role="region" aria-label="Document preview">
+    <h3 class="govuk-heading-m govuk-!-margin-bottom-2">{{ planTitle }}</h3>
+    <p class="govuk-body-s dlp-ppv-muted">{{ draft.label }} · {{ draft.saved }}</p>
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--s">
+    {{ planContent(content, 4) }}
+  </div>
+</div>
+
+<h2 class="govuk-heading-m govuk-!-margin-top-6">Export or share</h2>
+<p class="govuk-body dlp-ppv-muted">When you export or share, the version history will be updated with a date and timestamp. You can choose to:</p>
+<ul class="govuk-list govuk-list--bullet dlp-ppv-muted">
+  <li>Download a folder with PDFs and images included in the plan</li>
+  <li>Share a link to a draft plan or selected policies with an internal team. They will receive an email with a link to view in the system.</li>
+</ul>
+
+<form method="post" action="{{ ppv }}/preview" novalidate>
+  <div class="govuk-button-group">
+    <button type="submit" name="_action" value="download" class="govuk-button {%- if sharing %} govuk-button--secondary{% endif %}" data-module="govuk-button">Download file pack</button>
+    <button type="submit" name="_action" value="share" class="govuk-button {%- if not sharing %} govuk-button--secondary{% endif %}" data-module="govuk-button">Share to internal team</button>
+  </div>
+</form>
+</div>
+{% endblock %}

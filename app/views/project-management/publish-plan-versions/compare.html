@@ -1,0 +1,46 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+{% from "project-management/publish-plan-versions/partials/macros.html" import diffColumn %}
+
+{% set pageName = "Compare plan versions" %}
+{% set backLink = { href: ppv + "/history", text: "Back to version history" } %}
+
+{% macro versionHead(label, version) %}
+  <div class="dlp-ppv-compare__head">
+    <p class="govuk-body govuk-!-font-weight-bold dlp-ppv-muted govuk-!-margin-bottom-2">{{ label }}</p>
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-3">{{ version.title }}</h2>
+    <p class="govuk-body govuk-!-margin-bottom-2">{{ version.versionDate }}</p>
+    <p class="govuk-body-s dlp-ppv-muted govuk-!-margin-bottom-0">
+      {% if version.published %}Published {{ version.published }}{% else %}Shared internally {{ version.sharedAt }}{% endif %}<br>
+      Exported by {{ version.exportedBy }}
+    </p>
+  </div>
+  <div class="dlp-ppv-compare__bar">
+    <span>Document excerpts · Read-only</span>
+    <span>100%</span>
+  </div>
+{% endmacro %}
+
+{% block main %}
+<span class="govuk-caption-m">{{ planTitle }}</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Compare plan versions</h1>
+
+<p class="govuk-body dlp-ppv-key">
+  <span class="dlp-ppv-key__item dlp-ppv-key__item--removed">Removed</span>
+  <span class="dlp-ppv-key__item dlp-ppv-key__item--added">Added</span>
+  <span class="govuk-body-s dlp-ppv-muted">Unmarked text is unchanged</span>
+</p>
+<p class="govuk-body-s dlp-ppv-muted">
+  {% if diff.changes %}{{ diff.changes }} paragraph{% if diff.changes != 1 %}s{% endif %} marked across the two versions.{% else %}No differences between these versions.{% endif %}
+</p>
+
+<div class="dlp-ppv-compare">
+  <section class="dlp-ppv-compare__column" aria-label="Earlier version: {{ earlier.title }}">
+    {{ versionHead("Earlier version", earlier) }}
+    <div class="dlp-ppv-compare__body">{{ diffColumn(diff.left) }}</div>
+  </section>
+  <section class="dlp-ppv-compare__column" aria-label="Later version: {{ later.title }}">
+    {{ versionHead("Later version", later) }}
+    <div class="dlp-ppv-compare__body">{{ diffColumn(diff.right) }}</div>
+  </section>
+</div>
+{% endblock %}

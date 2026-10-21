@@ -1,0 +1,93 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+
+{% set pageName = ("Error: " if compareError else "") + "View and compare version history" %}
+{% set breadcrumbs = [
+  { text: "Home", href: "/project-management" },
+  { text: "Plan versions" }
+] %}
+
+{% block main %}
+{% if compareError %}
+  {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: "Select two versions to compare", href: "#compare-" + versions[0].id }] }) }}
+{% endif %}
+
+{% if flash %}
+  {% set flashHtml %}
+    <h3 class="govuk-notification-banner__heading">{{ flash.title }}</h3>
+    <p class="govuk-body">{{ flash.text }} <a class="govuk-notification-banner__link" href="{{ ppv }}/versions/{{ flash.id }}">View this version</a></p>
+  {% endset %}
+  {{ govukNotificationBanner({ type: "success", html: flashHtml }) }}
+{% endif %}
+
+<span class="govuk-caption-m">Plan versions · Step 1 of 3</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">View and compare version history</h1>
+<p class="govuk-body-l dlp-ppv-muted">Choose a saved version of your local plan to share or export.</p>
+
+<div class="govuk-button-group">
+  <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="{{ ppv }}/share">Share or publish the current draft ({{ draft.label }})</a>
+</div>
+
+<h2 class="govuk-heading-l govuk-!-margin-top-6">{{ planTitle }}</h2>
+
+<form method="get" action="{{ ppv }}/compare" novalidate id="compare">
+  <div class="govuk-form-group {%- if compareError %} govuk-form-group--error{% endif %}">
+    <p class="govuk-body dlp-ppv-muted" id="compare-hint">Select two versions to compare side by side.</p>
+    {% if compareError %}
+    <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> Select two versions to compare</p>
+    {% endif %}
+
+    <div class="dlp-ppv-table-wrap">
+      <table class="govuk-table dlp-ppv-table">
+        <caption class="govuk-visually-hidden">Versions of the {{ planTitle }}, oldest first</caption>
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">Version title</th>
+            <th scope="col" class="govuk-table__header">Version date and time</th>
+            <th scope="col" class="govuk-table__header">Published date and time</th>
+            <th scope="col" class="govuk-table__header">Exported by</th>
+            <th scope="col" class="govuk-table__header">Plan layers</th>
+            <th scope="col" class="govuk-table__header">Action</th>
+            <th scope="col" class="govuk-table__header">Compare</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for version in versions %}
+          <tr class="govuk-table__row {%- if flash and flash.id == version.id %} dlp-ppv-table__row--new{% endif %}">
+            <td class="govuk-table__cell">{{ version.title }}</td>
+            <td class="govuk-table__cell">{{ version.versionDate }}</td>
+            <td class="govuk-table__cell">
+              {% if version.published %}{{ version.published }}{% else %}Not published<br><span class="dlp-ppv-muted">Shared internally {{ version.sharedAt }}</span>{% endif %}
+            </td>
+            <td class="govuk-table__cell">{{ version.exportedBy }}</td>
+            <td class="govuk-table__cell">
+              {% if version.layers.length %}
+              <a class="govuk-link" href="{{ ppv }}/versions/{{ version.id }}#layers">View plan layers<span class="govuk-visually-hidden"> for {{ version.title }}</span></a>
+              {% else %}
+              No layers published
+              {% endif %}
+            </td>
+            <td class="govuk-table__cell">
+              <a class="govuk-link" href="{{ ppv }}/versions/{{ version.id }}">View version<span class="govuk-visually-hidden">: {{ version.title }}</span></a>
+            </td>
+            <td class="govuk-table__cell">
+              <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">
+                <div class="govuk-checkboxes__item">
+                  <input class="govuk-checkboxes__input" id="compare-{{ version.id }}" name="_v" type="checkbox" value="{{ version.id }}" aria-describedby="compare-hint">
+                  <label class="govuk-label govuk-checkboxes__label" for="compare-{{ version.id }}">
+                    <span class="govuk-visually-hidden">Compare {{ version.title }}</span>
+                  </label>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <button type="submit" class="govuk-button" data-module="govuk-button">Compare selected versions</button>
+</form>
+{% endblock %}

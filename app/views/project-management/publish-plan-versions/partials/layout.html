@@ -1,0 +1,23 @@
+{#
+  Shell for the Publish plan versions screens: the "Plan versions" steps in the sidebar, then the
+  page. Children fill `main`, and set `backLink` ({ href, text }) or `breadcrumbs` above it.
+#}
+{% extends "layouts/main-with-sidebar.html" %}
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "govuk/components/breadcrumbs/macro.njk" import govukBreadcrumbs %}
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ title: "Plan versions", sections: sidebarSections, ariaLabel: "Plan versions" }) }}
+{% endblock %}
+
+{% block content %}
+<div class="dlp-ppv">
+  {% if breadcrumbs %}
+    {{ govukBreadcrumbs({ items: breadcrumbs, classes: "govuk-!-margin-top-0" }) }}
+  {% elif backLink %}
+    {{ govukBackLink({ href: backLink.href, text: backLink.text, classes: "govuk-!-margin-top-0" }) }}
+  {% endif %}
+  {% block main %}{% endblock %}
+</div>
+{% endblock %}

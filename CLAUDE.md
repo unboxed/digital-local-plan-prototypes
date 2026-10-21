@@ -705,6 +705,51 @@ area's hub, listing it under Current prototypes.
   the second Approval frame's intro (copied from Risks) rewritten. File uploads keep only the
   file name.
 
+## Publish plan versions (project management)
+
+`/project-management/publish-plan-versions` (`app/views/project-management/publish-plan-versions/`)
+is built from the Figma frames in the git-ignored `Figma screenshots/Versioning/` folder. It is
+listed under Current prototypes on the Project management hub. An officer browses the plan's
+version history, compares two versions side by side, and publishes the current draft or shares it
+internally for non-public review. The research question is where that sharing fits in drafting.
+
+- **No "Publish plan" header item.** The frames add one, but the prototype sits under Project
+  management by request, and the `activeSection` middleware already highlights that.
+- **Names and dates are the frames' own, by design request.** The four versions (Scoping …
+  Adopted) run Sep–Oct 2025, the draft is "Version 3 · Saved 29 September 2025", and the layer
+  dates are the frame's (one is in 2026). Don't "fix" them to the other prototypes' timeline
+  without asking.
+- **State** is one object, `planVersions`, read only through `getPlanVersions` and stamped with
+  `PLAN_VERSIONS_SCHEMA_VERSION`, so **bump that when the seed's shape changes**. It holds
+  `{versions, pending, flash, nextId}`. The seed is `startingState()` in
+  `app/data/plan-versions.js`, which also holds the chapters, the draft's content and the
+  milestones. The landing page's reset rebuilds it.
+- **A new version is a snapshot.** Step 2 stores its choices as `pending`. Step 3's two buttons
+  (`_action` `download` | `share`) append an entry with a copy of the chosen content and, when
+  the purpose is Publish draft, the shared `gisLayers` collection as it is at that moment (built
+  with `glLayerView`). Viewing or comparing it later shows what went out, not the current
+  draft. Publishing is titled with its milestone. Sharing internally is titled "Internal review:
+  …", has no published date and no layers, and shows a "Shared internally" tag. Downloading
+  produces no file. The result is confirmed by a notification banner on the history, with the
+  new row tinted.
+- **Seeded versions are excerpts** of three chapters (Introduction, Spatial strategy, Housing),
+  as in frames 2 and 3. Their layers carry only `{id, type, version, created}`, and name, shape
+  and feature count come from the GIS catalogue (`GIS.getCatalogueLayer`). The map thumbnails
+  reuse the layer library's `data-dlp-gis-preview`.
+- **The comparison (`ppvDiff`)** matches chapters by id and paragraphs by their position, not
+  their number: the draft's Housing is chapter 4, the excerpts' chapter 3. Changed text is
+  "Removed" on the earlier side and "Added" on the later. Changes are shown with labels and
+  `<del>`/`<ins>`, not colour alone. A chapter only in one version reads "Not in this version"
+  on the other side, so comparing a full draft with an excerpt shows the extra chapters as
+  added. The earlier version is whichever comes first in the history.
+- **Not in the frames:** the "Share or publish the current draft" button on the history (step 1
+  had no way into step 2), the Purpose row on the preview, and the confirmation banner. The
+  compare toolbar's "100%" is static text, as drawn.
+- **Changed from the frames by request:** the Scoping version has four layers (frame 1 said "No
+  layers published"), and the milestone list ends with "Adopted plan". The sidebar has only
+  version history and Share or publish. Preview and export is reached only from Share or publish,
+  so that item stays current on the preview.
+
 ## GIS layers
 
 GIS layers are **one shared collection across the application**, `gisLayers` in session data,
