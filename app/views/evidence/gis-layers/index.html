@@ -1,7 +1,6 @@
 {% extends "layouts/main.html" %} {% from "partials/gis/macro.njk" import
 gisLayerGroup, gisLayerTag, gisLayerTypeSwitch %} {% set pageName = "GIS layer
-library" %} {# Removes one connection (`chapter:<area />` or `policy:<ref
-  >`) from a layer. #} {% macro glRemoveLink(layer, link, label) %}
+library" %} {# Removes one connection (`chapter:<area>` or `policy:<ref>`) from a layer. #} {% macro glRemoveLink(layer, link, label) %}
   <form
     class="dlp-inline-form"
     method="post"
@@ -93,170 +92,143 @@ library" %} {# Removes one connection (`chapter:<area />` or `policy:<ref
   </p>
 
   {% for layer in layers %}
+  {#
+    One card per layer, top to bottom: name; type tag (with its switch) and folder; description;
+    the map beside the layer's details; what can be done with it; earlier versions.
+  #}
   <article
     class="dlp-gl-card"
     id="layer-{{ layer.id }}"
     aria-labelledby="layer-{{ layer.id }}-name"
   >
-    <div class="dlp-gl-card__preview">
-      {% if layer.hasPreview %}
-      <div
-        class="dlp-gl-preview"
-        data-dlp-gis-preview="{{ layer.id }}"
-        data-dlp-gis-preview-name="{{ layer.name }}"
-      >
-        <p class="dlp-gl-preview__message" data-dlp-gis-preview-message>
-          Map preview needs JavaScript
-        </p>
-      </div>
-      {% if layer.illustrative %}
-      <p class="dlp-gl-card__note">Illustrative shapes, not real data</p>
-      {% endif %} {% else %}
-      <div class="dlp-gl-preview">
-        <p class="dlp-gl-preview__message">No map preview</p>
-      </div>
-      {% endif %}
-      <div>
-        <div class="dlp-gl-card__actions govuk-body govuk-!-margin-bottom-0">
-          <a
-            class="govuk-link"
-            href="/evidence/gis-layers/layers/{{ layer.id }}/policy"
-            >Add to policy or chapter<span class="govuk-visually-hidden"
-              >: {{ layer.name }}</span
-            ></a
-          >
-          {# Inert placeholders from the sketch, awaiting functionality. They link
-          to their own card, so following one goes nowhere. #}
-          <a class="govuk-link" href="#layer-{{ layer.id }}"
-            >Add to Local Plan timetable stage<span class="govuk-visually-hidden"
-              >: {{ layer.name }}</span
-            ></a
-          >
-          <a class="govuk-link" href="#layer-{{ layer.id }}"
-            >See connected consultation responses<span
-              class="govuk-visually-hidden"
-              >: {{ layer.name }}</span
-            ></a
-          >
-        </div>
-      </div>
+    <h3 class="govuk-heading-m govuk-!-margin-bottom-0" id="layer-{{ layer.id }}-name">
+      {{ layer.name }}
+    </h3>
+
+    <div class="govuk-body govuk-!-margin-bottom-0 dlp-gl-card__kind">
+      {{ gisLayerTag(layer) }}
+      {{ gisLayerTypeSwitch(layer, returnTo) }}
+      {{ gisLayerGroup(layer) }}
     </div>
 
-    <div class="dlp-gl-card__about">
-      <h3
-        class="govuk-heading-m govuk-!-margin-bottom-1"
-        id="layer-{{ layer.id }}-name"
-      >
-        {{ layer.name }}
-      </h3>
-      <p class="govuk-body govuk-!-margin-bottom-2 dlp-gl-card__kind">
-        {{ gisLayerTag(layer) }} {{ gisLayerGroup(layer) }}
-      </p>
-      {% if layer.description %}
-      <p class="govuk-body">{{ layer.description }}</p>
-      {% endif %}
-      <p class="govuk-body-s dlp-gl-card__facts">
-        {{ layer.geometry }} layer{% if layer.features or layer.features === 0
-        %}, {{ layer.features }} feature{{ "" if layer.features == 1 else "s"
-        }}{% endif %} {% if layer.url %} ·
-        <a
-          class="govuk-link"
-          href="{{ layer.url }}"
-          target="_blank"
-          rel="noopener noreferrer"
-          >Layer data<span class="govuk-visually-hidden">
-            for {{ layer.name }} (opens in a new tab)</span
-          ></a
+    {% if layer.description %}
+    <p class="govuk-body govuk-!-margin-bottom-0 dlp-gl-card__description">{{ layer.description }}</p>
+    {% endif %}
+
+    <div class="dlp-gl-card__body">
+      <div class="dlp-gl-card__preview">
+        {% if layer.hasPreview %}
+        <div
+          class="dlp-gl-preview"
+          data-dlp-gis-preview="{{ layer.id }}"
+          data-dlp-gis-preview-name="{{ layer.name }}"
         >
-        {% endif %}
-      </p>
-      {{ gisLayerTypeSwitch(layer, returnTo) }} {# What the layer is connected
-      with, closed by default: it can run to several chapters. #}
-      <details class="govuk-details dlp-gl-card__connections">
-        <summary class="govuk-details__summary">
-          <span class="govuk-details__summary-text">
-            Policies and chapters ({{ layer.connections.length }})<span
-              class="govuk-visually-hidden"
-            >
-              for {{ layer.name }}</span
-            >
-          </span>
-        </summary>
-        <div class="govuk-details__text">
-          {% if layer.connections.length %}
-          <ul class="govuk-list dlp-gl-links">
-            {% for connection in layer.connections %}
-            <li class="dlp-gl-links__chapter">
-              <span class="dlp-gl-links__name"
-                >{{ connection.chapter }} chapter</span
-              >
-              {% if connection.whole %}
-              <span class="dlp-gl-links__whole">Whole chapter</span>
-              {{ glRemoveLink(layer, "chapter:" + connection.chapter, "the " +
-              connection.chapter + " chapter") }} {% endif %} {% if
-              connection.policies.length %}
-              <ul class="govuk-list dlp-gl-links__policies">
-                {% for policy in connection.policies %}
-                <li>
-                  <strong>{{ policy.ref }}</strong> {{ policy.title }} {{
-                  glRemoveLink(layer, "policy:" + policy.ref, policy.ref) }}
-                </li>
-                {% endfor %}
-              </ul>
-              {% endif %}
-            </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <p class="govuk-body govuk-!-margin-bottom-0">
-            Not connected to any policy or chapter yet.
+          <p class="dlp-gl-preview__message" data-dlp-gis-preview-message>
+            Map preview needs JavaScript
           </p>
-          {% endif %}
         </div>
-      </details>
+        {% if layer.illustrative %}
+        <p class="dlp-gl-card__note">Illustrative shapes, not real data</p>
+        {% endif %}
+        {% else %}
+        <div class="dlp-gl-preview">
+          <p class="dlp-gl-preview__message">No map preview</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="dlp-gl-card__details">
+        <p class="govuk-body-s dlp-gl-card__facts">
+          {{ layer.geometry }} layer{% if layer.features or layer.features === 0 %}, {{ layer.features }} feature{{ "" if layer.features == 1 else "s" }}{% endif %}
+          {% if layer.url %} ·
+          <a class="govuk-link" href="{{ layer.url }}" target="_blank" rel="noopener noreferrer"
+            >Layer data<span class="govuk-visually-hidden"> for {{ layer.name }} (opens in a new tab)</span></a>
+          {% endif %}
+        </p>
+
+        <dl class="govuk-summary-list govuk-summary-list--no-border dlp-gl-card__meta">
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Version</dt>
+            <dd class="govuk-summary-list__value">{{ layer.current.version }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Plan</dt>
+            <dd class="govuk-summary-list__value">{{ layer.plan }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Created</dt>
+            <dd class="govuk-summary-list__value">{{ layer.current.createdLabel }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Published with</dt>
+            <dd class="govuk-summary-list__value">{{ layer.current.publishedLabel }}</dd>
+          </div>
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Added from</dt>
+            <dd class="govuk-summary-list__value">{{ layer.sourceLabel }}</dd>
+          </div>
+        </dl>
+
+        {# What the layer is connected with, closed by default: it can run to several chapters. #}
+        <details class="govuk-details dlp-gl-card__connections">
+          <summary class="govuk-details__summary">
+            <span class="govuk-details__summary-text">
+              Policies and chapters ({{ layer.connections.length }})<span class="govuk-visually-hidden"> for {{ layer.name }}</span>
+            </span>
+          </summary>
+          <div class="govuk-details__text">
+            {% if layer.connections.length %}
+            <ul class="govuk-list dlp-gl-links">
+              {% for connection in layer.connections %}
+              <li class="dlp-gl-links__chapter">
+                <span class="dlp-gl-links__name">{{ connection.chapter }} chapter</span>
+                {% if connection.whole %}
+                <span class="dlp-gl-links__whole">Whole chapter</span>
+                {{ glRemoveLink(layer, "chapter:" + connection.chapter, "the " + connection.chapter + " chapter") }}
+                {% endif %}
+                {% if connection.policies.length %}
+                <ul class="govuk-list dlp-gl-links__policies">
+                  {% for policy in connection.policies %}
+                  <li>
+                    <strong>{{ policy.ref }}</strong> {{ policy.title }}
+                    {{ glRemoveLink(layer, "policy:" + policy.ref, policy.ref) }}
+                  </li>
+                  {% endfor %}
+                </ul>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="govuk-body govuk-!-margin-bottom-0">Not connected to any policy or chapter yet.</p>
+            {% endif %}
+          </div>
+        </details>
+      </div>
     </div>
 
-    <dl
-      class="govuk-summary-list govuk-summary-list--no-border dlp-gl-card__meta"
-    >
-      <div class="govuk-summary-list__row">
-        <dt class="govuk-summary-list__key">Version</dt>
-        <dd class="govuk-summary-list__value">{{ layer.current.version }}</dd>
+    <div class="dlp-gl-card__manage">
+      <h4 class="govuk-heading-s govuk-!-margin-bottom-2">Manage this layer</h4>
+      <div class="dlp-gl-card__actions govuk-body govuk-!-margin-bottom-0">
+        <a class="govuk-link" href="/evidence/gis-layers/layers/{{ layer.id }}/policy"
+          >Add to policy or chapter<span class="govuk-visually-hidden">: {{ layer.name }}</span></a>
+        {# Inert placeholders from the sketch, awaiting functionality. They link to their own
+        card, so following one goes nowhere. #}
+        <a class="govuk-link" href="#layer-{{ layer.id }}"
+          >Add to Local Plan timetable stage<span class="govuk-visually-hidden">: {{ layer.name }}</span></a>
+        <a class="govuk-link" href="#layer-{{ layer.id }}"
+          >See connected consultation responses<span class="govuk-visually-hidden">: {{ layer.name }}</span></a>
       </div>
-      <div class="govuk-summary-list__row">
-        <dt class="govuk-summary-list__key">Plan</dt>
-        <dd class="govuk-summary-list__value">{{ layer.plan }}</dd>
-      </div>
-      <div class="govuk-summary-list__row">
-        <dt class="govuk-summary-list__key">Created</dt>
-        <dd class="govuk-summary-list__value">
-          {{ layer.current.createdLabel }}
-        </dd>
-      </div>
-      <div class="govuk-summary-list__row">
-        <dt class="govuk-summary-list__key">Published with</dt>
-        <dd class="govuk-summary-list__value">
-          {{ layer.current.publishedLabel }}
-        </dd>
-      </div>
-      <div class="govuk-summary-list__row">
-        <dt class="govuk-summary-list__key">Added from</dt>
-        <dd class="govuk-summary-list__value">{{ layer.sourceLabel }}</dd>
-      </div>
-    </dl>
+    </div>
 
     {% if layer.previous.length %}
     <details class="govuk-details dlp-gl-card__versions">
       <summary class="govuk-details__summary">
-        <span class="govuk-details__summary-text"
-          >Previous versions ({{ layer.previous.length }})</span
-        >
+        <span class="govuk-details__summary-text">Previous versions ({{ layer.previous.length }})</span>
       </summary>
       <div class="govuk-details__text">
         <table class="govuk-table govuk-!-margin-bottom-0">
-          <caption class="govuk-table__caption govuk-visually-hidden">
-            Previous versions of {{ layer.name }}
-          </caption>
+          <caption class="govuk-table__caption govuk-visually-hidden">Previous versions of {{ layer.name }}</caption>
           <thead class="govuk-table__head">
             <tr class="govuk-table__row">
               <th scope="col" class="govuk-table__header">Version</th>
@@ -287,4 +259,3 @@ library" %} {# Removes one connection (`chapter:<area />` or `policy:<ref
   </div>
   {% endfor %} {% endblock %} {% block pageScripts %}{% include
   "partials/gis/map-assets.html" %}{% endblock %}
-</ref>
