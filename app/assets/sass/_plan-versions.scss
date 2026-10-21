@@ -45,6 +45,12 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
 .dlp-ppv-table {
   min-width: 52rem;
 
+  // Body small, as govuk-body-s.
+  .govuk-table__header,
+  .govuk-table__cell {
+    @include govuk-font-size($size: 16);
+  }
+
   .govuk-table__header {
     background-color: govuk-colour("black", $variant: "tint-95");
     padding-left: govuk-spacing(2);

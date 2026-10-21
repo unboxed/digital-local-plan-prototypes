@@ -5714,7 +5714,7 @@ router.post(PM + '/notice/publish', (req, res) => {
 // were), so viewing or comparing it later shows what went out, not the current draft.
 
 const PPV = '/project-management/publish-plan-versions'
-const PLAN_VERSIONS_SCHEMA_VERSION = 2
+const PLAN_VERSIONS_SCHEMA_VERSION = 3
 const PV = require('./data/plan-versions.js')
 
 function getPlanVersions (req) {

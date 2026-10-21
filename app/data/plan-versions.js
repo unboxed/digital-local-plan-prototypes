@@ -174,13 +174,7 @@ const SEED_VERSIONS = [
       'Development should protect heritage and improve public spaces.',
       'Development should support existing residential communities.'
     ),
-    // Earlier versions of four of the layers the later versions carry.
-    layers: [
-      { id: 'compass-historic-environment-2', type: 'evidence', version: '3.1.0', created: '30 June 2025' },
-      { id: 'compass-draft-policy-13', type: 'plan', version: '1.0.0', created: '14 March 2025' },
-      { id: 'compass-draft-policy-17', type: 'plan', version: '1.0.0', created: '1 February 2025' },
-      { id: 'compass-draft-policy-15', type: 'plan', version: '1.0.0', created: '1 February 2024' }
-    ]
+    layers: []
   },
   {
     id: 'consultation',

@@ -745,8 +745,9 @@ internally for non-public review. The research question is where that sharing fi
 - **Not in the frames:** the "Share or publish the current draft" button on the history (step 1
   had no way into step 2), the Purpose row on the preview, and the confirmation banner. The
   compare toolbar's "100%" is static text, as drawn.
-- **Changed from the frames by request:** the Scoping version has four layers (frame 1 said "No
-  layers published"), and the milestone list ends with "Adopted plan". The sidebar has only
+- **Changed from the frames by request:** the milestone list ends with "Adopted plan", and the
+  history table is in body small (16px) text. The Scoping version has no layers, as in frame 1.
+  The sidebar has only
   version history and Share or publish. Preview and export is reached only from Share or publish,
   so that item stays current on the preview.
 
