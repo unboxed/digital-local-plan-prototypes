@@ -1,0 +1,52 @@
+{% extends "evidence/viewing-structuring/partials/layout.html" %}
+{% from "evidence/viewing-structuring/partials/macros.html" import typeTag, plainTag, myLists %}
+
+{% set pageName = list.title %}
+{% set panelLabel = "My lists" %}
+{% set breadcrumbs = [
+  { text: "Home", href: "/" },
+  { text: "Evidence", href: "/evidence" },
+  { text: "Offices", href: vse },
+  { text: list.title }
+] %}
+
+{% block main %}
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">{{ list.title }}</h1>
+<p class="govuk-body-l dlp-vse-muted">{{ items.length }} pieces of evidence compiled</p>
+
+<div class="govuk-button-group">
+  <button type="button" class="govuk-button govuk-button--secondary" data-module="govuk-button">Export</button>
+  <button type="button" class="govuk-button govuk-button--secondary" data-module="govuk-button">Share selected</button>
+</div>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+
+<ul class="govuk-list dlp-vse-measure">
+  {% for item in items %}
+  <li class="dlp-vse-list-card">
+    <div class="dlp-vse-list-card__head">
+      <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">
+        <div class="govuk-checkboxes__item">
+          <input class="govuk-checkboxes__input" id="select-{{ item.id }}" name="_selected" type="checkbox" value="{{ item.id }}">
+          <label class="govuk-label govuk-checkboxes__label" for="select-{{ item.id }}">
+            <span class="govuk-visually-hidden">Select {{ item.ref }}</span>
+          </label>
+        </div>
+      </div>
+      <span class="dlp-vse-list-card__ref">{{ item.ref }}</span>
+      {{ plainTag(item.sourceType) }}
+      <a class="govuk-link dlp-vse-list-card__view" href="{{ vse }}/evidence-items/{{ item.id }}">View<span class="govuk-visually-hidden"> {{ item.ref }}</span></a>
+    </div>
+    <h2 class="govuk-heading-s govuk-!-margin-bottom-2">{{ item.sourceTitle }}</h2>
+    <p class="govuk-body dlp-vse-muted govuk-!-margin-bottom-3">{{ item.headline }}</p>
+    <div class="dlp-vse-tags">
+      {% for type in item.types %}{{ typeTag(types, type) }}{% endfor %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}
+
+{% block panel %}
+{{ myLists(vse, lists, list.id) }}
+{% endblock %}

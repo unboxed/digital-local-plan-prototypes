@@ -1,0 +1,89 @@
+{% extends "evidence/viewing-structuring/partials/layout.html" %}
+{% from "evidence/viewing-structuring/partials/macros.html" import typeTag %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+
+{% set pageName = source.title %}
+{% set isHearing = source.kind == "hearing" %}
+{% set panelLabel = "Tagged passages" %}
+{% set breadcrumbs = [
+  { text: "Home", href: "/" },
+  { text: "Evidence", href: "/evidence" },
+  { text: "Offices", href: vse },
+  { text: "Hearings" if isHearing else "Documents", href: vse },
+  { text: source.shortTitle }
+] %}
+
+{% block main %}
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">{{ source.title }}</h1>
+<p class="govuk-body-l dlp-vse-muted">{{ source.meta }}</p>
+
+<div class="dlp-vse-actions">
+  <div class="govuk-button-group">
+    <button type="button" class="govuk-button" data-module="govuk-button">Save tags</button>
+    <button type="button" class="govuk-button govuk-button--secondary" data-module="govuk-button">Export annotations</button>
+  </div>
+  <p class="govuk-body govuk-!-font-weight-bold dlp-vse-actions__status">{{ passages.length }} passages tagged</p>
+</div>
+
+<div class="dlp-vse-document">
+  {% for section in source.sections %}
+  <section class="dlp-vse-document__section">
+    <h2 class="govuk-heading-m">{{ section.heading }}</h2>
+    {% for block in section.blocks %}
+      {% if block.passage %}
+      {% set t = types[block.passage.type] %}
+      <div class="dlp-vse-passage dlp-vse-passage--{{ t.colour }}" id="passage-{{ block.passage.id }}" tabindex="-1">
+        <p class="govuk-body dlp-vse-passage__text">
+          {% if block.speaker %}<span class="dlp-vse-speaker">{{ block.speaker }}:</span> {% endif %}{{ block.text }}
+        </p>
+        <span class="dlp-vse-passage__type"><span class="govuk-visually-hidden">Tagged as </span>{{ t.label }}</span>
+      </div>
+      {% else %}
+      <p class="govuk-body">
+        {% if block.speaker %}<span class="dlp-vse-speaker">{{ block.speaker }}:</span> {% endif %}{{ block.text }}
+      </p>
+      {% endif %}
+    {% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block panel %}
+<h2 class="govuk-heading-m govuk-!-margin-bottom-2">Tagged passages</h2>
+<p class="govuk-body-s dlp-vse-muted">
+  Select text in the {{ "transcript" if isHearing else "document" }} to highlight and tag a new passage.
+</p>
+
+<ul class="govuk-list dlp-vse-cards">
+  {% for passage in passages %}
+  <li class="dlp-vse-card">
+    <div class="dlp-vse-card__head">
+      {{ typeTag(types, passage.type) }}
+      {# Inert placeholders from the design, so hidden from assistive tech and the tab order. #}
+      <span class="dlp-vse-card__actions" aria-hidden="true">
+        <span class="dlp-vse-fake-link">Edit</span>
+        <span class="dlp-vse-fake-link dlp-vse-fake-link--warning">Remove</span>
+      </span>
+    </div>
+    <a class="govuk-link govuk-link--text-colour dlp-vse-card__quote" href="#passage-{{ passage.id }}">“{{ passage.quote }}”</a>
+  </li>
+  {% endfor %}
+</ul>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+
+{{ govukSelect({
+  id: "vse-assign",
+  name: "_assign",
+  label: { text: "Assign to evidence item", classes: "govuk-label--s" },
+  items: assignOptions,
+  classes: "dlp-vse-full-width"
+}) }}
+<p class="govuk-body-s">
+  <a class="govuk-link" href="{{ vse }}/evidence-items/{{ evidenceItem.id }}">View {{ evidenceItem.ref }}: {{ evidenceItem.title }}</a>
+</p>
+<p class="govuk-body-s">
+  <a class="govuk-link" href="#">+ Create new evidence item</a>
+</p>
+{% endblock %}

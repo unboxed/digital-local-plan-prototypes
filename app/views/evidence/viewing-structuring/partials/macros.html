@@ -1,0 +1,28 @@
+{# An evidence type as a coloured label. The label is always text, so colour is never the only cue. #}
+{% macro typeTag(types, type) %}
+  {%- set t = types[type] -%}
+  <strong class="dlp-vse-tag dlp-vse-tag--{{ t.colour }}">{{ t.label }}</strong>
+{%- endmacro %}
+
+{# A neutral label: a source type, or a "relates to" topic. #}
+{% macro plainTag(text, modifier) %}
+  <strong class="dlp-vse-tag {%- if modifier %} dlp-vse-tag--{{ modifier }}{% endif %}">{{ text }}</strong>
+{%- endmacro %}
+
+{# The My lists panel, shared by the evidence item and list screens. #}
+{% macro myLists(vse, lists, current) %}
+  <h2 class="govuk-heading-m">My lists</h2>
+  <ul class="govuk-list dlp-vse-lists">
+    {% for list in lists %}
+    <li class="dlp-vse-lists__item {%- if list.id == current %} dlp-vse-lists__item--current{% endif %}">
+      {% if list.linked %}
+      <a class="govuk-link govuk-link--no-visited-state dlp-vse-lists__title" href="{{ vse }}/lists/{{ list.id }}" {%- if list.id == current %} aria-current="page"{% endif %}>{{ list.title }}</a>
+      {% else %}
+      <span class="dlp-vse-lists__title">{{ list.title }}</span>
+      {% endif %}
+      <span class="dlp-vse-lists__count">{{ list.count }} items</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <button type="button" class="govuk-button govuk-button--secondary dlp-vse-full-width" data-module="govuk-button">+ Create new list</button>
+{%- endmacro %}

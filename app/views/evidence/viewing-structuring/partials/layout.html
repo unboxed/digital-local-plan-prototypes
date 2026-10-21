@@ -1,0 +1,26 @@
+{#
+  Shell for the Viewing and structuring evidence screens: the left-hand sidebar (policy areas,
+  or the policy's sections), then breadcrumbs and the page in the middle, and a right-hand panel.
+
+  Child templates set `breadcrumbs` (govukBreadcrumbs items, the last being the current page,
+  with no href) and fill `main` and `panel`. `panelLabel` names the panel for assistive tech.
+#}
+{% extends "layouts/main-with-sidebar.html" %}
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "govuk/components/breadcrumbs/macro.njk" import govukBreadcrumbs %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ sections: sidebarSections, ariaLabel: sidebarSections[0].heading }) }}
+{% endblock %}
+
+{% block content %}
+<div class="dlp-vse">
+  <div class="dlp-vse__main">
+    {{ govukBreadcrumbs({ items: breadcrumbs, classes: "dlp-vse__breadcrumbs" }) }}
+    {% block main %}{% endblock %}
+  </div>
+  <aside class="dlp-vse__panel" aria-label="{{ panelLabel }}">
+    {% block panel %}{% endblock %}
+  </aside>
+</div>
+{% endblock %}

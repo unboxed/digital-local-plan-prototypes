@@ -1200,6 +1200,116 @@ router.get(CE + '/source', (req, res) => {
   })
 })
 
+// --- Viewing and structuring evidence ---
+//
+// Linked screens built from Figma frames, with no session state: every page is static content
+// from app/data/viewing-structuring-evidence.js, looked up by id.
+//   /evidence/viewing-structuring                      - landing page
+//   /evidence/viewing-structuring/documents/:id        - a document, with its tagged passages
+//   /evidence/viewing-structuring/hearings/:id         - a hearing transcript, the same way
+//   /evidence/viewing-structuring/evidence-items/:id   - an evidence item's report card
+//   /evidence/viewing-structuring/lists/:id            - an officer's list of evidence items
+//   /evidence/viewing-structuring/policy/:id           - a policy citing evidence items
+//
+// Save, Edit, Remove, Export, Share and the Create links are inert placeholders from the design.
+// An unknown id goes back to the landing page.
+
+const VSE = '/evidence/viewing-structuring'
+
+const {
+  TYPES: VSE_TYPES,
+  POLICY_AREAS: VSE_POLICY_AREAS,
+  POLICY_SECTIONS: VSE_POLICY_SECTIONS,
+  EVIDENCE_ITEMS: VSE_EVIDENCE_ITEMS,
+  getSource: getVseSource,
+  getEvidenceItem: getVseEvidenceItem,
+  getList: getVseList,
+  getPolicy: getVsePolicy,
+  getPassages: getVsePassages,
+  getListSummaries: getVseListSummaries
+} = require('./data/viewing-structuring-evidence.js')
+
+// Every screen but the policy sits in the Offices policy area. The other areas have no content,
+// so they lead back to the landing page.
+function vseAreaSidebar () {
+  return [{
+    heading: 'Policy areas',
+    items: VSE_POLICY_AREAS.map(area => ({ text: area.text, href: VSE, active: area.id === 'offices' }))
+  }]
+}
+
+function vsePolicySidebar (current) {
+  return [{
+    heading: 'Policy sections',
+    items: VSE_POLICY_SECTIONS.map(section => ({
+      text: section.text,
+      href: getVsePolicy(section.id) ? VSE + '/policy/' + section.id : VSE,
+      active: section.id === current
+    }))
+  }]
+}
+
+function renderVse (res, template, locals) {
+  res.render('evidence/viewing-structuring/' + template, Object.assign({
+    vse: VSE,
+    types: VSE_TYPES,
+    evidenceItems: VSE_EVIDENCE_ITEMS,
+    sidebarSections: vseAreaSidebar()
+  }, locals))
+}
+
+router.get(VSE, (req, res) => {
+  renderVse(res, 'index', {})
+})
+
+for (const kind of ['document', 'hearing']) {
+  router.get(VSE + '/' + kind + 's/:id', (req, res) => {
+    const source = getVseSource(kind, req.params.id)
+    if (!source) return res.redirect(VSE)
+    renderVse(res, 'source', {
+      source,
+      passages: getVsePassages(source),
+      evidenceItem: getVseEvidenceItem(source.evidenceItem),
+      assignOptions: Object.values(VSE_EVIDENCE_ITEMS).map(item => ({
+        value: item.id,
+        text: item.ref + ': ' + item.title,
+        selected: item.id === source.evidenceItem
+      }))
+    })
+  })
+}
+
+router.get(VSE + '/evidence-items/:id', (req, res) => {
+  const item = getVseEvidenceItem(req.params.id)
+  if (!item) return res.redirect(VSE)
+  renderVse(res, 'evidence-item', { item, lists: getVseListSummaries() })
+})
+
+router.get(VSE + '/lists/:id', (req, res) => {
+  const list = getVseList(req.params.id)
+  if (!list) return res.redirect(VSE)
+  renderVse(res, 'list', {
+    list,
+    items: list.items.map(getVseEvidenceItem),
+    lists: getVseListSummaries()
+  })
+})
+
+router.get(VSE + '/policy/:id', (req, res) => {
+  const policy = getVsePolicy(req.params.id)
+  if (!policy) return res.redirect(VSE)
+  renderVse(res, 'policy', {
+    // The policy is drafted in the Policy writer, so the header says so, as in the design.
+    activeSection: 'policy-writing',
+    policy,
+    references: policy.clauses.filter(clause => clause.evidence).map(clause => ({
+      item: getVseEvidenceItem(clause.evidence),
+      type: clause.type
+    })),
+    sidebarSections: vsePolicySidebar(policy.id)
+  })
+})
+
 // --- Policy writing prototype ---
 //
 // Session-backed, three-phase journey, in two independent variants (see PW_VARIANTS) so a user

@@ -551,6 +551,36 @@ comments, adds notes and accepts it into the library.
   "Download PDF". File uploads keep only the file name (the form isn't multipart and nothing is
   stored).
 
+## Viewing and structuring evidence
+
+`/evidence/viewing-structuring` (`app/views/evidence/viewing-structuring/`) is built from the
+Figma frames `1 document-viewer`, `1b hearing-transcript-viewer`, `2 evidence-report-card`,
+`3 evidence-list` and `4 policy-writer-evidence` in the git-ignored `Figma screenshots/` folder.
+It is listed under **Previous versions** on the Evidence hub.
+
+- **Linked screens only, no session state.** Content is static, in
+  `app/data/viewing-structuring-evidence.js`, looked up by id through parameterised GET routes
+  (`/documents/:id`, `/hearings/:id`, `/evidence-items/:id`, `/lists/:id`, `/policy/:id`). An
+  unknown id redirects to the landing page. Save, Edit, Remove, Export, Share, Preview and the
+  "+ Create …" / "+ Add evidence reference" controls are inert placeholders. Edit and Remove on
+  passage cards are `aria-hidden` spans styled as links.
+- **The three-column shell** is `partials/layout.html`: it extends `main-with-sidebar.html` and
+  adds a right-hand panel. Children set `breadcrumbs` and `panelLabel` and fill `main` and
+  `panel`. Documents and hearing transcripts share `source.html`. A transcript block has a
+  `speaker`.
+- **The policy screen sets `activeSection: 'policy-writing'`** in its render call, because the
+  design shows it under Policy Writer even though the URL is under `/evidence`.
+- **Each evidence type has one colour everywhere** (`TYPES` in the data file, `$dlp-vse-colours`
+  in `_viewing-structuring.scss`). The frames varied, for example Expert opinion was yellow in
+  one and teal in another. The type is always shown as text, so colour is never the only cue.
+- **Deviations from the frames:** the policy's evidence references now match the evidence
+  items they link to. EI 021 is the Strategic Housing Market Assessment everywhere, where frame
+  4 called it the Commercial Floorspace Demand Study. EI 008 is the Gateway 1 Hearing Direction,
+  and its list card summarises that direction rather than a housing land supply line. Only the
+  "Economic impacts (floorspace)" list has content; "Heritage impact" and "Viability" show a
+  count and aren't links. Policy areas other than Offices, and policy sections other than S3,
+  lead back to the landing page.
+
 ## Managing consultation responses
 
 `/consultations/managing-responses` (`app/views/consultations/managing-responses/`) is built from

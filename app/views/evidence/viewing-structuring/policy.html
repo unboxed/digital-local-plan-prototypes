@@ -1,0 +1,77 @@
+{% extends "evidence/viewing-structuring/partials/layout.html" %}
+{% from "evidence/viewing-structuring/partials/macros.html" import typeTag, plainTag %}
+
+{% set pageName = policy.title %}
+{% set panelLabel = "Evidence references" %}
+{% set breadcrumbs = [
+  { text: "Home", href: "/" },
+  { text: "Policy Writer", href: vse },
+  { text: policy.shortTitle }
+] %}
+
+{% block main %}
+<div class="dlp-vse-actions">
+  <div class="govuk-button-group">
+    <button type="button" class="govuk-button" data-module="govuk-button">Save draft</button>
+    <button type="button" class="govuk-button govuk-button--secondary" data-module="govuk-button">Preview</button>
+  </div>
+  <p class="govuk-body govuk-!-font-weight-bold dlp-vse-muted dlp-vse-actions__status">Draft · {{ references.length }} evidence references</p>
+</div>
+
+<div class="dlp-vse-document">
+  <h1 class="govuk-heading-xl">{{ policy.title }}</h1>
+
+  <section class="dlp-vse-document__section">
+    <h2 class="govuk-heading-m">Explanatory text</h2>
+    <p class="govuk-body">{{ policy.explanatoryText }}</p>
+  </section>
+
+  <section class="dlp-vse-document__section">
+    <h2 class="govuk-heading-m">Policy {{ policy.ref }}</h2>
+    <p class="govuk-body">{{ policy.intro }}</p>
+    {% for clause in policy.clauses %}
+      {% if clause.evidence %}
+      {% set item = evidenceItems[clause.evidence] %}
+      {% set t = types[clause.type] %}
+      <div class="dlp-vse-clause">
+        <p class="govuk-body dlp-vse-passage dlp-vse-passage--{{ t.colour }} dlp-vse-clause__text">{{ clause.text }}</p>
+        <a class="dlp-vse-tag dlp-vse-tag--{{ t.colour }} dlp-vse-clause__ref" href="{{ vse }}/evidence-items/{{ item.id }}">
+          <span class="govuk-visually-hidden">Evidence: </span>{{ item.ref }} · {{ t.label }}
+        </a>
+      </div>
+      {% else %}
+      <p class="govuk-body">{{ clause.text }}</p>
+      {% endif %}
+    {% endfor %}
+  </section>
+
+  <section class="dlp-vse-document__section">
+    <h2 class="govuk-heading-m">Policy detail</h2>
+    <p class="govuk-body">{{ policy.detail }}</p>
+  </section>
+</div>
+{% endblock %}
+
+{% block panel %}
+<h2 class="govuk-heading-m govuk-!-margin-bottom-2">Evidence references</h2>
+<p class="govuk-body-s dlp-vse-muted">Evidence cited in this policy</p>
+
+<ul class="govuk-list dlp-vse-cards">
+  {% for reference in references %}
+  <li class="dlp-vse-card">
+    <div class="dlp-vse-card__head">
+      {{ plainTag(reference.item.ref, "blue") }}
+      {{ typeTag(types, reference.type) }}
+    </div>
+    <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-2">{{ reference.item.sourceTitle }}</p>
+    <a class="govuk-link govuk-body-s" href="{{ vse }}/evidence-items/{{ reference.item.id }}">View full evidence<span class="govuk-visually-hidden"> for {{ reference.item.ref }}</span></a>
+  </li>
+  {% endfor %}
+</ul>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+
+<p class="govuk-body-s">
+  <a class="govuk-link" href="#">+ Add evidence reference</a>
+</p>
+{% endblock %}

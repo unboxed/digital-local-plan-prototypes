@@ -1,0 +1,82 @@
+{% extends "evidence/viewing-structuring/partials/layout.html" %}
+{% from "evidence/viewing-structuring/partials/macros.html" import typeTag, plainTag, myLists %}
+
+{% set pageName = item.ref + " - " + item.title %}
+{% set panelLabel = "My lists" %}
+{% set breadcrumbs = [
+  { text: "Home", href: "/" },
+  { text: "Evidence", href: "/evidence" },
+  { text: "Offices", href: vse },
+  { text: item.ref }
+] %}
+
+{% block main %}
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">{{ item.title }}</h1>
+<p class="govuk-body-l dlp-vse-muted">{{ item.description }}</p>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+
+<div class="dlp-vse-measure">
+  <dl class="govuk-summary-list dlp-vse-details">
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Evidence reference</dt>
+      <dd class="govuk-summary-list__value">{{ item.ref }}</dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Source document</dt>
+      <dd class="govuk-summary-list__value">
+        {% if item.sourcePath %}
+        <a class="govuk-link" href="{{ vse }}/{{ item.sourcePath }}">{{ item.sourceDocument }}</a>
+        {% else %}
+        {{ item.sourceDocument }}
+        {% endif %}
+      </dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Type</dt>
+      <dd class="govuk-summary-list__value dlp-vse-tags">
+        {% for type in item.types %}{{ typeTag(types, type) }}{% endfor %}
+      </dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Policy area</dt>
+      <dd class="govuk-summary-list__value dlp-vse-tags">{{ plainTag(item.policyArea, "green") }}</dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Relates to</dt>
+      <dd class="govuk-summary-list__value dlp-vse-tags">
+        {% for topic in item.relatesTo %}{{ plainTag(topic) }}{% endfor %}
+      </dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Date compiled</dt>
+      <dd class="govuk-summary-list__value">{{ item.date }}</dd>
+    </div>
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Author</dt>
+      <dd class="govuk-summary-list__value">{{ item.author }}</dd>
+    </div>
+  </dl>
+
+  <h2 class="govuk-heading-m">Summary</h2>
+  <p class="govuk-body">{{ item.summary }}</p>
+
+  <h2 class="govuk-heading-m">Key findings</h2>
+  <ul class="govuk-list govuk-list--bullet govuk-list--spaced">
+    {% for finding in item.findings %}
+    <li>{{ finding }}</li>
+    {% endfor %}
+  </ul>
+
+  <div class="govuk-button-group govuk-!-margin-top-6">
+    <a class="govuk-button" data-module="govuk-button" href="{{ vse }}/lists/economic-impacts">Add to list</a>
+    {% if item.sourcePath %}
+    <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="{{ vse }}/{{ item.sourcePath }}">View source</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block panel %}
+{{ myLists(vse, lists) }}
+{% endblock %}

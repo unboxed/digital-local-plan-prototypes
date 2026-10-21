@@ -1,0 +1,61 @@
+{% extends "layouts/main.html" %}
+{% set pageName = "Viewing and structuring evidence" %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+
+    <h1 class="govuk-heading-xl">Viewing and structuring evidence</h1>
+
+    <p class="govuk-body">
+      Exploring ideas for how officers can view evidence sources and connect specific insights to
+      policies as they are drafting.
+    </p>
+
+    <div class="govuk-inset-text">
+      <p class="govuk-body">
+        <span class="govuk-!-font-weight-bold">User need:</span>
+        As a policy officer, I need to pick out the insights in my evidence and connect them to
+        the policies I'm drafting, so that every policy is clearly backed by its evidence.
+      </p>
+    </div>
+
+    <p class="govuk-body">
+      These are linked screens showing the ideas. Buttons such as Save tags, Edit, Remove and
+      Export don't do anything yet. The examples are all in the Offices policy area.
+    </p>
+
+    <a class="govuk-button govuk-button--start" data-module="govuk-button" href="{{ vse }}/documents/ed-hou21">
+      Start
+      <svg class="govuk-button__start-icon" xmlns="http://www.w3.org/2000/svg" width="17.5" height="19" viewBox="0 0 33 40" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M0 0h13l20 20-20 20H0l20-20z" />
+      </svg>
+    </a>
+
+    <h2 class="govuk-heading-m">Screens</h2>
+    <ol class="govuk-list govuk-list--number govuk-list--spaced">
+      <li>
+        <a class="govuk-link" href="{{ vse }}/documents/ed-hou21">View a document</a>:
+        a source document with passages tagged as fact, expert opinion or concept.
+      </li>
+      <li>
+        <a class="govuk-link" href="{{ vse }}/hearings/g1-hearing">View a hearing transcript</a>:
+        the same, for what was said at a hearing, with inspector and member comments.
+      </li>
+      <li>
+        <a class="govuk-link" href="{{ vse }}/evidence-items/ei-021">View an evidence item</a>:
+        the insights drawn from a source, with its summary and key findings.
+      </li>
+      <li>
+        <a class="govuk-link" href="{{ vse }}/lists/economic-impacts">View a list of evidence</a>:
+        evidence items gathered on a theme, ready to export or share.
+      </li>
+      <li>
+        <a class="govuk-link" href="{{ vse }}/policy/s3">Draft a policy with evidence</a>:
+        a policy whose clauses each cite the evidence item behind them.
+      </li>
+    </ol>
+  </div>
+</div>
+{% endblock %}

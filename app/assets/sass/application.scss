@@ -1288,3 +1288,6 @@ $dlp-confidence-low: govuk-colour("orange");
 
 // GIS layer library. Uses the variables above.
 @import "gis-library";
+
+// Viewing and structuring evidence. Uses the variables above.
+@import "viewing-structuring";
