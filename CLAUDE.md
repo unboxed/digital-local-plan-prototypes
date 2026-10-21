@@ -677,8 +677,17 @@ area's hub, listing it under Current prototypes.
 - **Timetable placeholder:** the overview card, sidebar item and the PID's Timetable section all
   link to `/timetable-placeholder` ("Coded prototype is being built for this flow"). The existing
   timetable flow under `/timetable` is still there, reachable by URL.
-- **Linked, not built:** the PID's Evidence section goes to `/evidence`. Scoping activities,
-  the Scoping consultation (`/scoping-consultation`, "This section of the prototype has not been
+- **Scoping activities is the policy starting points wizard** (`/scoping-activities/:step`),
+  the same `STARTING_POINT_STEPS`, handlers and step body as `/policy-writing/:variant/starting-points`.
+  The handlers (`spSaveItem`, `spConnect` …) take a *journey*: a policy-writing variant, or
+  `SCOPING_JOURNEY` (`'scoping'`), which keeps its items and GIS connection in
+  `projectManagement.startingPoints` / `.gisConnection` so its status is derived like every other
+  task's, and its layers carry the origin `starting-points:scoping`. Each place renders its own
+  page shell around `policy-writing/starting-points/partials/step-body.html`, so change the two
+  together through that partial. The sidebar nests the steps under Scoping activities only while
+  you're on it. The midway reset copies the prefilled variant's "now" steps (layers included);
+  every reset first removes the scoping origin from the shared layers.
+- **Linked, not built:** the PID's Evidence section goes to `/evidence`. The Scoping consultation (`/scoping-consultation`, "This section of the prototype has not been
   built yet"; starting it from the overview still records `scopingConsultationStarted`) and the
   Readiness checker are not built, so their pages say so. They share the `not-designed` template;
   pass `standIn: false` to drop its "This page stands in for it" line.

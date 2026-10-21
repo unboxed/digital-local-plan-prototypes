@@ -114,10 +114,12 @@ function getCatalogueLayer (id) {
 }
 
 // Where a layer was added from, as people read it. An origin is a short code so it can be
-// added and removed without duplicating text: 'starting-points:<variant>' or 'commissioned'.
+// added and removed without duplicating text: 'starting-points:<variant>' (or
+// 'starting-points:scoping', Make your plan's scoping activities) or 'commissioned'.
 function describeOrigin (origin) {
   if (origin === 'starting-points:prefilled') return 'Starting points (pre-filled)'
   if (origin === 'starting-points:blank') return 'Starting points (blank)'
+  if (origin === 'starting-points:scoping') return 'Scoping activities (Make your plan)'
   if (origin === 'commissioned') return 'Commissioned evidence'
   if (origin === 'library') return 'GIS layer library'
   return origin

@@ -147,6 +147,10 @@ function startingState () {
     timetable: { statement: DEFAULT_STATEMENT, statementSaved: false, published: '' },
     notice: { area: '', timetableLink: '', addresses: '', updates: '', published: '' },
     pid: emptyPid(),
+    // Scoping activities: the policy starting points wizard's items, keyed by step slug, and the
+    // GIS connection its "Add existing plan layers" step brings layers in through.
+    startingPoints: {},
+    gisConnection: null,
     scopingConsultationStarted: false
   }
 }

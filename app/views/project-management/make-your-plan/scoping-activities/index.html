@@ -1,0 +1,39 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "project-management/make-your-plan/partials/macros.html" import pmTaskCard %}
+
+{% set pageName = "Scoping activities" %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Scoping activities" }
+] }) }}
+
+<div class="dlp-pm-title-row">
+  <h1 class="govuk-heading-xl govuk-!-margin-bottom-0">Scoping activities</h1>
+  {{ pmStatusTag(statuses.scopingActivities.status) }}
+</div>
+<p class="govuk-body dlp-pm-lede govuk-!-margin-top-4">
+  Gather the starting points for your new plan: what your adopted plan already covers, the data
+  you hold and the trends that may need a new policy response. Once the scoping consultation has
+  closed, add the themes it raised alongside political priorities, other plans and strategies,
+  and national and strategic requirements. These starting points become the plan's chapters and
+  policies.
+</p>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+{% for group in groups %}
+  <h2 class="govuk-heading-l">{{ group.heading }}</h2>
+  {% for step in group.steps %}
+    {{ pmTaskCard({
+      title: step.title,
+      description: step.description,
+      status: step.status,
+      href: step.href
+    }, { headingLevel: 3 }) }}
+  {% endfor %}
+{% endfor %}
+
+{% endblock %}
