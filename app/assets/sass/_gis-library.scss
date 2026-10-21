@@ -1,11 +1,18 @@
-// GIS layer library (/evidence/gis-layers). One card per layer: map preview, about, metadata and
-// actions side by side on desktop, stacked below it.
+// GIS layer library (/evidence/gis-layers). One card per layer, in stacked rows, with the map
+// preview beside the layer's details.
 
-.dlp-gl-add,
-.dlp-gl-card__actions {
+.dlp-gl-add {
   display: flex;
   flex-wrap: wrap;
   gap: govuk-spacing(2) govuk-spacing(5);
+}
+
+// "Manage this layer": one link per line.
+.dlp-gl-card__actions {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: govuk-spacing(2);
 }
 
 .dlp-gl-intro {
@@ -86,33 +93,46 @@
   color: $dlp-muted-text;
 }
 
+// One layer: rows stacked top to bottom (name, tag and folder, description, map and details,
+// actions, versions), with only the map and details side by side.
 .dlp-gl-card {
   border-top: 1px solid $dlp-border-grey;
   display: grid;
-  gap: govuk-spacing(4);
+  gap: govuk-spacing(3);
   padding: govuk-spacing(6) 0;
   scroll-margin-top: govuk-spacing(4);
+}
 
-  @include govuk-media-query($from: desktop) {
-    grid-template-areas:
-      "preview about meta"
-      "preview actions actions"
-      "versions versions versions";
-    grid-template-columns: 18rem minmax(0, 1fr) minmax(0, 1fr);
-    // A wider gutter between the map and everything beside it, the buttons especially.
-    column-gap: govuk-spacing(7);
+.dlp-gl-card__description {
+  max-width: 46em;
+}
+
+// The map beside everything about the layer, stacked below tablet.
+.dlp-gl-card__body {
+  display: grid;
+  gap: govuk-spacing(4) govuk-spacing(7);
+  margin-top: govuk-spacing(2);
+
+  @include govuk-media-query($from: tablet) {
+    grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr);
   }
 }
 
-.dlp-gl-card__preview { grid-area: preview; }
-.dlp-gl-card__about { grid-area: about; }
-.dlp-gl-card__meta { grid-area: meta; margin-bottom: 0; }
-.dlp-gl-card__actions {
-  grid-area: actions;
-  align-self: end;
-  padding-top: govuk-spacing(2);
+.dlp-gl-card__details > :first-child {
+  margin-top: 0;
 }
-.dlp-gl-card__versions { grid-area: versions; margin-bottom: 0; }
+
+.dlp-gl-card__meta {
+  margin-bottom: 0;
+}
+
+.dlp-gl-card__manage {
+  margin-top: govuk-spacing(2);
+}
+
+.dlp-gl-card__versions {
+  margin-bottom: 0;
+}
 
 .dlp-gl-card__meta .govuk-summary-list__key,
 .dlp-gl-card__meta .govuk-summary-list__value {

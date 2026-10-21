@@ -723,9 +723,11 @@ Figma). It lists every layer in the shared `gisLayers` collection on one page, p
 `plan`) and evidence base layers together, each card carrying its type tag. It is listed on the
 Evidence hub.
 
-- **Cards, not rows.** Each layer is a card: a map preview, name, folder, description, real
-  geometry/feature count and "Layer data" link, then Version, Plan, Created, Published with and
-  Added from. Earlier versions sit in a "Previous versions" disclosure on the same card.
+- **Cards, not rows.** Each layer is a card of stacked rows: name; type tag with its switch, and
+  folder; description; then the map preview beside the details (real geometry/feature count and
+  "Layer data" link, Version, Plan, Created, Published with, Added from, and the policies and
+  chapters disclosure); then "Manage this layer" with the card's actions, all links; then a
+  "Previous versions" disclosure.
   The sketch drew each version as its own card; one card per layer is a deliberate deviation.
 - **Descriptions, versions, dates and "Published with" are invented**, in `LAYER_DETAILS` in
   `gis-layers.js` (with that caveat). A layer without an entry is v1.0.0, created the day it was
@@ -734,7 +736,7 @@ Evidence hub.
 - **A layer connects with whole chapters and single policies**: `chapters` (policy area names
   from `policies.js`) and `policyRefs` on the layer in the shared collection, seeded by
   `SEED_CHAPTERS` and `SEED_POLICY_REFS`. The card's "Policies and chapters (n)" disclosure, closed by
-  default, under the type switch in the card's left-hand column, groups them by chapter in plan
+  default, at the foot of the details column, groups them by chapter in plan
   order (`connections` in `glLayerView`): a chapter shows "Whole chapter" if it is
   connected as a whole, with any single policies in it beneath. "Add to policy or chapter"
   (`/layers/:layerId/policy`) follows Policy drafting's "Add sources" pattern (and reuses its
