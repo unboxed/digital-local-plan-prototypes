@@ -1,112 +1,219 @@
-{% extends "layouts/main.html" %} {% set pageName = "Add " + layer.name + " to a
-policy or chapter" %} {% block content %} {% include
-"evidence/partials/nav.html" %}
+{% extends "layouts/main.html" %}
+
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+
+{% set pageName = "Add " + layer.name + " to a policy or chapter" %}
+
+{#
+  The same pattern as Policy drafting's "Add sources": what is connected already, then a search
+  whose results are ticked and added together.
+#}
+
+{# A select whose first option means "no filter". #}
+{% macro filterSelect(id, name, label, options, selected) %}
+  {% set items = [{ value: "", text: "Select…" }] %}
+  {% for option in options %}
+    {% set items = (items.push({ value: option.value, text: option.text, selected: option.value == selected }), items) %}
+  {% endfor %}
+  {{ govukSelect({ id: id, name: name, label: { text: label }, items: items, classes: "dlp-pd-filter__select" }) }}
+{% endmacro %}
+
+{% set chapterOptions = [] %}
+{% for chapter in chapters %}
+  {% set chapterOptions = (chapterOptions.push({ value: chapter, text: chapter }), chapterOptions) %}
+{% endfor %}
+
+{# A connection's name: "HS1 Housing Supply" or "Housing chapter". #}
+{% macro linkName(link) %}{% if link.ref %}<strong>{{ link.ref }}</strong> {% endif %}{{ link.name }}{% endmacro %}
+
+{% block content %}
+{% include "evidence/partials/nav.html" %}
 
 <a class="govuk-back-link" href="{{ backHref }}">Back to the library</a>
 
+{% if addedCount %}
+  {{ govukNotificationBanner({
+    type: "success",
+    html: '<p class="govuk-notification-banner__heading">' + addedCount + ' connection' + ('' if addedCount == 1 else 's') + ' added to ' + (layer.name | escape) + '</p>' +
+          '<p class="govuk-body"><a class="govuk-notification-banner__link" href="#gl-existing">View existing connections</a></p>'
+  }) }}
+{% endif %}
+
+<span class="govuk-caption-l">{{ layer.name }}</span>
+<h1 class="govuk-heading-xl">Add to policy or chapter</h1>
+
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    {% if error %} {{ govukErrorSummary({ titleText: "There is a problem",
-    errorList: [{ text: error, href: "#link" }] }) }} {% endif %}
+    <p class="govuk-body">
+      Connect this layer with whole chapters of the {{ layer.plan }} or with single policies in
+      them. You can change these later.
+    </p>
+  </div>
+</div>
 
-    <form
-      method="post"
-      action="/evidence/gis-layers/layers/{{ layer.id }}/policy"
-      novalidate
-    >
-      <div
-        class="govuk-form-group {%- if error %} govuk-form-group--error{% endif %}"
-      >
-        <fieldset
-          class="govuk-fieldset"
-          aria-describedby="link-hint{% if error %} link-error{% endif %}"
-        >
-          <legend class="govuk-fieldset__legend govuk-fieldset__legend--xl">
-            <span class="govuk-caption-l">{{ layer.name }}</span>
-            <h1 class="govuk-fieldset__heading">
-              What does this layer support?
-            </h1>
-          </legend>
-          <div class="govuk-hint" id="link-hint">
-            Choose a whole chapter of the City Plan 2040, or a single policy in
-            it. A layer can support more than one: add them one at a time.
-          </div>
-          {% if error %}
-          <p class="govuk-error-message" id="link-error">
-            <span class="govuk-visually-hidden">Error:</span> {{ error }}
-          </p>
-          {% endif %} {% for area in areas %} {# The first radio carries the id
-          the error summary links to. #} {% set chapterId = "link" if loop.first
-          else "link-chapter-" + loop.index %}
-          <h2
-            class="govuk-heading-s govuk-!-margin-top-6 govuk-!-margin-bottom-2"
-          >
-            {{ area.name }}
-          </h2>
-          <div
-            class="govuk-radios govuk-radios--small"
-            data-module="govuk-radios"
-          >
-            <div class="govuk-radios__item">
-              <input
-                class="govuk-radios__input"
-                id="{{ chapterId }}"
-                name="_link"
-                type="radio"
-                value="chapter:{{ area.name }}"
-                {%-
-                if
-                area.linked
-                %}
-                disabled{%
-                endif
-                %}
-              />
-              <label
-                class="govuk-label govuk-radios__label"
-                for="{{ chapterId }}"
-              >
-                The whole <strong>{{ area.name }} </strong> chapter{% if
-                area.linked %} (already connected){% endif %}
-              </label>
-            </div>
-            <div class="govuk-radios__divider">or</div>
-            {% for policy in area.policies %}
-            <div class="govuk-radios__item">
-              <input
-                class="govuk-radios__input"
-                id="link-policy-{{ policy.ref }}"
-                name="_link"
-                type="radio"
-                value="policy:{{ policy.ref }}"
-                {%-
-                if
-                policy.linked
-                %}
-                disabled{%
-                endif
-                %}
-              />
-              <label
-                class="govuk-label govuk-radios__label"
-                for="link-policy-{{ policy.ref }}"
-              >
-                <strong>{{ policy.ref }}</strong> {{ policy.title }}{% if
-                policy.linked %} (already connected){% endif %}
-              </label>
-            </div>
-            {% endfor %}
-          </div>
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
+
+<h2 class="govuk-heading-m" id="gl-existing">Existing connections</h2>
+<table class="govuk-table dlp-pd-table">
+  <caption class="govuk-table__caption govuk-visually-hidden">Chapters and policies this layer is connected with</caption>
+  <thead class="govuk-table__head dlp-pd-table__head--shaded">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Name</th>
+      <th scope="col" class="govuk-table__header">Type</th>
+      <th scope="col" class="govuk-table__header">Chapter</th>
+      <th scope="col" class="govuk-table__header govuk-table__header--numeric">Actions</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for link in existing %}
+      <tr class="govuk-table__row">
+        <td class="govuk-table__cell">{{ linkName(link) }}</td>
+        <td class="govuk-table__cell govuk-!-font-size-16">{{ link.kindLabel }}</td>
+        <td class="govuk-table__cell govuk-!-font-size-16">{{ link.chapter }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric">
+          <form class="dlp-inline-form" method="post" action="/evidence/gis-layers/layers/{{ layer.id }}/links/remove">
+            <input type="hidden" name="_link" value="{{ link.value }}">
+            <input type="hidden" name="_returnTo" value="{{ pageUrl }}#gl-existing">
+            <button type="submit" class="dlp-link-button">Remove<span class="govuk-visually-hidden"> {{ link.ref or link.name }}</span></button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr class="govuk-table__row">
+        <td class="govuk-table__cell" colspan="4">Not connected to any policy or chapter yet. Search below.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{#
+  Search and filters are one GET form, so a search always carries the current filters and a
+  filter change keeps the current search. initSuggestSearch offers chapters and policies as the
+  user types; without JavaScript it is an ordinary search box and button.
+#}
+<form method="get" action="{{ pageUrl }}#gl-results" class="govuk-!-margin-top-8">
+  <div class="govuk-form-group">
+    <label class="govuk-label govuk-label--m" for="gl-link-search">Search for a policy or chapter</label>
+    <div class="govuk-hint" id="gl-link-search-hint">
+      Start typing a policy reference such as &ldquo;HS1&rdquo;, a word from its title, or a chapter name
+    </div>
+    <div class="dlp-suggest dlp-pd-search" data-dlp-suggest data-dlp-suggest-source="#gl-link-search-terms">
+      <input class="govuk-input" id="gl-link-search" name="glLinkSearch" type="search" value="{{ filters.query }}"
+             autocomplete="off" spellcheck="false"
+             role="combobox" aria-autocomplete="list" aria-expanded="false"
+             aria-controls="gl-link-search-suggestions" aria-describedby="gl-link-search-hint"
+             data-dlp-suggest-input>
+      <ul class="dlp-typeahead dlp-suggest__list" id="gl-link-search-suggestions" role="listbox"
+          aria-label="Suggested matches" data-dlp-suggest-list hidden></ul>
+      <p class="govuk-visually-hidden" role="status" aria-live="polite" data-dlp-suggest-status></p>
+    </div>
+  </div>
+
+  <h2 class="govuk-heading-m">Filter results</h2>
+  {# data-dlp-autosubmit: with JavaScript a filter applies as soon as it is changed. #}
+  <div class="dlp-pd-filters" data-dlp-autosubmit>
+    {{ filterSelect("gl-link-chapter", "glLinkChapter", "Chapter", chapterOptions, filters.chapter) }}
+    {{ filterSelect("gl-link-kind", "glLinkKind", "Type", kinds, filters.kind) }}
+  </div>
+
+  <div class="govuk-button-group">
+    {{ govukButton({ text: "Search", classes: "govuk-button--secondary" }) }}
+    {% if searched %}
+      <a class="govuk-link" href="{{ pageUrl }}?glLinkSearch=&glLinkChapter=&glLinkKind=">Clear search and filters</a>
+    {% endif %}
+  </div>
+</form>
+
+<script type="application/json" id="gl-link-search-terms">{{ searchTermsJson | safe }}</script>
+
+{% if searched %}
+  <h2 class="govuk-heading-m govuk-!-margin-top-6" id="gl-results">
+    Search results{% if filters.query %} for &ldquo;{{ filters.query }}&rdquo;{% endif %}
+  </h2>
+  {% if results | length %}
+    {#
+      Tick any number of results and add them together (initSelectAll); without JavaScript the
+      header checkbox stays hidden and each row is ticked on its own.
+    #}
+    <form method="post" action="/evidence/gis-layers/layers/{{ layer.id }}/policy" data-dlp-select-all>
+      <input type="hidden" name="_page" value="{{ page }}">
+      <table class="govuk-table dlp-pd-table dlp-pd-results" aria-describedby="gl-results-count">
+        <caption class="govuk-table__caption govuk-visually-hidden">Search results</caption>
+        <thead class="govuk-table__head dlp-pd-table__head--shaded">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header dlp-pd-results__select">
+              <div class="govuk-checkboxes govuk-checkboxes--small" hidden data-dlp-select-all-control>
+                <div class="govuk-checkboxes__item">
+                  <input class="govuk-checkboxes__input" id="gl-select-all" type="checkbox" data-dlp-select-all-toggle>
+                  <label class="govuk-label govuk-checkboxes__label" for="gl-select-all">
+                    <span class="govuk-visually-hidden">Select all results on this page</span>
+                  </label>
+                </div>
+              </div>
+              <span class="govuk-visually-hidden" data-dlp-select-all-fallback>Select</span>
+            </th>
+            <th scope="col" class="govuk-table__header">Name</th>
+            <th scope="col" class="govuk-table__header">Type</th>
+            <th scope="col" class="govuk-table__header">Chapter</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for result in results %}
+            <tr class="govuk-table__row{% if result.added %} dlp-pd-results__row--added{% endif %}">
+              <td class="govuk-table__cell dlp-pd-results__select">
+                {% if result.added %}
+                  <strong class="govuk-tag govuk-tag--grey">Added</strong>
+                {% else %}
+                  <div class="govuk-checkboxes govuk-checkboxes--small">
+                    <div class="govuk-checkboxes__item">
+                      <input class="govuk-checkboxes__input" id="gl-result-{{ loop.index }}" name="_links" type="checkbox" value="{{ result.value }}" data-dlp-select-all-item>
+                      <label class="govuk-label govuk-checkboxes__label" for="gl-result-{{ loop.index }}">
+                        <span class="govuk-visually-hidden">Select {{ result.ref or result.name }}</span>
+                      </label>
+                    </div>
+                  </div>
+                {% endif %}
+              </td>
+              <td class="govuk-table__cell">{{ linkName(result) }}</td>
+              <td class="govuk-table__cell govuk-!-font-size-16">{{ result.kindLabel }}</td>
+              <td class="govuk-table__cell govuk-!-font-size-16">{{ result.chapter }}</td>
+            </tr>
           {% endfor %}
-        </fieldset>
+        </tbody>
+      </table>
+
+      <div class="dlp-pd-results-footer">
+        <p class="govuk-body-s dlp-pd-muted govuk-!-margin-0" id="gl-results-count">
+          Showing {{ firstResult }} to {{ lastResult }} of {{ resultCount }} results
+        </p>
+        {% if pageCount > 1 %}
+          {{ govukPagination({
+            previous: { href: pageUrl + "?_page=" + (page - 1) + "#gl-results" } if page > 1 else undefined,
+            next: { href: pageUrl + "?_page=" + (page + 1) + "#gl-results" } if page < pageCount else undefined,
+            classes: "govuk-!-margin-0"
+          }) }}
+        {% endif %}
       </div>
 
       <div class="govuk-button-group">
-        {{ govukButton({ text: "Add connection" }) }}
-        <a class="govuk-link" href="{{ backHref }}">Cancel</a>
+        {{ govukButton({ text: "Add selected", classes: "govuk-button--secondary", attributes: { "data-dlp-select-all-submit": "" } }) }}
+        <p class="govuk-body govuk-!-margin-0 dlp-pd-muted" role="status" aria-live="polite" data-dlp-select-all-count></p>
       </div>
+      {% if pageCount > 1 %}
+        <p class="govuk-body-s dlp-pd-muted">Add what you've selected before moving to another page of results.</p>
+      {% endif %}
     </form>
-  </div>
+  {% else %}
+    <p class="govuk-body">No policies or chapters match. Try another word, or clear a filter.</p>
+  {% endif %}
+{% endif %}
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m dlp-pd-short-rule" />
+
+<div class="govuk-button-group">
+  {{ govukButton({ text: "Done", href: backHref }) }}
 </div>
 
 {% endblock %}

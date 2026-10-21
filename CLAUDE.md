@@ -489,7 +489,9 @@ the repo. Ask the user for them if you need to compare against the design.
 - **Add sources search.** Three small generic components in application.js drive it, each opted
   into by attribute:
   - `initSuggestSearch` (`data-dlp-suggest`) is a combobox over `getLibrarySearchTerms()`.
-    Choosing a term submits the search form.
+    Choosing a term submits the search form. A term may carry its own `label` (the GIS layer
+    library's policy search uses "Chapter" and "Policy"); without one it reads "N sources" or
+    "Source".
   - `initAutosubmit` (`data-dlp-autosubmit`) applies a filter as soon as it changes.
   - `initSelectAll` (`data-dlp-select-all`) adds the header checkbox, the "N selected" count and
     the disabled state of "Add selected sources".
@@ -735,9 +737,13 @@ Evidence hub.
   default, under the type switch in the card's left-hand column, groups them by chapter in plan
   order (`connections` in `glLayerView`): a chapter shows "Whole chapter" if it is
   connected as a whole, with any single policies in it beneath. "Add to policy or chapter"
-  (`/layers/:layerId/policy`) offers each chapter followed by its policies; forms carry
-  `chapter:<area>` or `policy:<ref>` (`glReadLink`), and one `/links/remove` route removes
-  either. **Changing the layer shape means bumping `GIS_LAYERS_SCHEMA_VERSION`.**
+  (`/layers/:layerId/policy`) follows Policy drafting's "Add sources" pattern (and reuses its
+  `dlp-pd-*` styles): the existing connections in a table with Remove, then a type-ahead keyword
+  search with Chapter and Type filters (sticky `glLinkSearch`, `glLinkChapter`, `glLinkKind`,
+  kept apart from the library's `glPolicy`), whose results (each chapter followed by its
+  policies, from `glLinkCandidates`) are ticked and added together as `_links`. Values are
+  `chapter:<area>` or `policy:<ref>` (`glReadLink`); one `/links/remove` route removes either and
+  goes back to `_returnTo`, so it serves both the card and the add page. **Changing the layer shape means bumping `GIS_LAYERS_SCHEMA_VERSION`.**
 - **Filters** are sticky kit fields: "Layer type" checkboxes `glTypes` (both ticked by default),
   Created year `glYear`, Published with `glPublished` and Policy or chapter `glPolicy`
   (a chapter matches layers connected with it whole or through one of its policies), applied as they

@@ -2270,9 +2270,10 @@ function initSuggestSearch (root) {
 
       const kind = document.createElement('span')
       kind.className = 'dlp-typeahead__kind'
-      kind.textContent = match.kind === 'Topic'
+      // A term can name its own kind ("Chapter", "Policy"); the library's terms don't.
+      kind.textContent = match.label || (match.kind === 'Topic'
         ? match.count + ' source' + (match.count === 1 ? '' : 's')
-        : 'Source'
+        : 'Source')
       item.appendChild(kind)
 
       // mousedown rather than click, so choosing doesn't first blur the input and close the

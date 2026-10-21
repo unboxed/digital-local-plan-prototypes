@@ -1787,43 +1787,132 @@ router.post(GL + '/:glTab/add/external', (req, res) => {
 
 // --- Add to a policy or chapter ---
 // A layer can be connected with a whole chapter (`chapters`, policy area names) or with single
-// policies (`policyRefs`). The form value is `chapter:<area>` or `policy:<ref>`.
+// policies (`policyRefs`). The form value is `chapter:<area>` or `policy:<ref>`. The page follows
+// Policy drafting's "Add sources": the existing connections, then a keyword search with filters
+// whose results are ticked and added together.
+const GL_LINK_RESULTS_PER_PAGE = 10
+const GL_LINK_KINDS = [
+  { value: 'chapter', text: 'Whole chapter' },
+  { value: 'policy', text: 'Policy' }
+]
 
+// Everything a layer can be connected with: each chapter, followed by its policies, in plan order.
+function glLinkCandidates () {
+  return [].concat(...glChapterNames().map(name => [{
+    value: 'chapter:' + name,
+    kind: 'chapter',
+    kindLabel: 'Whole chapter',
+    ref: '',
+    name: name + ' chapter',
+    chapter: name,
+    haystack: (name + ' chapter').toLowerCase()
+  }].concat(POLICIES.filter(policy => policy.policyArea === name).map(policy => ({
+    value: 'policy:' + policy.ref,
+    kind: 'policy',
+    kindLabel: 'Policy',
+    ref: policy.ref,
+    name: policy.title,
+    chapter: name,
+    haystack: (policy.ref + ' ' + policy.title + ' ' + name).toLowerCase()
+  })))))
+}
+
+// The same AND-of-words rule as the library search, then the chapter and type filters.
+function glSearchLinks (filters) {
+  const words = String(filters.query || '').toLowerCase().split(/\s+/).filter(Boolean)
+  return glLinkCandidates().filter(candidate =>
+    words.every(word => candidate.haystack.includes(word)) &&
+    (!filters.chapter || candidate.chapter === filters.chapter) &&
+    (!filters.kind || candidate.kind === filters.kind))
+}
+
+// Type-ahead terms (initSuggestSearch). Chapters are 'Topic's so they're offered first.
+let glLinkTerms = null
+function glLinkSearchTerms () {
+  if (!glLinkTerms) {
+    glLinkTerms = glChapterNames().map(name => ({ term: name, kind: 'Topic', label: 'Chapter' }))
+      .concat(POLICIES.map(policy => ({ term: policy.ref + ' ' + policy.title, kind: 'Policy', label: 'Policy' })))
+  }
+  return glLinkTerms
+}
+
+function glIsLinked (layer, value) {
+  const link = glReadLink(value)
+  if (!link) return false
+  return ((link.kind === 'chapter' ? layer.chapters : layer.policyRefs) || []).includes(link.ref)
+}
+
+function glLinkPageUrl (layer, page, extra) {
+  const params = []
+  const pageNumber = parseInt(page, 10)
+  if (pageNumber > 1) params.push('_page=' + pageNumber)
+  if (extra) params.push(extra)
+  return GL + '/layers/' + layer.id + '/policy' + (params.length ? '?' + params.join('&') : '')
+}
+
+// Search and filters are sticky (glLink*, kept apart from the library's own glPolicy filter); the
+// page number is "_page" so a new search starts from the first page.
 router.get(GL + '/layers/:layerId/policy', (req, res) => {
   const layer = findGisLayer(req, req.params.layerId)
   if (!layer) return res.redirect(GL)
-  const error = req.session.data.glPolicyError
-  delete req.session.data.glPolicyError
-  const linkedRefs = layer.policyRefs || []
-  const linkedChapters = layer.chapters || []
-  const areas = glChapterNames().map(name => ({
-    name,
-    linked: linkedChapters.includes(name),
-    policies: POLICIES.filter(policy => policy.policyArea === name)
-      .map(policy => ({ ref: policy.ref, title: policy.title, linked: linkedRefs.includes(policy.ref) }))
-  }))
+  const session = req.session.data
+  const chapters = glChapterNames()
+  const filters = {
+    query: session.glLinkSearch || '',
+    chapter: chapters.includes(session.glLinkChapter) ? session.glLinkChapter : '',
+    kind: GL_LINK_KINDS.some(kind => kind.value === session.glLinkKind) ? session.glLinkKind : ''
+  }
+  const searched = Object.values(filters).some(Boolean)
+  const results = searched ? glSearchLinks(filters) : []
+  const pageCount = Math.max(1, Math.ceil(results.length / GL_LINK_RESULTS_PER_PAGE))
+  const page = Math.min(pageCount, Math.max(1, parseInt(req.query._page, 10) || 1))
+  const start = (page - 1) * GL_LINK_RESULTS_PER_PAGE
+
+  const view = glLayerView(layer)
+  // The connections table: a chapter connected as a whole, then any single policies in it.
+  const existing = [].concat(...view.connections.map(connection =>
+    (connection.whole ? [{ value: 'chapter:' + connection.chapter, kindLabel: 'Whole chapter', ref: '', name: connection.chapter + ' chapter', chapter: connection.chapter }] : [])
+      .concat(connection.policies.map(policy => ({ value: 'policy:' + policy.ref, kindLabel: 'Policy', ref: policy.ref, name: policy.title, chapter: connection.chapter })))))
+
   res.render('evidence/gis-layers/policy', {
-    layer: glLayerView(layer),
-    areas,
-    error,
+    layer: view,
+    existing,
+    filters,
+    searched,
+    results: results.slice(start, start + GL_LINK_RESULTS_PER_PAGE)
+      .map(result => Object.assign({ added: glIsLinked(layer, result.value) }, result)),
+    resultCount: results.length,
+    firstResult: results.length ? start + 1 : 0,
+    lastResult: Math.min(start + GL_LINK_RESULTS_PER_PAGE, results.length),
+    page,
+    pageCount,
+    chapters,
+    kinds: GL_LINK_KINDS,
+    searchTermsJson: JSON.stringify(glLinkSearchTerms()),
+    addedCount: parseInt(req.query._added, 10) || 0,
+    pageUrl: glLinkPageUrl(layer),
     backHref: glLayerHref(layer)
   })
 })
 
+// "Add selected": every ticked result in one go. Anything already connected is skipped, so the
+// banner's count is what was actually added.
 router.post(GL + '/layers/:layerId/policy', (req, res) => {
   const layer = findGisLayer(req, req.params.layerId)
   if (!layer) return res.redirect(GL)
-  const link = glReadLink(req.body._link)
-  if (!link) {
-    req.session.data.glPolicyError = 'Select a chapter or a policy'
-    return res.redirect(GL + '/layers/' + layer.id + '/policy')
-  }
-  const key = link.kind === 'chapter' ? 'chapters' : 'policyRefs'
-  if (!layer[key]) layer[key] = []
-  if (!layer[key].includes(link.ref)) layer[key].push(link.ref)
-  res.redirect(glLayerHref(layer))
+  let added = 0
+  asArray(req.body._links).forEach(value => {
+    const link = glReadLink(value)
+    if (!link || glIsLinked(layer, value)) return
+    const key = link.kind === 'chapter' ? 'chapters' : 'policyRefs'
+    if (!layer[key]) layer[key] = []
+    layer[key].push(link.ref)
+    added++
+  })
+  res.redirect(glLinkPageUrl(layer, req.body._page, added ? '_added=' + added : ''))
 })
 
+// Used from the library card and from the add page, so it goes back to whichever sent it.
 router.post(GL + '/layers/:layerId/links/remove', (req, res) => {
   const layer = findGisLayer(req, req.params.layerId)
   if (!layer) return res.redirect(GL)
@@ -1832,7 +1921,7 @@ router.post(GL + '/layers/:layerId/links/remove', (req, res) => {
     const key = link.kind === 'chapter' ? 'chapters' : 'policyRefs'
     layer[key] = (layer[key] || []).filter(ref => ref !== link.ref)
   }
-  res.redirect(glLayerHref(layer))
+  res.redirect(gisReturnTo(req.body._returnTo, glLayerHref(layer)))
 })
 
 const EXISTING_DOCUMENTS = [
