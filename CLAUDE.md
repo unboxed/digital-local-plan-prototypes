@@ -297,6 +297,9 @@ changes one declaration rather than restyling either pane. Notes:
 
 ## Policy writer v2
 
+Shown to users as **"Policy drafting: side by side policy/evidence viewer"** (landing pages,
+page titles); "Policy writer v2" survives only in code, comments and this file.
+
 `/policy-writing-v2` (`app/views/policy-writing-v2/`) is a second take on the drafting
 workspace, independent of the `policy-writing` prototype and sharing no session state with it.
 
