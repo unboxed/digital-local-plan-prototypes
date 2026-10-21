@@ -117,32 +117,27 @@ library" %} {# Removes one connection (`chapter:<area />` or `policy:<ref
       </div>
       {% endif %}
       <div>
-        <div class="dlp-gl-card__actions">
+        <div class="dlp-gl-card__actions govuk-body govuk-!-margin-bottom-0">
           <a
-            class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
+            class="govuk-link"
             href="/evidence/gis-layers/layers/{{ layer.id }}/policy"
             >Add to policy or chapter<span class="govuk-visually-hidden"
               >: {{ layer.name }}</span
             ></a
           >
-          {# Inert placeholders from the sketch, awaiting functionality. #}
-          <button
-            type="button"
-            class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
-          >
-            Add to Local Plan timetable stage<span class="govuk-visually-hidden"
+          {# Inert placeholders from the sketch, awaiting functionality. They link
+          to their own card, so following one goes nowhere. #}
+          <a class="govuk-link" href="#layer-{{ layer.id }}"
+            >Add to Local Plan timetable stage<span class="govuk-visually-hidden"
               >: {{ layer.name }}</span
-            >
-          </button>
-          <button
-            type="button"
-            class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
+            ></a
           >
-            See connected consultation responses<span
+          <a class="govuk-link" href="#layer-{{ layer.id }}"
+            >See connected consultation responses<span
               class="govuk-visually-hidden"
               >: {{ layer.name }}</span
-            >
-          </button>
+            ></a
+          >
         </div>
       </div>
     </div>
