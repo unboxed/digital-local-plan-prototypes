@@ -1,58 +1,102 @@
-{% extends "layouts/main.html" %}
-
-{% set pageName = "Add " + layer.name + " to a policy or chapter" %}
-
-{% block content %}
-
-{% include "evidence/partials/nav.html" %}
+{% extends "layouts/main.html" %} {% set pageName = "Add " + layer.name + " to a
+policy or chapter" %} {% block content %} {% include
+"evidence/partials/nav.html" %}
 
 <a class="govuk-back-link" href="{{ backHref }}">Back to the library</a>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
+    {% if error %} {{ govukErrorSummary({ titleText: "There is a problem",
+    errorList: [{ text: error, href: "#link" }] }) }} {% endif %}
 
-    {% if error %}
-      {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: error, href: "#link" }] }) }}
-    {% endif %}
-
-    <form method="post" action="/evidence/gis-layers/layers/{{ layer.id }}/policy" novalidate>
-      <div class="govuk-form-group {%- if error %} govuk-form-group--error{% endif %}">
-        <fieldset class="govuk-fieldset" aria-describedby="link-hint{% if error %} link-error{% endif %}">
+    <form
+      method="post"
+      action="/evidence/gis-layers/layers/{{ layer.id }}/policy"
+      novalidate
+    >
+      <div
+        class="govuk-form-group {%- if error %} govuk-form-group--error{% endif %}"
+      >
+        <fieldset
+          class="govuk-fieldset"
+          aria-describedby="link-hint{% if error %} link-error{% endif %}"
+        >
           <legend class="govuk-fieldset__legend govuk-fieldset__legend--xl">
             <span class="govuk-caption-l">{{ layer.name }}</span>
-            <h1 class="govuk-fieldset__heading">What does this layer support?</h1>
+            <h1 class="govuk-fieldset__heading">
+              What does this layer support?
+            </h1>
           </legend>
           <div class="govuk-hint" id="link-hint">
-            Choose a whole chapter of the City Plan 2040, or a single policy in it. A layer can
-            support more than one: add them one at a time.
+            Choose a whole chapter of the City Plan 2040, or a single policy in
+            it. A layer can support more than one: add them one at a time.
           </div>
           {% if error %}
-            <p class="govuk-error-message" id="link-error"><span class="govuk-visually-hidden">Error:</span> {{ error }}</p>
-          {% endif %}
-
-          {% for area in areas %}
-            {# The first radio carries the id the error summary links to. #}
-            {% set chapterId = "link" if loop.first else "link-chapter-" + loop.index %}
-            <h2 class="govuk-heading-s govuk-!-margin-top-6 govuk-!-margin-bottom-2">{{ area.name }}</h2>
-            <div class="govuk-radios govuk-radios--small" data-module="govuk-radios">
-              <div class="govuk-radios__item">
-                <input class="govuk-radios__input" id="{{ chapterId }}" name="_link" type="radio" value="chapter:{{ area.name }}"
-                       {%- if area.linked %} disabled{% endif %}>
-                <label class="govuk-label govuk-radios__label" for="{{ chapterId }}">
-                  The whole {{ area.name }} chapter{% if area.linked %} (already connected){% endif %}
-                </label>
-              </div>
-              <div class="govuk-radios__divider">or one policy</div>
-              {% for policy in area.policies %}
-                <div class="govuk-radios__item">
-                  <input class="govuk-radios__input" id="link-policy-{{ policy.ref }}" name="_link" type="radio" value="policy:{{ policy.ref }}"
-                         {%- if policy.linked %} disabled{% endif %}>
-                  <label class="govuk-label govuk-radios__label" for="link-policy-{{ policy.ref }}">
-                    <strong>{{ policy.ref }}</strong> {{ policy.title }}{% if policy.linked %} (already connected){% endif %}
-                  </label>
-                </div>
-              {% endfor %}
+          <p class="govuk-error-message" id="link-error">
+            <span class="govuk-visually-hidden">Error:</span> {{ error }}
+          </p>
+          {% endif %} {% for area in areas %} {# The first radio carries the id
+          the error summary links to. #} {% set chapterId = "link" if loop.first
+          else "link-chapter-" + loop.index %}
+          <h2
+            class="govuk-heading-s govuk-!-margin-top-6 govuk-!-margin-bottom-2"
+          >
+            {{ area.name }}
+          </h2>
+          <div
+            class="govuk-radios govuk-radios--small"
+            data-module="govuk-radios"
+          >
+            <div class="govuk-radios__item">
+              <input
+                class="govuk-radios__input"
+                id="{{ chapterId }}"
+                name="_link"
+                type="radio"
+                value="chapter:{{ area.name }}"
+                {%-
+                if
+                area.linked
+                %}
+                disabled{%
+                endif
+                %}
+              />
+              <label
+                class="govuk-label govuk-radios__label"
+                for="{{ chapterId }}"
+              >
+                The whole <strong>{{ area.name }} </strong> chapter{% if
+                area.linked %} (already connected){% endif %}
+              </label>
             </div>
+            <div class="govuk-radios__divider">or</div>
+            {% for policy in area.policies %}
+            <div class="govuk-radios__item">
+              <input
+                class="govuk-radios__input"
+                id="link-policy-{{ policy.ref }}"
+                name="_link"
+                type="radio"
+                value="policy:{{ policy.ref }}"
+                {%-
+                if
+                policy.linked
+                %}
+                disabled{%
+                endif
+                %}
+              />
+              <label
+                class="govuk-label govuk-radios__label"
+                for="link-policy-{{ policy.ref }}"
+              >
+                <strong>{{ policy.ref }}</strong> {{ policy.title }}{% if
+                policy.linked %} (already connected){% endif %}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
           {% endfor %}
         </fieldset>
       </div>
@@ -62,7 +106,6 @@
         <a class="govuk-link" href="{{ backHref }}">Cancel</a>
       </div>
     </form>
-
   </div>
 </div>
 
