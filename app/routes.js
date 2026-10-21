@@ -2176,93 +2176,130 @@ function buildStartingPointsSidebar (req, variant, activeHref) {
   ]
 }
 
-// --- Starting points wizard: one shared route pair for all 8 steps ---
+// --- Starting points wizard: one shared set of handlers for all 8 steps ---
+//
+// The wizard runs in two places: the policy-writing variants, and Make your plan's scoping
+// activities. A `journey` is either a variant or SCOPING_JOURNEY, and says where the items are
+// kept, where the GIS connection is kept and which URL the steps live under. Each place
+// registers its own routes onto the handlers below and renders its own page shell around
+// policy-writing/starting-points/partials/step-body.html.
+
+const SCOPING_JOURNEY = 'scoping'
+
+function spBase (journey) {
+  return journey === SCOPING_JOURNEY ? PM + '/scoping-activities' : '/policy-writing/' + journey + '/starting-points'
+}
+
+// Make your plan keeps its starting points in projectManagement, so its statuses can be derived
+// from that one object like every other task's.
+function spItems (req, journey, stepSlug) {
+  if (journey !== SCOPING_JOURNEY) return getStartingPointItems(req, journey, stepSlug)
+  const state = getProjectManagement(req)
+  if (!state.startingPoints[stepSlug]) state.startingPoints[stepSlug] = []
+  return state.startingPoints[stepSlug]
+}
+
+function spConnection (req, journey) {
+  return journey === SCOPING_JOURNEY ? getProjectManagement(req).gisConnection : getGisConnection(req, journey)
+}
+
+function spSetConnection (req, journey, connection) {
+  if (journey === SCOPING_JOURNEY) getProjectManagement(req).gisConnection = connection
+  else setGisConnection(req, journey, connection)
+}
+
+// Everything the step body needs, for either page shell. Null for an unknown step.
+function spStepLocals (req, journey, slug) {
+  const step = findStartingPointStep(slug)
+  if (!step) return null
+  const items = spItems(req, journey, step.slug)
+  return Object.assign({
+    step,
+    items,
+    editItem: req.query.edit ? items.find(item => item.id === req.query.edit) : null,
+    spBase: spBase(journey)
+  }, step.gis ? gisStepLocals(req, journey, items) : {})
+}
 
 router.get('/policy-writing/:variant/starting-points/:step', (req, res) => {
   const { variant } = req.params
-  const step = findStartingPointStep(req.params.step)
-  if (!step) return res.redirect('/policy-writing/' + variant + '/starting-points/' + STARTING_POINT_STEPS[0].slug)
+  const locals = spStepLocals(req, variant, req.params.step)
+  if (!locals) return res.redirect(spBase(variant) + '/' + STARTING_POINT_STEPS[0].slug)
 
-  const items = getStartingPointItems(req, variant, step.slug)
-  const editItem = req.query.edit ? items.find(item => item.id === req.query.edit) : null
-
-  res.render('policy-writing/starting-points/step', Object.assign({
+  res.render('policy-writing/starting-points/step', Object.assign(locals, {
     variant,
-    step,
-    items,
-    editItem,
-    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/starting-points/' + step.slug)
-  }, step.gis ? gisStepLocals(req, variant, items) : {}))
+    continueHref: '/policy-writing/' + variant + '/topics/review-starting-points',
+    backHref: '/policy-writing',
+    sidebarSections: buildStartingPointsSidebar(req, variant, spBase(variant) + '/' + locals.step.slug)
+  }))
 })
 
 // --- Existing plan layers: the (simulated) GIS connection ---
 //
 // Layers added here go into the shared gisLayers collection, tagged Plan, with the origin
-// 'starting-points:<variant>'; each is also a starting point item carrying its layerId.
+// 'starting-points:<journey>'; each is also a starting point item carrying its layerId.
 
 const GIS_STEP = 'existing-plan-layers'
 
-function gisStepHref (variant) {
-  return '/policy-writing/' + variant + '/starting-points/' + GIS_STEP
+function gisStepHref (journey) {
+  return spBase(journey) + '/' + GIS_STEP
 }
 
-function gisStepLocals (req, variant, items) {
+function gisStepLocals (req, journey, items) {
   const layers = {}
   getGisLayers(req).forEach(layer => { layers[layer.id] = gisLayerView(layer) })
   return {
     gis: gisConnectLocals(req, {
-      action: gisStepHref(variant),
-      connection: getGisConnection(req, variant),
-      catalogue: GIS.catalogueFor(getGisConnection(req, variant), 'compass'),
+      action: gisStepHref(journey),
+      connection: spConnection(req, journey),
+      catalogue: GIS.catalogueFor(spConnection(req, journey), 'compass'),
       addedIds: items.map(item => item.layerId).filter(Boolean),
       intro: 'Connect the GIS system that holds your adopted plan\'s policies map. You can then choose which of its layers to bring in as starting points. They are added as Plan layers.'
     }),
     gisLayerById: layers,
-    gisReturnTo: gisStepHref(variant) + '#added-layers'
+    gisReturnTo: gisStepHref(journey) + '#added-layers'
   }
 }
 
-router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/connect', (req, res) => {
-  const { variant } = req.params
+function spConnect (req, res, journey) {
   const result = readGisConnection(req.body)
   if (result.errors) {
     setGisErrors(req, result.errors, result.values)
-    return res.redirect(gisStepHref(variant) + '#gis-connect')
+    return res.redirect(gisStepHref(journey) + '#gis-connect')
   }
-  setGisConnection(req, variant, result.connection)
-  res.redirect(gisStepHref(variant) + '#gis-layers')
-})
+  spSetConnection(req, journey, result.connection)
+  res.redirect(gisStepHref(journey) + '#gis-layers')
+}
 
 // Disconnecting keeps the layers already added: they are starting points now, not live data.
-router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/disconnect', (req, res) => {
-  setGisConnection(req, req.params.variant, null)
-  res.redirect(gisStepHref(req.params.variant) + '#gis-connect')
-})
+function spDisconnect (req, res, journey) {
+  spSetConnection(req, journey, null)
+  res.redirect(gisStepHref(journey) + '#gis-connect')
+}
 
-router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/layers', (req, res) => {
-  const { variant } = req.params
-  if (!getGisConnection(req, variant)) return res.redirect(gisStepHref(variant))
-  const items = getStartingPointItems(req, variant, GIS_STEP)
-  const catalogue = GIS.getCatalogue(GIS.catalogueFor(getGisConnection(req, variant), 'compass'))
+function spAddLayers (req, res, journey) {
+  const connection = spConnection(req, journey)
+  if (!connection) return res.redirect(gisStepHref(journey))
+  const items = spItems(req, journey, GIS_STEP)
+  const catalogue = GIS.getCatalogue(GIS.catalogueFor(connection, 'compass'))
   const selected = asArray(req.body._layers).map(id => catalogue.find(layer => layer.id === id)).filter(Boolean)
   if (!selected.length) {
     setGisErrors(req, { layers: 'Select at least one layer to add' })
-    return res.redirect(gisStepHref(variant) + '#gis-layers')
+    return res.redirect(gisStepHref(journey) + '#gis-layers')
   }
   selected.forEach(layer => {
-    addGisLayer(req, layer.id, 'plan', 'starting-points:' + variant)
+    addGisLayer(req, layer.id, 'plan', 'starting-points:' + journey)
     if (items.some(item => item.layerId === layer.id)) return
     items.push({ id: 'psp-' + Date.now() + '-' + layer.id, text: layer.name, layerId: layer.id })
   })
-  res.redirect(gisStepHref(variant) + '#added-layers')
-})
+  res.redirect(gisStepHref(journey) + '#added-layers')
+}
 
-router.post('/policy-writing/:variant/starting-points/:step', (req, res) => {
-  const { variant } = req.params
+function spSaveItem (req, res, journey) {
   const step = findStartingPointStep(req.params.step)
-  if (!step) return res.redirect('/policy-writing/' + variant + '/starting-points/' + STARTING_POINT_STEPS[0].slug)
+  if (!step) return res.redirect(spBase(journey) + '/' + STARTING_POINT_STEPS[0].slug)
 
-  const items = getStartingPointItems(req, variant, step.slug)
+  const items = spItems(req, journey, step.slug)
   const text = (req.body.itemText || '').trim()
 
   if (text) {
@@ -2274,23 +2311,28 @@ router.post('/policy-writing/:variant/starting-points/:step', (req, res) => {
     }
   }
 
-  res.redirect('/policy-writing/' + variant + '/starting-points/' + step.slug)
-})
+  res.redirect(spBase(journey) + '/' + step.slug)
+}
 
-router.post('/policy-writing/:variant/starting-points/:step/:itemId/remove', (req, res) => {
-  const { variant } = req.params
+function spRemoveItem (req, res, journey) {
   const step = findStartingPointStep(req.params.step)
   if (step) {
-    const items = getStartingPointItems(req, variant, step.slug)
+    const items = spItems(req, journey, step.slug)
     const index = items.findIndex(item => item.id === req.params.itemId)
     if (index !== -1) {
       // A layer leaves the shared collection only if nowhere else added it too.
-      if (items[index].layerId) removeGisLayerOrigin(req, items[index].layerId, 'starting-points:' + variant)
+      if (items[index].layerId) removeGisLayerOrigin(req, items[index].layerId, 'starting-points:' + journey)
       items.splice(index, 1)
     }
   }
-  res.redirect('/policy-writing/' + variant + '/starting-points/' + req.params.step)
-})
+  res.redirect(spBase(journey) + '/' + req.params.step)
+}
+
+router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/connect', (req, res) => spConnect(req, res, req.params.variant))
+router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/disconnect', (req, res) => spDisconnect(req, res, req.params.variant))
+router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/layers', (req, res) => spAddLayers(req, res, req.params.variant))
+router.post('/policy-writing/:variant/starting-points/:step', (req, res) => spSaveItem(req, res, req.params.variant))
+router.post('/policy-writing/:variant/starting-points/:step/:itemId/remove', (req, res) => spRemoveItem(req, res, req.params.variant))
 
 // --- Review starting points: aggregate table across all 8 steps ---
 
@@ -4563,7 +4605,8 @@ router.post(CR + '/inspector/:repId', (req, res) => {
 // session data. Every status is derived from that object by pmStatuses, never stored.
 
 const PM = '/project-management/make-your-plan'
-const PROJECT_MANAGEMENT_SCHEMA_VERSION = 1
+// 2 added scoping activities' starting points and GIS connection.
+const PROJECT_MANAGEMENT_SCHEMA_VERSION = 2
 const PMD = require('./data/project-management.js')
 
 function getProjectManagement (req) {
@@ -4581,7 +4624,42 @@ function getProjectManagement (req) {
 
 const PM_STARTS = {
   start: { build: PMD.startingState, redirect: PM + '/overview' },
-  midway: { build: PMD.midwayState, redirect: PM + '/overview' }
+  midway: { build: PMD.midwayState, redirect: PM + '/overview', scoping: true }
+}
+
+// Part way through, the scoping consultation is under way, so the starting points due before it
+// are done. They are the policy-writing prefilled variant's, copied; its plan layers are added
+// to the shared collection as this journey's too, through the same connection.
+function pmSeedScoping (req, state) {
+  const prefilled = sessionDataDefaults.policyStartingPointItems.prefilled
+  STARTING_POINT_STEPS.filter(step => step.group === 'now').forEach(step => {
+    state.startingPoints[step.slug] = JSON.parse(JSON.stringify(prefilled[step.slug] || []))
+  })
+  state.gisConnection = JSON.parse(JSON.stringify(sessionDataDefaults.policyGisConnection.prefilled))
+  state.startingPoints[GIS_STEP].forEach(item => addGisLayer(req, item.layerId, 'plan', 'starting-points:' + SCOPING_JOURNEY))
+}
+
+// Layers added in scoping activities leave with the state that added them.
+function pmClearScopingLayers (req) {
+  const origin = 'starting-points:' + SCOPING_JOURNEY
+  getGisLayers(req).filter(layer => layer.origins.includes(origin))
+    .forEach(layer => removeGisLayerOrigin(req, layer.id, origin))
+}
+
+// The starting points wizard's steps as Make your plan shows them: a step is done once it has
+// anything in it, as in the policy-writing sidebar.
+function pmScopingSteps (state) {
+  return STARTING_POINT_STEPS.map(step => {
+    const count = (state.startingPoints[step.slug] || []).length
+    return {
+      slug: step.slug,
+      group: step.group,
+      title: step.navLabel,
+      description: count ? count + ' added' : step.hint,
+      status: count ? 'Completed' : 'Not started',
+      href: PM + '/scoping-activities/' + step.slug
+    }
+  })
 }
 
 // Events after the proposed plan consultation can't be dated yet, so a timetable is complete
@@ -4838,6 +4916,9 @@ function pmStatuses (state) {
   else if (!pidDone && (timetableDone || noticeFilled)) noticeStatus = 'Blocked'
   else if (noticeFilled) noticeStatus = 'In progress'
 
+  const scopingSteps = pmScopingSteps(state)
+  const scopingDone = scopingSteps.filter(step => step.status === 'Completed').length
+
   return {
     timetable: {
       status: timetableDone ? 'Completed' : (timetableStarted ? 'In progress' : 'Not started'),
@@ -4852,7 +4933,10 @@ function pmStatuses (state) {
       progress: notice.published ? 1 : noticeFilled / (PM_NOTICE_FIELDS.length + 1),
       blockedReason: noticeStatus === 'Blocked' ? 'The Project Initiation Documentation must be approved before you publish the notice.' : ''
     },
-    scopingActivities: { status: 'Not started', progress: 0 },
+    scopingActivities: {
+      status: scopingDone === scopingSteps.length ? 'Completed' : (scopingDone ? 'In progress' : 'Not started'),
+      progress: scopingDone / scopingSteps.length
+    },
     scopingConsultation: {
       status: state.scopingConsultationStarted ? 'In progress' : 'Not started',
       progress: null
@@ -4908,7 +4992,8 @@ function pmTasks (state) {
   }))
 }
 
-function buildPmSidebar (state, active) {
+// On a scoping activities page its steps are nested under it, with `activeStep` current.
+function buildPmSidebar (state, active, activeStep) {
   const statuses = pmStatuses(state)
   const items = [
     { key: 'timetable', text: 'Create and publish timetable', href: PM + '/timetable-placeholder' },
@@ -4921,8 +5006,11 @@ function buildPmSidebar (state, active) {
     items: items.map(item => ({
       text: item.text,
       href: item.href,
-      active: item.key === active,
-      status: statuses[item.key].status
+      active: item.key === active && !activeStep,
+      status: statuses[item.key].status,
+      children: item.key === 'scopingActivities' && active === item.key
+        ? pmScopingSteps(state).map(step => ({ text: step.title, href: step.href, active: step.slug === activeStep, status: step.status }))
+        : undefined
     }))
   }]
 }
@@ -4943,15 +5031,17 @@ function renderPm (req, res, view, active, locals) {
     dateParts: pmDateParts,
     guidanceUrl: PMD.GUIDANCE_URL,
     guidanceSearchUrl: PMD.GUIDANCE_SEARCH_URL,
-    sidebarSections: buildPmSidebar(state, active)
+    sidebarSections: buildPmSidebar(state, active, locals && locals.step ? locals.step.slug : null)
   }, locals))
 }
 
 router.post(PM + '/reset', (req, res) => {
   const start = PM_STARTS[req.body._stage] || PM_STARTS.start
   getProjectManagement(req)
+  pmClearScopingLayers(req)
   req.session.data.projectManagement = start.build()
   req.session.data.projectManagementOwned = true
+  if (start.scoping) pmSeedScoping(req, req.session.data.projectManagement)
   delete req.session.data.projectManagementErrors
   delete req.session.data.projectManagementFlash
   res.redirect(start.redirect)
@@ -4985,13 +5075,35 @@ router.get(PM + '/scoping-consultation', (req, res) => {
   })
 })
 
-// Not designed yet: say so rather than invent a journey.
+// --- Scoping activities: the policy starting points wizard ---
+//
+// The same steps, handlers and step body as /policy-writing/:variant/starting-points (see
+// SCOPING_JOURNEY), inside Make your plan's own page shell and sidebar.
+
 router.get(PM + '/scoping-activities', (req, res) => {
-  renderPm(req, res, 'not-designed', 'scopingActivities', {
-    title: 'Scoping activities',
-    text: 'Scoping your plan-making and setting a vision has not been designed yet.'
+  const steps = pmScopingSteps(getProjectManagement(req))
+  renderPm(req, res, 'scoping-activities/index', 'scopingActivities', {
+    groups: [
+      { heading: 'Policy starting points – now', steps: steps.filter(step => step.group === 'now') },
+      { heading: 'Policy starting points – next', steps: steps.filter(step => step.group === 'next') }
+    ]
   })
 })
+
+router.get(PM + '/scoping-activities/:step', (req, res) => {
+  const locals = spStepLocals(req, SCOPING_JOURNEY, req.params.step)
+  if (!locals) return res.redirect(PM + '/scoping-activities')
+  renderPm(req, res, 'scoping-activities/step', 'scopingActivities', Object.assign(locals, {
+    continueHref: PM + '/scoping-activities',
+    backHref: PM + '/scoping-activities'
+  }))
+})
+
+router.post(PM + '/scoping-activities/' + GIS_STEP + '/connect', (req, res) => spConnect(req, res, SCOPING_JOURNEY))
+router.post(PM + '/scoping-activities/' + GIS_STEP + '/disconnect', (req, res) => spDisconnect(req, res, SCOPING_JOURNEY))
+router.post(PM + '/scoping-activities/' + GIS_STEP + '/layers', (req, res) => spAddLayers(req, res, SCOPING_JOURNEY))
+router.post(PM + '/scoping-activities/:step', (req, res) => spSaveItem(req, res, SCOPING_JOURNEY))
+router.post(PM + '/scoping-activities/:step/:itemId/remove', (req, res) => spRemoveItem(req, res, SCOPING_JOURNEY))
 
 router.get(PM + '/readiness-checker', (req, res) => {
   renderPm(req, res, 'not-designed', null, {

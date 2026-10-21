@@ -1,0 +1,17 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% set pageName = step.navLabel %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Scoping activities", href: pmBase + "/scoping-activities" },
+  { text: step.navLabel }
+] }) }}
+
+<div class="dlp-pm-measure-wide">
+  {% include "policy-writing/starting-points/partials/step-body.html" %}
+</div>
+
+{% endblock %}
