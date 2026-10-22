@@ -59,6 +59,13 @@
     <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Plan: City Plan 2040</p>
     <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Created: {{ layer.created }}</p>
     <p class="govuk-body-s dlp-ppv-muted govuk-!-margin-bottom-0">{{ layer.geometry }} layer, {{ layer.features }} feature{% if layer.features != 1 %}s{% endif %}</p>
+    {# The Examination library says how the examined version compares with the GIS layer library. #}
+    {% if layer.libraryNote %}
+    <p class="govuk-body-s govuk-!-margin-top-2 govuk-!-margin-bottom-0 {%- if not layer.libraryMatch %} dlp-exl-layer-mismatch{% endif %}">
+      {% if not layer.libraryMatch %}<strong>Not the examined version.</strong> {% endif %}{{ layer.libraryNote }}
+      {% if layer.libraryHref %}<br><a class="govuk-link" href="{{ layer.libraryHref }}">Open in the GIS layer library<span class="govuk-visually-hidden">: {{ layer.name }}</span></a>{% endif %}
+    </p>
+    {% endif %}
   </div>
   <dl class="dlp-ppv-layer__version">
     <dt class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Published version</dt>

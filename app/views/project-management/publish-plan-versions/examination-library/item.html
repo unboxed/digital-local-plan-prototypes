@@ -1,0 +1,154 @@
+{% extends "project-management/publish-plan-versions/partials/library-layout.html" %}
+{% from "project-management/publish-plan-versions/partials/library-macros.html" import statusTag, versionStamp %}
+{% from "project-management/publish-plan-versions/partials/macros.html" import planContent, layerRow %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "statement-of-compliance/partials/requirement-list.html" import socRequirementList %}
+
+{% set pageName = item.ref + " " + item.title + " – version " + viewed.version %}
+{% set backLink = { href: exl + "#" + item.section.id, text: "Back to examination library" } %}
+
+{% block main %}
+{% if not viewed.current %}
+  {% set supersededHtml %}
+    <h2 class="govuk-notification-banner__heading">You’re viewing a superseded version</h2>
+    <p class="govuk-body">This is {{ item.ref }} version {{ viewed.version }}, published {{ viewed.publishedLabel }}. It has been replaced. <a class="govuk-notification-banner__link" href="{{ item.current.href }}">View the current version (v{{ item.current.version }}, {{ item.current.publishedLabel }})</a></p>
+  {% endset %}
+  {{ govukNotificationBanner({ titleText: "Superseded version", html: supersededHtml, classes: "dlp-exl-superseded" }) }}
+{% endif %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds-from-desktop">
+    <span class="govuk-caption-m">{{ item.ref }} · {{ item.kind }}</span>
+    <h1 class="govuk-heading-xl govuk-!-margin-bottom-3">{{ item.title }}</h1>
+    <p class="govuk-body dlp-exl-version-line">
+      <span>Version {{ viewed.version }}</span>
+      {{ statusTag(viewed.status) }}
+      <span>Published {{ viewed.publishedLabel }}</span>
+    </p>
+
+    <div class="dlp-exl-content">
+      {% if content.type == "sessions" %}
+        <p class="govuk-body">{{ content.intro }}</p>
+        <table class="govuk-table">
+          <caption class="govuk-table__caption govuk-table__caption--m">Example hearing sessions</caption>
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th scope="col" class="govuk-table__header">Date and time</th>
+              <th scope="col" class="govuk-table__header">Topic</th>
+              <th scope="col" class="govuk-table__header">Format</th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {% for session in content.sessions %}
+            <tr class="govuk-table__row">
+              <td class="govuk-table__cell">{{ session.date }}<br>{{ session.time }}</td>
+              <td class="govuk-table__cell">{{ session.topic }}</td>
+              <td class="govuk-table__cell">{{ session.format }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <h2 class="govuk-heading-m">Attendance information</h2>
+        <p class="govuk-body">{{ content.attendance }}</p>
+
+      {% elif content.type == "register" %}
+        {% if content.entries and content.entries.length %}
+        <ul class="govuk-list dlp-exl-register">
+          {% for entry in content.entries %}
+          <li><span class="govuk-!-font-weight-bold">{{ entry.title }}</span> <span class="dlp-exl-muted">· {{ entry.note }}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="govuk-body">{{ content.empty }}</p>
+        <p class="govuk-body-s dlp-exl-muted">Example empty register. Entries will appear here, each with its own version.</p>
+        {% endif %}
+
+      {% elif content.type == "planVersion" %}
+        <p class="govuk-body">This is the plan as submitted for examination: <span class="govuk-!-font-weight-bold">{{ planVersion.title }}</span>, published {{ planVersion.published }}.</p>
+        <div class="dlp-ppv-box">
+          <p class="govuk-body-s dlp-exl-muted">Document excerpts · as submitted</p>
+          {{ planContent(planVersion.content) }}
+        </div>
+
+      {% elif content.type == "layers" %}
+        <p class="govuk-body">The policies map is made of these GIS layers, at the versions published with <span class="govuk-!-font-weight-bold">{{ planVersion.title }}</span> on {{ planVersion.published }}. Each one says whether the GIS layer library still holds the version that was examined.</p>
+        <ul class="govuk-list dlp-ppv-layer-list">
+          {% for layer in layers %}{{ layerRow(layer) }}{% endfor %}
+        </ul>
+
+      {% elif content.type == "compliance" %}
+        {# The Statement of compliance prototype's own list, shared with its checklist. #}
+        <h2 class="govuk-heading-l">{{ organisationName }} Local Plan</h2>
+        <p class="govuk-body">Every requirement below is fully met, with no further action required.</p>
+        {{ socRequirementList(requirements, statusColours, 3) }}
+
+      {% else %}
+        {% for paragraph in content.paragraphs %}
+        <p class="govuk-body">{{ paragraph }}</p>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    {% if links.length or content.type == "planVersion" %}
+    <h2 class="govuk-heading-m govuk-!-margin-top-6">Related records</h2>
+    <ul class="govuk-list govuk-list--spaced">
+      {% if content.type == "planVersion" %}
+      <li>
+        <a class="govuk-link" href="{{ planVersionHref }}">View {{ planVersion.title }} in the plan’s version history</a>
+        <span class="govuk-body-s dlp-exl-muted govuk-!-display-block">The same version, with its plan layers and the versions before and after it.</span>
+      </li>
+      {% endif %}
+      {% for link in links %}
+      <li>
+        <a class="govuk-link" href="{{ link.href }}">{{ link.text }}</a>
+        <span class="govuk-body-s dlp-exl-muted govuk-!-display-block">{{ link.note }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {{ versionStamp(item.ref, viewed.version, viewed.publishedLabel) }}
+  </div>
+
+  <aside class="govuk-grid-column-one-third-from-desktop" aria-labelledby="about" >
+    <div class="dlp-exl-about">
+      <h2 class="govuk-heading-m" id="about">About this version</h2>
+      <dl class="dlp-exl-about__list">
+        <dt>Reference</dt><dd>{{ item.ref }}</dd>
+        <dt>Version</dt><dd>{{ viewed.version }} · {{ viewed.status }}</dd>
+        <dt>Published</dt><dd>{{ viewed.publishedLabel }}</dd>
+        <dt>Content owner</dt><dd>{{ viewed.by }}</dd>
+      </dl>
+
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">What changed</h3>
+      <p class="govuk-body-s">{{ viewed.changes }}</p>
+
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-2">Version history ({{ history.length }} version{% if history.length != 1 %}s{% endif %})</h3>
+      <ol class="govuk-list dlp-exl-history">
+        {% for v in history %}
+        <li class="dlp-exl-history__entry {%- if v.version == viewed.version %} dlp-exl-history__entry--viewing{% endif %}">
+          <p class="govuk-body-s govuk-!-margin-bottom-0">
+            {% if v.version == viewed.version %}
+            <span class="govuk-!-font-weight-bold">v{{ v.version }}</span> <span class="dlp-exl-muted">(viewing)</span>
+            {% else %}
+            <a class="govuk-link" href="{{ v.href }}">v{{ v.version }}</a>
+            {% endif %}
+            · {{ v.publishedLabel }} · {{ v.status }}
+          </p>
+          <p class="govuk-body-s dlp-exl-muted govuk-!-margin-bottom-0">{{ v.changes }}</p>
+        </li>
+        {% endfor %}
+      </ol>
+
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Cite this version</h3>
+      <p class="govuk-body-s dlp-exl-citation">{{ citation }}</p>
+
+      <a class="govuk-button govuk-button--secondary dlp-exl-full-width govuk-!-margin-bottom-2" data-module="govuk-button" href="#" aria-disabled="true">{{ pdfLabel }}<span class="govuk-visually-hidden"> (prototype: no file)</span></a>
+      <p class="govuk-body-s dlp-exl-muted govuk-!-margin-bottom-0 dlp-exl-break">{{ filename }}</p>
+      <p class="govuk-body-s dlp-exl-muted">PDF export of this {{ "page" if item.kind == "Live content" else "record" }}, including its version stamp.</p>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block pageScripts %}{% if content.type == "layers" %}{% include "partials/gis/map-assets.html" %}{% endif %}{% endblock %}

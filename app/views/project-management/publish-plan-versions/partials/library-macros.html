@@ -1,0 +1,54 @@
+{# A version's status as a tag: Current, In progress or Superseded. Text, not just colour. #}
+{% macro statusTag(status) %}
+  {# In progress is GOV.UK's default (blue) tag, so it has no colour modifier. #}
+  {% set colours = { "Current": "green", "In progress": "", "Superseded": "grey" } %}
+  {% set colour = colours[status] if status in colours else "grey" %}
+  <strong class="govuk-tag {%- if colour %} govuk-tag--{{ colour }}{% endif %} dlp-exl-tag">{{ status }}</strong>
+{% endmacro %}
+
+{#
+  One item in the library: title, then the version line every item shares (reference · kind ·
+  version · status · published), the summary, and the version it replaced. The download and
+  version details links sit on the right, and the download always names the version.
+#}
+{% macro itemRow(item) %}
+<li class="dlp-exl-row">
+  <div class="dlp-exl-row__main">
+    <h3 class="govuk-heading-s govuk-!-margin-bottom-1">
+      <a class="govuk-link" href="{{ item.href }}">{{ item.title }}</a>
+    </h3>
+    <p class="govuk-body-s govuk-!-margin-bottom-1 dlp-exl-version-line">
+      <span class="govuk-!-font-weight-bold">{{ item.ref }}</span>
+      <span>{{ item.kind }}</span>
+      <span>v{{ item.current.version }}</span>
+      {{ statusTag(item.current.status) }}
+      <span>Published {{ item.current.publishedLabel }}</span>
+    </p>
+    <p class="govuk-body-s dlp-exl-muted govuk-!-margin-bottom-0">{{ item.summary }}</p>
+    {% if item.previous %}
+    <p class="govuk-body-s dlp-exl-muted govuk-!-margin-top-1 govuk-!-margin-bottom-0">
+      Replaces <a class="govuk-link" href="{{ item.previous.href }}">v{{ item.previous.version }}<span class="govuk-visually-hidden"> of {{ item.title }}</span></a> ({{ item.previous.publishedLabel }})
+    </p>
+    {% endif %}
+    {% if item.listLink %}
+    <p class="govuk-body-s govuk-!-margin-top-2 govuk-!-margin-bottom-0">
+      <a class="govuk-link" href="{{ item.listLink.href }}">{{ item.listLink.text }}</a>
+      <span class="dlp-exl-muted">· {{ item.listLink.note }}</span>
+    </p>
+    {% endif %}
+  </div>
+  <ul class="govuk-list govuk-body-s dlp-exl-row__links">
+    <li><a class="govuk-link" href="#" aria-disabled="true">{{ item.pdfLabel }}<span class="govuk-visually-hidden"> (prototype: no file)</span></a></li>
+    <li><a class="govuk-link" href="{{ item.detailsHref }}">Version details<span class="govuk-visually-hidden"> for {{ item.title }}</span></a></li>
+  </ul>
+</li>
+{% endmacro %}
+
+{# The PDF version stamp: what every downloaded copy carries. #}
+{% macro versionStamp(ref, version, published, note) %}
+<div class="dlp-exl-stamp">
+  <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1 dlp-exl-stamp__label">Version stamp · included on the PDF</p>
+  <p class="govuk-body-s govuk-!-margin-bottom-0">{{ ref }} | v{{ version }} | Published {{ published }}</p>
+  <p class="govuk-body-s dlp-exl-muted govuk-!-margin-bottom-0">{{ note or "Illustrative content · City of London Local Plan" }}</p>
+</div>
+{% endmacro %}

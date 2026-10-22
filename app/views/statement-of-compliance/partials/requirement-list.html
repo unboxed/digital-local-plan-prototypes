@@ -1,0 +1,25 @@
+{#
+  The statement's requirements, each with its status and a link to its evidence. Shared by the
+  checklist and by the Examination library's Statement of compliance record (CS-01), which shows
+  the completed statement with its version details beside it. `headingLevel` defaults to 2.
+
+  requirements: rows from socRequirementRows(variant) in app/routes.js — { ref, title, status, href }
+#}
+{% macro socRequirementList(requirements, statusColours, headingLevel) %}
+{% set h = headingLevel or 2 %}
+<ul class="govuk-list">
+  {% for requirement in requirements %}
+  <li class="govuk-!-margin-bottom-6">
+    <h{{ h }} class="govuk-heading-m govuk-!-margin-bottom-2">
+      <span class="govuk-!-font-weight-bold">{{ requirement.ref }}</span> {{ requirement.title }}
+    </h{{ h }}>
+    <p class="govuk-body">
+      <strong class="govuk-tag{% if statusColours[requirement.status] %} govuk-tag--{{ statusColours[requirement.status] }}{% endif %}">{{ requirement.status }}</strong>
+    </p>
+    <p class="govuk-body">
+      <a class="govuk-link" href="{{ requirement.href }}">See evidence<span class="govuk-visually-hidden"> for {{ requirement.ref }}</span></a>
+    </p>
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}

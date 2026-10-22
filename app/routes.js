@@ -3197,19 +3197,22 @@ router.get('/statement-of-compliance', (req, res) => {
   res.render('statement-of-compliance/index.html')
 })
 
-router.get('/statement-of-compliance/:socVariant', (req, res) => {
-  const variant = req.params.socVariant
-
-  const requirements = getRequirements().map(requirement => ({
+// The statement's requirements for one variant, as listed by the checklist and by the
+// Examination library's Statement of compliance record.
+function socRequirementRows (variant) {
+  return getRequirements().map(requirement => ({
     ref: requirement.ref,
     title: requirement.title,
     status: getRequirementStatus(requirement.ref, variant),
     href: '/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(requirement.ref)
   }))
+}
 
+router.get('/statement-of-compliance/:socVariant', (req, res) => {
+  const variant = req.params.socVariant
   res.render('statement-of-compliance/checklist.html', {
     variant,
-    requirements,
+    requirements: socRequirementRows(variant),
     statusColours: STATEMENT_STATUS_COLOURS
   })
 })
@@ -5982,4 +5985,251 @@ router.post(PPV + '/preview', (req, res) => {
     id: version.id
   }
   res.redirect(PPV + '/history')
+})
+
+// --- Examination library (Publish plan versions) ---
+//
+// A second journey from the Publish plan versions landing page: the public examination library
+// for the submitted plan, built from the "Local Plan Examination Library" and "Inspector's report"
+// idea frames in `Figma screenshots/Versioning/`. It is static content from
+// app/data/examination-library.js, with no session state, and every download is inert.
+//
+// The aim is that readers can trust they're looking at the right version, so every item carries
+// a version line (reference · version · Current/Superseded · published), the library says when
+// it last changed and what, each item has a version page with its history and a superseded
+// warning on old versions, and links into other prototypes say which version they open.
+//   EXL                         - the library, with its search (_q) and the evidence filter (_eq, _etype)
+//   EXL/items/:ref              - an item's current version
+//   EXL/items/:ref/v/:version   - an earlier version, with the superseded warning
+//   EXL/inspectors-report       - the Inspector's report reading page (EX-01)
+
+const EXL = PPV + '/examination-library'
+const EX = require('./data/examination-library.js')
+
+// Policy and evidence records for the Evidence base section: the Housing chapter, which the
+// Examination – inspector view covers in full, and the evidence each policy already cites.
+function exlEvidenceRecords () {
+  const policies = Object.keys(POLICY_TEXT).map(ref => POLICIES.find(policy => policy.ref === ref)).filter(Boolean)
+  const evidence = []
+  for (const policy of policies) {
+    const sources = (POLICY_RESOURCES[policy.ref] && POLICY_RESOURCES[policy.ref].evidence) || policy.evidenceSources || []
+    for (const source of sources) {
+      let record = evidence.find(item => item.title === source.title)
+      if (!record) {
+        record = { kind: 'evidence', title: source.title, supports: [] }
+        evidence.push(record)
+      }
+      if (!record.supports.includes(policy.ref)) record.supports.push(policy.ref)
+    }
+  }
+  evidence.forEach((record, index) => {
+    record.ref = 'EB-' + String(index + 1).padStart(2, '0')
+    record.href = '/examination-inspector-view/paragraphs/' + record.supports[0].toLowerCase() + '-1'
+  })
+  const policyRecords = policies.map(policy => ({
+    kind: 'policy',
+    ref: policy.ref,
+    title: 'Policy ' + policy.ref + ': ' + policy.title,
+    summary: policy.summary,
+    href: '/examination-inspector-view/paragraphs/' + policy.ref.toLowerCase() + '-1',
+    related: evidence.filter(record => record.supports.includes(policy.ref))
+  }))
+  return policyRecords.concat(evidence)
+}
+
+function exlVersionView (item, version) {
+  const date = EX.formatDate(version.published)
+  return Object.assign({}, version, {
+    publishedLabel: date.short,
+    publishedLong: date.long,
+    current: version === EX.currentVersion(item),
+    // An item can describe its current version as something other than Current, as Modifications
+    // does ("In progress"). Earlier versions are always Superseded.
+    status: version === EX.currentVersion(item) ? (item.status || 'Current') : 'Superseded',
+    href: EXL + '/items/' + item.ref.toLowerCase() + (version === EX.currentVersion(item) ? '' : '/v/' + version.version)
+  })
+}
+
+// One row in the library.
+function exlItemView (item) {
+  const current = exlVersionView(item, EX.currentVersion(item))
+  const previous = item.versions[1] ? exlVersionView(item, item.versions[1]) : null
+  return {
+    ref: item.ref,
+    title: item.title,
+    kind: item.kind,
+    summary: item.summary,
+    section: item.section,
+    href: item.report ? EXL + '/inspectors-report' : current.href,
+    detailsHref: item.report ? EXL + '/inspectors-report#about' : current.href + '#about',
+    current,
+    previous,
+    pdfLabel: (item.pdfLabel || 'Download PDF') + ' · ' + item.ref + ' v' + current.version,
+    content: item.content,
+    listLink: item.listLink || null
+  }
+}
+
+// The policies map's layers, as examined, against what the GIS layer library holds now.
+function exlPinnedLayers (req, versionId) {
+  const examined = PV.getSeedVersion(versionId)
+  const live = getGisLayers(req)
+  return examined.layers.map(layer => {
+    const view = ppvLayerView(layer)
+    const inLibrary = live.find(candidate => candidate.id === layer.id)
+    const liveVersion = inLibrary ? glLayerView(inLibrary).current.version : null
+    return Object.assign(view, {
+      libraryHref: inLibrary ? '/evidence/gis-layers#layer-' + layer.id : null,
+      // A layer missing from the library isn't a mismatch: there's nothing newer to confuse it with.
+      libraryMatch: !inLibrary || liveVersion === layer.version,
+      libraryNote: !inLibrary
+        ? 'Not in the GIS layer library'
+        : liveVersion === layer.version
+          ? 'Same version in the GIS layer library'
+          : 'The GIS layer library holds v' + liveVersion + '. v' + layer.version + ' was examined'
+    })
+  })
+}
+
+function exlSidebar (extra) {
+  return [{
+    heading: extra ? 'Library' : 'On this page',
+    items: EX.SECTIONS.map(section => ({ text: section.title, href: EXL + '#' + section.id }))
+  }]
+}
+
+function renderExl (res, template, locals) {
+  res.render('project-management/publish-plan-versions/examination-library/' + template, Object.assign({
+    exl: EXL,
+    ppv: PPV,
+    planTitle: PV.PLAN_TITLE,
+    sidebarSections: exlSidebar(Boolean(locals.viewing))
+  }, locals))
+}
+
+function exlMatches (text, query) {
+  return text.toLowerCase().includes(query.toLowerCase())
+}
+
+router.get(EXL, (req, res) => {
+  const items = EX.allItems().map(exlItemView)
+  const records = exlEvidenceRecords()
+  const query = (req.query._q || '').trim()
+  const evidenceQuery = (req.query._eq || '').trim()
+  const evidenceType = ['policy', 'evidence'].includes(req.query._etype) ? req.query._etype : ''
+
+  const filteredRecords = records.filter(record =>
+    (!evidenceType || record.kind === evidenceType) &&
+    (!evidenceQuery || exlMatches(record.ref + ' ' + record.title + ' ' + (record.summary || ''), evidenceQuery)))
+  const evidenceFiltered = Boolean(evidenceQuery || evidenceType)
+
+  const results = query
+    ? items.filter(item => exlMatches([item.ref, item.title, item.kind, item.summary].join(' '), query))
+      .map(item => ({ ref: item.ref, title: item.title, href: item.href, meta: item.kind + ' · v' + item.current.version + ' · ' + item.section.title, summary: item.summary }))
+      .concat(records.filter(record => exlMatches(record.ref + ' ' + record.title + ' ' + (record.summary || ''), query))
+        .map(record => ({ ref: record.ref, title: record.title, href: record.href, meta: (record.kind === 'policy' ? 'Policy content' : 'Evidence document') + ' · v1.0 · Evidence base', summary: record.summary })))
+    : null
+
+  const lastUpdated = EX.lastUpdated()
+  renderExl(res, 'index', {
+    // Type-ahead suggestions: every item and evidence record, matched on its reference as well as
+    // its title, and opening its page when chosen.
+    searchTermsJson: JSON.stringify(items.map(item => ({
+      term: item.title,
+      search: item.ref + ' ' + item.title,
+      label: item.ref + ' · ' + item.kind,
+      href: item.href
+    })).concat(records.map(record => ({
+      term: record.title,
+      search: record.ref + ' ' + record.title,
+      label: record.ref + ' · ' + (record.kind === 'policy' ? 'Policy content' : 'Evidence document'),
+      href: record.href
+    })))),
+    sections: EX.SECTIONS.map(section => Object.assign({}, section, {
+      items: items.filter(item => item.section.id === section.id)
+    })),
+    banner: {
+      lastUpdated: EX.formatDate(lastUpdated).short,
+      since: EX.formatDate(EX.LIBRARY_PUBLISHED).short,
+      changes: EX.changesSince().map(change => ({
+        ref: change.item.ref,
+        title: change.item.title,
+        from: change.from.version,
+        to: change.to.version,
+        date: EX.formatDate(change.to.published).short,
+        href: EXL + '/items/' + change.item.ref.toLowerCase()
+      }))
+    },
+    libraryPublished: EX.formatDate(EX.LIBRARY_PUBLISHED).short,
+    query,
+    results,
+    evidence: {
+      query: evidenceQuery,
+      type: evidenceType,
+      filtered: evidenceFiltered,
+      total: records.length,
+      // Unfiltered, the section shows a few records, as the frame does, and links to the rest: a
+      // policy, a document supporting it, and the next policy.
+      records: evidenceFiltered ? filteredRecords : ['S3', 'EB-01', 'HS1'].map(ref => records.find(record => record.ref === ref)).filter(Boolean)
+    }
+  })
+})
+
+function exlItemPage (req, res, item, version) {
+  const view = exlItemView(item)
+  const viewed = exlVersionView(item, version)
+  const content = version.content || item.content
+  const locals = {
+    item: view,
+    viewed,
+    content,
+    links: item.links || [],
+    history: item.versions.map(v => exlVersionView(item, v)),
+    citation: EX.citation(item, version),
+    filename: EX.pdfFilename(item, version),
+    pdfLabel: (item.pdfLabel || 'Download PDF') + ' · ' + item.ref + ' v' + version.version,
+    viewing: { ref: item.ref, title: item.title, version: version.version, status: viewed.status }
+  }
+  if (content.type === 'planVersion') {
+    locals.planVersion = PV.getSeedVersion(content.versionId)
+    locals.planVersionHref = PPV + '/versions/' + content.versionId
+  }
+  if (content.type === 'layers') {
+    locals.planVersion = PV.getSeedVersion(content.versionId)
+    locals.layers = exlPinnedLayers(req, content.versionId)
+  }
+  if (content.type === 'compliance') {
+    locals.requirements = socRequirementRows(content.variant)
+    locals.statusColours = STATEMENT_STATUS_COLOURS
+  }
+  renderExl(res, 'item', locals)
+}
+
+router.get(EXL + '/items/:ref', (req, res) => {
+  const item = EX.getItem(req.params.ref)
+  if (!item) return res.redirect(EXL)
+  if (item.report) return res.redirect(EXL + '/inspectors-report')
+  exlItemPage(req, res, item, EX.currentVersion(item))
+})
+
+router.get(EXL + '/items/:ref/v/:version', (req, res) => {
+  const item = EX.getItem(req.params.ref)
+  if (!item) return res.redirect(EXL)
+  const version = item.versions.find(v => v.version === req.params.version)
+  if (!version) return res.redirect(EXL + '/items/' + item.ref.toLowerCase())
+  if (version === EX.currentVersion(item)) return res.redirect(EXL + '/items/' + item.ref.toLowerCase())
+  exlItemPage(req, res, item, version)
+})
+
+router.get(EXL + '/inspectors-report', (req, res) => {
+  const item = EX.getItem('EX-01')
+  const contents = [{ id: 'version-statement', heading: 'Version statement' }].concat(EX.REPORT.sections)
+  renderExl(res, 'report', {
+    report: EX.REPORT,
+    item: exlItemView(item),
+    filename: 'EX-01_inspectors-report_v' + EX.REPORT.version + '_TBC_example.pdf',
+    viewing: { ref: 'EX-01', title: 'Inspector’s report', version: EX.REPORT.version, current: true, note: 'Illustrative example' },
+    // The report's own contents replace the library sections in the sidebar.
+    sidebarSections: [{ heading: 'In this document', items: contents.map(section => ({ text: section.heading, href: '#' + section.id })) }]
+  })
 })

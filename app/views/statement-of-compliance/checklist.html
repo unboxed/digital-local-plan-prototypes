@@ -1,4 +1,5 @@
 {% extends "layouts/main.html" %}
+{% from "statement-of-compliance/partials/requirement-list.html" import socRequirementList %}
 
 {% set pageName = "Statement of compliance (" + (variant | capitalize) + ")" %}
 
@@ -23,21 +24,7 @@
     </p>
     {% endif %}
 
-    <ul class="govuk-list">
-      {% for requirement in requirements %}
-      <li class="govuk-!-margin-bottom-6">
-        <h2 class="govuk-heading-m govuk-!-margin-bottom-2">
-          <span class="govuk-!-font-weight-bold">{{ requirement.ref }}</span> {{ requirement.title }}
-        </h2>
-        <p class="govuk-body">
-          <strong class="govuk-tag{% if statusColours[requirement.status] %} govuk-tag--{{ statusColours[requirement.status] }}{% endif %}">{{ requirement.status }}</strong>
-        </p>
-        <p class="govuk-body">
-          <a class="govuk-link" href="{{ requirement.href }}">See evidence<span class="govuk-visually-hidden"> for {{ requirement.ref }}</span></a>
-        </p>
-      </li>
-      {% endfor %}
-    </ul>
+    {{ socRequirementList(requirements, statusColours) }}
 
   </div>
 </div>

@@ -494,7 +494,9 @@ the repo. Ask the user for them if you need to compare against the design.
   - `initSuggestSearch` (`data-dlp-suggest`) is a combobox over `getLibrarySearchTerms()`.
     Choosing a term submits the search form. A term may carry its own `label` (the GIS layer
     library's policy search uses "Chapter" and "Policy"); without one it reads "N sources" or
-    "Source".
+    "Source". A term may also carry `search`, extra text to match on, and `href`. Choosing a
+    term with an `href` opens that page instead of submitting. The Examination library's search
+    uses both, so typing a reference such as "EX-04" offers the item and choosing it opens it.
   - `initAutosubmit` (`data-dlp-autosubmit`) applies a filter as soon as it changes.
   - `initSelectAll` (`data-dlp-select-all`) adds the header checkbox, the "N selected" count and
     the disabled state of "Add selected sources".
@@ -750,6 +752,67 @@ internally for non-public review. The research question is where that sharing fi
   The sidebar has only
   version history and Share or publish. Preview and export is reached only from Share or publish,
   so that item stays current on the preview.
+
+### Examination library
+
+`/project-management/publish-plan-versions/examination-library` is the second journey from the
+Publish plan versions landing page. It is built from the rough idea frames "Local Plan
+Examination Library" and "Inspector's report — illustrative reading page" in the same folder.
+It is the public site for the examination, read by the inspector, participants and the public.
+**Its aim is that readers can be sure they're looking at the right version of each item.**
+
+- **External reader, so an external header.** `partials/library-layout.html` overrides `header`
+  **without `super()`** and shows `appExternalHeader`, for the same reason as the commissioned
+  evidence consultant screens: the URL is under `/project-management`, so `super()` would bring
+  back the internal nav. The sidebar is wrapped in `.dlp-exl-sidebar`, which takes the side
+  navigation's full-height background. Without that, the side navigation's `min-height: 100%`
+  pushes the "Viewing …" block below it off screen.
+- **Static, no session state.** Content is in `app/data/examination-library.js`: five sections
+  of items `{ref, title, kind, summary, content, links?, versions}`, with versions newest first,
+  and a version's own `content` overriding the item's. Downloads are inert.
+- **The four version-confidence ideas.** Keep them consistent if items are added:
+  1. **Version line:** every row shows reference · kind · version · status tag · published,
+     with "Replaces vX" linking to the old version. The download label names the version.
+     - **Kinds:** "Live content" (anything maintained in the system rather than uploaded),
+       "Document", "GIS content".
+     - **Status:** a current version is "Current" unless the item sets `status`. EX-02
+       Modifications is "In progress", GOV.UK's default blue tag. Earlier versions are always
+       "Superseded".
+  2. **Change banner:** "Library last updated …" lists every item whose current version is
+     newer than `LIBRARY_PUBLISHED` (`changesSince`).
+  3. **Version page per item:** `/items/:ref` for the current version and `/items/:ref/v/:version`
+     for old ones, which show a "Superseded version" banner linking to the current one. Each has
+     an About this version aside with the history, a citation, and the version-stamped filename
+     and PDF stamp. EX-04 and CS-03 are the superseded examples.
+  4. **Version-pinned links:**
+     - **LP-01** shows the `examination` version's content and links to it in the version
+       history.
+     - **LP-02** lists that version's layers, through `PV.getSeedVersion`, which reads the seed
+       rather than session data so a reset or a new publish can't change what was examined. It
+       compares each with the shared GIS layer library (`exlPinnedLayers`): "Not the examined
+       version" when the library holds a different one, and a link to `/evidence/gis-layers#layer-<id>`.
+- **Dates are aligned with the version history:** the library is published 3 Oct 2025, 16:45, the
+  same time as "Examination: proposed local plan". The report's front matter is aligned to it.
+- **Evidence base records are derived**, from `POLICY_TEXT`'s policies (S3 and HS1 to HS8, which
+  the Examination – inspector view covers in full) and the evidence each already lists. Each links
+  to its `/examination-inspector-view/paragraphs/<ref>-1` page, and the section links to the
+  examination view itself. Unfiltered, it shows S3, EB-01 and HS1. The library search (`_q`) and
+  the evidence filter (`_eq`, `_etype`) are plain GET forms.
+- **Other cross-links:**
+  - LP-05 and "View all consultation representations" go to `/consultations/managing-responses/inspector`
+  - CS-01 shows the Statement of compliance prototype's completed statement in its record page,
+    with the version details beside it. The list is `statement-of-compliance/partials/requirement-list.html`
+    (`socRequirementList`), built from `socRequirementRows(variant)` and shared with the checklist,
+    so the two can't drift. Each "See evidence" opens that prototype's requirement page.
+- **The library search has type-ahead:** `initSuggestSearch` is fed every item and evidence
+  record, each with its `href`, so choosing a suggestion opens it. Without JavaScript, or on
+  Enter, `_q` runs the full search.
+  - PA-01 Timetable goes to `/project-management/make-your-plan/timetable-placeholder`, like every
+    other timetable link in Make your plan. It is shown on its library row through the item's
+    `listLink`, as well as on its record page. The frame's timeline illustration was removed by
+    request.
+- **The Inspector's report (EX-01) is an illustrative reading sample** at `/inspectors-report`,
+  with the frame's caveats. `/items/ex-01` redirects to it.
 
 ## GIS layers
 

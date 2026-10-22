@@ -2213,9 +2213,15 @@ function initSuggestSearch (root) {
     }
   }
 
-  function choose (term) {
+  // A term with an `href` (the examination library's items) goes straight to its page; any other
+  // term fills the box and runs the search.
+  function choose (term, href) {
     input.value = term
     close()
+    if (href) {
+      window.location.href = href
+      return
+    }
     if (input.form) {
       if (input.form.requestSubmit) input.form.requestSubmit()
       else input.form.submit()
@@ -2224,10 +2230,11 @@ function initSuggestSearch (root) {
 
   // Matches anywhere in the term, but terms starting with what was typed come first, then
   // topics before individual sources, so "hous" offers "housing" before a document title.
+  // A term may carry `search`, extra text to match on (an item's reference as well as its title).
   function matchesFor (typed) {
     const query = typed.toLowerCase()
     return terms
-      .filter(option => option.term.toLowerCase().includes(query))
+      .filter(option => (option.search || option.term).toLowerCase().includes(query))
       .sort((a, b) => {
         const aStarts = a.term.toLowerCase().startsWith(query) ? 0 : 1
         const bStarts = b.term.toLowerCase().startsWith(query) ? 0 : 1
@@ -2280,10 +2287,10 @@ function initSuggestSearch (root) {
       // list out from under the pointer.
       item.addEventListener('mousedown', event => {
         event.preventDefault()
-        choose(match.term)
+        choose(match.term, match.href)
       })
       list.appendChild(item)
-      return { element: item, term: match.term }
+      return { element: item, term: match.term, href: match.href }
     })
 
     list.hidden = false
@@ -2308,7 +2315,7 @@ function initSuggestSearch (root) {
       // was typed, as a plain search box would.
       if (active >= 0) {
         event.preventDefault()
-        choose(options[active].term)
+        choose(options[active].term, options[active].href)
       }
     } else if (event.key === 'Escape') {
       if (!list.hidden) {

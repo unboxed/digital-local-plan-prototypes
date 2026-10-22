@@ -1,0 +1,67 @@
+{% extends "project-management/publish-plan-versions/partials/library-layout.html" %}
+{% from "project-management/publish-plan-versions/partials/library-macros.html" import versionStamp %}
+
+{% set pageName = report.title %}
+{% set backLink = { href: exl + "#examination-documents", text: "Back to Local Plan Examination Library" } %}
+
+{% block main %}
+<span class="govuk-caption-m">{{ planTitle }}</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-3">{{ report.title }}</h1>
+<ul class="govuk-list dlp-exl-muted">
+  {% for line in report.frontMatter %}<li>{{ line }}</li>{% endfor %}
+</ul>
+<p class="govuk-body dlp-exl-version-line">
+  <strong class="govuk-tag govuk-tag--grey dlp-exl-tag">Illustrative example</strong>
+  <span>EX-01 · Version {{ report.version }} · Publication date and time to be confirmed</span>
+</p>
+
+<div class="dlp-exl-caveat">
+  <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Illustrative sample content — not an issued Inspector’s report</p>
+  <p class="govuk-body-s govuk-!-margin-bottom-0">The text below is solely a reading-layout demonstration of how the Inspector’s report (EX-01) would be presented. No findings, decisions, approval or soundness conclusion are represented as issued.</p>
+</div>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds-from-desktop dlp-exl-reading">
+    <h2 class="govuk-heading-l" id="version-statement">Version statement</h2>
+    <div class="govuk-inset-text">
+      This is an illustrative example, not a live release or an issued report. You are viewing EX-01, version {{ report.version }}, with the front-matter details shown above. The publication date and time are to be confirmed and the PDF snapshot will repeat the same version stamp. Its content remains a demonstration only; it does not update automatically.
+    </div>
+
+    <p class="govuk-body-s govuk-!-font-weight-bold dlp-exl-muted">ILLUSTRATIVE SAMPLE · FULL TEXT</p>
+
+    {% for section in report.sections %}
+    <h2 class="govuk-heading-l govuk-!-margin-top-6" id="{{ section.id }}">{{ section.heading }}</h2>
+    {% set number = loop.index %}
+    {% for paragraph in section.paragraphs %}
+    <p class="govuk-body"><span class="dlp-ppv-paragraph__number">{{ number }}.{{ loop.index }}</span> {{ paragraph }}</p>
+    {% endfor %}
+    {% endfor %}
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+    <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">Prepared for the Digital Local Plan prototypes</p>
+    <p class="govuk-body-s dlp-exl-muted">Demonstration text only. Not authored or signed by an Inspector. End of illustrative sample · EX-01 · Version {{ report.version }}</p>
+    <p class="govuk-body"><a class="govuk-link" href="#version-statement">Back to contents</a> · <a class="govuk-link" href="{{ exl }}#examination-documents">Back to examination library</a></p>
+  </div>
+
+  <aside class="govuk-grid-column-one-third-from-desktop" aria-labelledby="about">
+    <div class="dlp-exl-about">
+      <h2 class="govuk-heading-m" id="about">About this version</h2>
+      <dl class="dlp-exl-about__list">
+        <dt>Reference</dt><dd>EX-01</dd>
+        <dt>Version</dt><dd>{{ report.version }} · Example</dd>
+        <dt>Published</dt><dd>{{ report.published }}</dd>
+        <dt>Content</dt><dd>Illustrative sample text</dd>
+      </dl>
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Version note</h3>
+      <p class="govuk-body-s">{{ report.note }}</p>
+
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-2">Download this version</h3>
+      <a class="govuk-button govuk-button--secondary dlp-exl-full-width govuk-!-margin-bottom-2" data-module="govuk-button" href="#" aria-disabled="true">Download PDF · EX-01 v{{ report.version }}<span class="govuk-visually-hidden"> (prototype: no file)</span></a>
+      <p class="govuk-body-s dlp-exl-muted">Full illustrative text · version-stamped PDF snapshot. Same reference, version and publication metadata as this page.</p>
+      <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Example filename</p>
+      <p class="govuk-body-s dlp-exl-muted dlp-exl-break">{{ filename }}</p>
+    </div>
+    {{ versionStamp("EX-01", report.version, "to be confirmed", "Illustrative example · not an issued report") }}
+  </aside>
+</div>
+{% endblock %}

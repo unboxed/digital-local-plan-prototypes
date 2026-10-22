@@ -242,6 +242,12 @@ function startingState () {
   }
 }
 
+// A seeded version as published, for the Examination library to pin to. It reads the seed rather
+// than session data, so a tester resetting or publishing can't change what was examined.
+function getSeedVersion (id) {
+  return SEED_VERSIONS.find(version => version.id === id) || null
+}
+
 function getChapter (id) {
   return CHAPTERS.find(chapter => chapter.id === id) || null
 }
@@ -254,5 +260,6 @@ module.exports = {
   MILESTONES,
   draftContent,
   startingState,
-  getChapter
+  getChapter,
+  getSeedVersion
 }

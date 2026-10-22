@@ -1,0 +1,53 @@
+{#
+  Shell for the Examination library. It is a public site, read by the inspector, participants
+  and the public, so it shows the external header rather than the service header. The `header`
+  block is overridden WITHOUT super() on purpose: the URLs sit under /project-management, so
+  `activeSection` is set and super() would bring the internal nav back.
+
+  Children fill `main`. `viewing` ({ ref, title, version, current, note? }) adds a block under the
+  sidebar saying which version is on screen; `breadcrumbs` adds breadcrumbs above the page.
+#}
+{% extends "layouts/main-with-sidebar.html" %}
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
+{% from "govuk/components/breadcrumbs/macro.njk" import govukBreadcrumbs %}
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+
+{% block header %}
+  {{ appExternalHeader({ organisationName: organisationName, title: "Local Plan Examination Library" }) }}
+  {{ govukPhaseBanner({
+    tag: { text: "Prototype" },
+    text: "This is a prototype – it is not a live service. Do not enter live data or use it to support a live service"
+  }) }}
+{% endblock %}
+
+{% block sideNavigation %}
+  {# One surface: the navigation, then which version is on screen. The wrapper takes the
+     navigation's full-height background, which would otherwise push this block off screen. #}
+  <div class="dlp-exl-sidebar">
+  {{ appSideNavigation({ title: planTitle, sections: sidebarSections, ariaLabel: "Examination library" }) }}
+  {% if viewing %}
+  <div class="dlp-exl-viewing">
+    <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Viewing {{ viewing.ref }}</p>
+    <p class="govuk-body-s govuk-!-margin-bottom-1">{{ viewing.title }}</p>
+    <p class="govuk-body-s govuk-!-margin-bottom-2">
+      Version {{ viewing.version }} ·
+      {{ viewing.note or viewing.status }}
+    </p>
+    <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link" href="{{ exl }}">Back to examination library</a></p>
+  </div>
+  {% endif %}
+  </div>
+{% endblock %}
+
+{% block content %}
+<div class="dlp-exl">
+  {% if breadcrumbs %}
+    {{ govukBreadcrumbs({ items: breadcrumbs, classes: "govuk-!-margin-top-0" }) }}
+  {% elif backLink %}
+    {{ govukBackLink({ href: backLink.href, text: backLink.text, classes: "govuk-!-margin-top-0" }) }}
+  {% endif %}
+  {% block main %}{% endblock %}
+</div>
+{% endblock %}

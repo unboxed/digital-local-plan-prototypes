@@ -1,0 +1,166 @@
+{% extends "project-management/publish-plan-versions/partials/library-layout.html" %}
+{% from "project-management/publish-plan-versions/partials/library-macros.html" import itemRow %}
+
+{% set pageName = "Local Plan Examination Library" %}
+{% set breadcrumbs = [
+  { text: "Publish plan versions", href: ppv },
+  { text: "Examination library" }
+] %}
+
+{% macro sectionHeading(section) %}
+  <h2 class="govuk-heading-l govuk-!-margin-bottom-2" id="{{ section.id }}">{{ section.title }}</h2>
+  <p class="govuk-body dlp-exl-muted">{{ section.intro }}</p>
+{% endmacro %}
+
+{% block main %}
+<span class="govuk-caption-m">{{ planTitle }}</span>
+{# The caption sits above both columns, so the update box's top edge lines up with the title. #}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds-from-desktop">
+    <h1 class="govuk-heading-xl govuk-!-margin-bottom-3">Local Plan Examination Library</h1>
+    <p class="govuk-body-l">Search and find information relating to the development of the City Plan 2040. Any documents produced during the Examination in Public can be found here. While the Examination is running this page will be continually updated with the latest versions of each item.</p>
+
+    <div class="dlp-exl-caveat">
+      <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Illustrative library — not a live examination record</p>
+      <p class="govuk-body-s govuk-!-margin-bottom-0">All records, versions and dates below are examples. No reports, findings or decisions are represented as issued.</p>
+    </div>
+
+    <form method="get" action="{{ exl }}" novalidate class="dlp-exl-search" role="search">
+      <div class="govuk-form-group govuk-!-margin-bottom-0">
+        <h2 class="govuk-label-wrapper">
+          <label class="govuk-label govuk-label--m" for="library-search">Search examination library</label>
+        </h2>
+        <div class="govuk-hint" id="library-search-hint">Enter a title, reference, policy title or keyword.</div>
+        <div class="dlp-exl-search__row">
+          {# Type-ahead: initSuggestSearch offers matching items as you type; choosing one opens it.
+             Without JavaScript, or on Enter, the form runs the full search. #}
+          <div class="dlp-suggest dlp-exl-search__suggest" data-dlp-suggest data-dlp-suggest-source="#library-search-terms">
+            <input class="govuk-input" id="library-search" name="_q" type="search" value="{{ query }}"
+                   autocomplete="off" spellcheck="false"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false"
+                   aria-controls="library-search-suggestions" aria-describedby="library-search-hint"
+                   placeholder="For example, hearings or LP-01" data-dlp-suggest-input>
+            <ul class="dlp-typeahead dlp-suggest__list" id="library-search-suggestions" role="listbox"
+                aria-label="Suggested matches" data-dlp-suggest-list hidden></ul>
+            <p class="govuk-visually-hidden" role="status" aria-live="polite" data-dlp-suggest-status></p>
+          </div>
+          <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">Search library</button>
+        </div>
+      </div>
+    </form>
+    <script type="application/json" id="library-search-terms">{{ searchTermsJson | safe }}</script>
+  </div>
+  <div class="govuk-grid-column-one-third-from-desktop">
+    {# Library as at: when it last changed, and what. #}
+    <div class="dlp-exl-banner" role="region" aria-labelledby="library-updated">
+      <h2 class="govuk-heading-s govuk-!-margin-bottom-1" id="library-updated">Library last updated {{ banner.lastUpdated }}</h2>
+      {% if banner.changes.length %}
+      <p class="govuk-body-s govuk-!-margin-bottom-2">{{ banner.changes.length }} item{% if banner.changes.length != 1 %}s{% endif %} updated since the library was published on {{ banner.since }}:</p>
+      <ul class="govuk-list govuk-list--bullet govuk-body-s govuk-!-margin-bottom-0">
+        {% for change in banner.changes %}
+        <li><a class="govuk-link" href="{{ change.href }}">{{ change.ref }} {{ change.title }}</a>: v{{ change.from }} → v{{ change.to }}, {{ change.date }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="govuk-body-s govuk-!-margin-bottom-0">Nothing has changed since the library was published on {{ banner.since }}.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if results %}
+<section class="dlp-exl-section" aria-labelledby="results-heading">
+  <h2 class="govuk-heading-l govuk-!-margin-bottom-2" id="results-heading">{{ results.length }} result{% if results.length != 1 %}s{% endif %} for ‘{{ query }}’</h2>
+  <p class="govuk-body"><a class="govuk-link" href="{{ exl }}">Clear search and show the whole library</a></p>
+  {% if results.length %}
+  <ul class="govuk-list dlp-exl-rows">
+    {% for result in results %}
+    <li class="dlp-exl-row">
+      <div class="dlp-exl-row__main">
+        <h3 class="govuk-heading-s govuk-!-margin-bottom-1"><a class="govuk-link" href="{{ result.href }}">{{ result.title }}</a></h3>
+        <p class="govuk-body-s govuk-!-margin-bottom-1"><span class="govuk-!-font-weight-bold">{{ result.ref }}</span> · {{ result.meta }}</p>
+        {% if result.summary %}<p class="govuk-body-s dlp-exl-muted govuk-!-margin-bottom-0">{{ result.summary }}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="govuk-body">Try a different word, or a reference such as EX-04 or LP-02.</p>
+  {% endif %}
+</section>
+{% else %}
+
+{% for section in sections %}
+<section class="dlp-exl-section" aria-labelledby="{{ section.id }}">
+  {{ sectionHeading(section) }}
+
+  {% if section.id == "evidence-base" %}
+    <form method="get" action="{{ exl }}#evidence-base" novalidate class="dlp-exl-evidence-search">
+      <div class="govuk-form-group govuk-!-margin-bottom-0">
+        <label class="govuk-label govuk-label--s" for="evidence-search">Search all policies and evidence</label>
+        <div class="dlp-exl-search__row">
+          <input class="govuk-input" id="evidence-search" name="_eq" type="search" value="{{ evidence.query }}" placeholder="Policy reference or keyword">
+          <label class="govuk-visually-hidden" for="evidence-type">Record type</label>
+          <select class="govuk-select" id="evidence-type" name="_etype">
+            <option value="" {%- if not evidence.type %} selected{% endif %}>All record types</option>
+            <option value="policy" {%- if evidence.type == "policy" %} selected{% endif %}>Policies</option>
+            <option value="evidence" {%- if evidence.type == "evidence" %} selected{% endif %}>Evidence documents</option>
+          </select>
+          <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">Search database</button>
+        </div>
+      </div>
+    </form>
+
+    <p class="govuk-body-s dlp-exl-muted">
+      {% if evidence.filtered %}
+        Showing {{ evidence.records.length }} of {{ evidence.total }} records. <a class="govuk-link" href="{{ exl }}#evidence-base">Clear</a>
+      {% else %}
+        Showing {{ evidence.records.length }} of {{ evidence.total }} records · Policies and related evidence
+      {% endif %}
+    </p>
+
+    <ul class="govuk-list dlp-exl-rows">
+      {% for record in evidence.records %}
+      <li class="dlp-exl-row">
+        <div class="dlp-exl-row__main">
+          <h3 class="govuk-heading-s govuk-!-margin-bottom-1"><a class="govuk-link" href="{{ record.href }}">{{ record.title }}</a></h3>
+          <p class="govuk-body-s govuk-!-margin-bottom-1 dlp-exl-version-line">
+            <span class="govuk-!-font-weight-bold">{{ record.ref }}</span>
+            <span>{{ "Policy content" if record.kind == "policy" else "Evidence document" }}</span>
+            <span>v1.0</span>
+            <strong class="govuk-tag govuk-tag--green dlp-exl-tag">Current</strong>
+            <span>Published {{ libraryPublished }}</span>
+          </p>
+          {% if record.kind == "policy" %}
+          <p class="govuk-body-s dlp-exl-muted govuk-!-margin-bottom-0">
+            Related evidence:
+            {% for related in record.related %}{{ related.ref }} {{ related.title }}{% if not loop.last %}; {% endif %}{% else %}none listed{% endfor %}
+          </p>
+          {% else %}
+          <p class="govuk-body-s dlp-exl-muted govuk-!-margin-bottom-0">Supports {{ "policy" if record.supports.length == 1 else "policies" }} {{ record.supports | join(", ") }}</p>
+          {% endif %}
+          <p class="govuk-body-s dlp-exl-muted govuk-!-margin-top-1 govuk-!-margin-bottom-0">Opens in the Examination – inspector view, policy text as submitted (v1.0).</p>
+        </div>
+        <ul class="govuk-list govuk-body-s dlp-exl-row__links">
+          <li><a class="govuk-link" href="#" aria-disabled="true">Download PDF · {{ record.ref }} v1.0<span class="govuk-visually-hidden"> (prototype: no file)</span></a></li>
+        </ul>
+      </li>
+      {% else %}
+      <li class="govuk-body">No policies or evidence match. Try a policy reference such as HS1.</li>
+      {% endfor %}
+    </ul>
+    <p class="govuk-body"><a class="govuk-link" href="/examination-inspector-view">Browse all policies and related evidence</a></p>
+  {% else %}
+    <ul class="govuk-list dlp-exl-rows">
+      {% for item in section.items %}{{ itemRow(item) }}{% endfor %}
+    </ul>
+    {% if section.id == "local-plan" %}
+    <p class="govuk-body govuk-!-margin-bottom-1"><a class="govuk-link" href="/consultations/managing-responses/inspector">View all consultation representations</a></p>
+    <p class="govuk-body-s dlp-exl-muted">Browse the consultation record and individual representation version details and PDF exports.</p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endfor %}
+
+{% endif %}
+{% endblock %}

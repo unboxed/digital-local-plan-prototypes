@@ -205,3 +205,215 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
     outline: $govuk-focus-width solid $govuk-focus-colour;
   }
 }
+
+// Examination library (/project-management/publish-plan-versions/examination-library).
+// Classes are dlp-exl-*. Everything is built to say which version is on screen.
+
+.dlp-exl {
+  max-width: $govuk-page-width;
+}
+
+.dlp-exl-measure {
+  max-width: 46em;
+}
+
+.dlp-exl-muted {
+  color: $dlp-muted-text;
+}
+
+.dlp-exl-full-width {
+  text-align: center;
+  width: 100%;
+}
+
+.dlp-exl-break {
+  overflow-wrap: anywhere;
+}
+
+.dlp-exl-tag {
+  font-size: 1rem;
+  padding: 0 govuk-spacing(1);
+}
+
+// The line every item shares: reference · kind · version · status · published.
+.dlp-exl-version-line {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1) govuk-spacing(2);
+
+  > span + span::before {
+    color: $dlp-muted-text;
+    content: "·";
+    margin-right: govuk-spacing(2);
+  }
+}
+
+.dlp-exl-caveat {
+  background-color: govuk-colour("black", $variant: "tint-95");
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(3);
+}
+
+// Library as at: when it last changed, and what.
+.dlp-exl-banner {
+  border: 1px solid $dlp-border-grey;
+  border-left: 5px solid govuk-colour("blue");
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+.dlp-exl-search {
+  margin-bottom: govuk-spacing(4);
+}
+
+.dlp-exl-search__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+
+  .govuk-input {
+    flex: 1 1 16rem;
+  }
+
+  // The type-ahead wraps the library search box, so the wrapper takes the space instead.
+  .dlp-exl-search__suggest {
+    flex: 1 1 16rem;
+
+    .govuk-input {
+      width: 100%;
+    }
+  }
+
+  .govuk-select,
+  .govuk-button {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-exl-evidence-search {
+  background-color: govuk-colour("black", $variant: "tint-95");
+  margin-bottom: govuk-spacing(3);
+  padding: govuk-spacing(3);
+}
+
+.dlp-exl-section {
+  border-top: 1px solid $dlp-border-grey;
+  margin-top: govuk-spacing(6);
+  padding-top: govuk-spacing(6);
+}
+
+// One item: details on the left, the version-named download and version details on the right.
+.dlp-exl-rows {
+  border-top: 1px solid $dlp-border-grey;
+}
+
+.dlp-exl-row {
+  border-bottom: 1px solid $dlp-border-grey;
+  display: grid;
+  gap: govuk-spacing(2) govuk-spacing(4);
+  margin-bottom: 0;
+  padding: govuk-spacing(3) 0;
+
+  @include govuk-media-query($from: tablet) {
+    grid-template-columns: minmax(0, 1fr) 15rem;
+  }
+}
+
+.dlp-exl-row__links {
+  margin-bottom: 0;
+
+  li {
+    margin-bottom: govuk-spacing(1);
+  }
+}
+
+// Which version the sidebar says is on screen, on the same surface as the navigation above it.
+.dlp-exl-sidebar {
+  background-color: govuk-colour("black", $variant: "tint-95");
+
+  @include govuk-media-query($from: tablet) {
+    min-height: 100%;
+  }
+
+  .app-side-navigation {
+    min-height: 0;
+  }
+}
+
+.dlp-exl-viewing {
+  border-top: 1px solid $dlp-border-grey;
+  margin: 0 govuk-spacing(4) govuk-spacing(4);
+  padding-top: govuk-spacing(3);
+}
+
+// About this version.
+.dlp-exl-about {
+  border-top: 5px solid govuk-colour("blue");
+  margin-bottom: govuk-spacing(4);
+  padding-top: govuk-spacing(3);
+}
+
+.dlp-exl-about__list {
+  @include govuk-font($size: 16);
+  display: grid;
+  gap: govuk-spacing(2) govuk-spacing(3);
+  grid-template-columns: max-content minmax(0, 1fr);
+  margin: 0 0 govuk-spacing(4);
+
+  dt {
+    font-weight: $govuk-font-weight-bold;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.dlp-exl-history {
+  border-left: 2px solid $dlp-border-grey;
+  padding-left: govuk-spacing(3);
+}
+
+.dlp-exl-history__entry {
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-exl-history__entry--viewing {
+  border-left: 4px solid govuk-colour("blue");
+  margin-left: calc(-1 * (#{govuk-spacing(3)} + 3px));
+  padding-left: govuk-spacing(3) - 1px;
+}
+
+.dlp-exl-citation {
+  background-color: govuk-colour("black", $variant: "tint-95");
+  padding: govuk-spacing(2);
+}
+
+// The stamp every PDF carries.
+.dlp-exl-stamp {
+  background-color: govuk-colour("blue", $variant: "tint-95");
+  border: 1px solid $dlp-border-grey;
+  margin-top: govuk-spacing(6);
+  padding: govuk-spacing(3);
+}
+
+.dlp-exl-stamp__label {
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.dlp-exl-register li {
+  border-bottom: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(2) 0;
+}
+
+// A policies map layer whose examined version differs from the GIS layer library's.
+.dlp-exl-layer-mismatch {
+  border-left: 4px solid govuk-colour("orange");
+  padding-left: govuk-spacing(2);
+}
+
+.dlp-exl-reading {
+  max-width: 40em;
+}
