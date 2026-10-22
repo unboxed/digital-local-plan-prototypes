@@ -6154,10 +6154,11 @@ router.get(EXL, (req, res) => {
       changes: EX.changesSince().map(change => ({
         ref: change.item.ref,
         title: change.item.title,
-        from: change.from.version,
+        // A newly published item has no earlier version.
+        from: change.from ? change.from.version : null,
         to: change.to.version,
         date: EX.formatDate(change.to.published).short,
-        href: EXL + '/items/' + change.item.ref.toLowerCase()
+        href: change.item.report ? EXL + '/inspectors-report' : EXL + '/items/' + change.item.ref.toLowerCase()
       }))
     },
     libraryPublished: EX.formatDate(EX.LIBRARY_PUBLISHED).short,
@@ -6223,13 +6224,16 @@ router.get(EXL + '/items/:ref/v/:version', (req, res) => {
 
 router.get(EXL + '/inspectors-report', (req, res) => {
   const item = EX.getItem('EX-01')
-  const contents = [{ id: 'version-statement', heading: 'Version statement' }].concat(EX.REPORT.sections)
+  const version = EX.currentVersion(item)
+  const published = exlVersionView(item, version)
   renderExl(res, 'report', {
     report: EX.REPORT,
     item: exlItemView(item),
-    filename: 'EX-01_inspectors-report_v' + EX.REPORT.version + '_TBC_example.pdf',
-    viewing: { ref: 'EX-01', title: 'Inspector’s report', version: EX.REPORT.version, current: true, note: 'Illustrative example' },
+    published,
+    citation: EX.citation(item, version),
+    filename: EX.pdfFilename(item, version),
+    viewing: { ref: item.ref, title: item.title, version: version.version, status: published.status },
     // The report's own contents replace the library sections in the sidebar.
-    sidebarSections: [{ heading: 'In this document', items: contents.map(section => ({ text: section.heading, href: '#' + section.id })) }]
+    sidebarSections: [{ heading: 'In this report', items: EX.REPORT.sections.map(section => ({ text: section.heading, href: '#' + section.id })) }]
   })
 })

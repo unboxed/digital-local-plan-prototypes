@@ -811,8 +811,28 @@ It is the public site for the examination, read by the inspector, participants a
     other timetable link in Make your plan. It is shown on its library row through the item's
     `listLink`, as well as on its record page. The frame's timeline illustration was removed by
     request.
-- **The Inspector's report (EX-01) is an illustrative reading sample** at `/inspectors-report`,
-  with the frame's caveats. `/items/ex-01` redirects to it.
+- **The Inspector's report (EX-01) is modelled on the real published report** on the City Plan
+  2040 (`REPORT.sourceUrl`). It is at `/inspectors-report`, and `/items/ex-01` redirects to it.
+  It is presented as a submitted document, titled "Report to the City of London Corporation from
+  the Planning Inspectorate", so it has no version statement.
+  - **Modelled on the real report:** the structure, paragraph numbers and substance. The wording
+    is summarised and only some sections are shown, with the left-out paragraphs named.
+  - **Invented, by request:** the Inspectors' names (Sarah Mitchell, as in the evidence
+    prototype's hearing transcript, and Tom Asante), the dates, the file reference and the
+    document references. The references are the library's own refs (LP-01 to LP-05).
+  - **Dates follow the prototype, not the real report:** submitted 3 Oct 2025 with the
+    library, hearings 14 to 16 Oct 2025 as in EX-04, and the report dated and published
+    12 Dec 2025, 10:00, after the six weeks' consultation on the main modifications it
+    describes.
+  - **No prototype note, by request.** The page reads as the submitted document. The real
+    report's URL is kept in the data (`REPORT.sourceUrl`) as a record of the source, and isn't
+    shown. The sidebar heading is "In this report".
+- **Dates and times everywhere.** A published item shows its date and time wherever it's
+  identified: the version line, About this version, the citation ("published … at 09:00"), the
+  PDF filename and the version stamp. `formatDate` returns `short`, `long`, `longTime`, `time`
+  and `stamp` for that.
+  - The report is the latest change in the library, so the change banner handles a newly
+    published item, which has no `from` version.
 
 ## GIS layers
 

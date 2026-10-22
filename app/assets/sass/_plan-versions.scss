@@ -417,3 +417,12 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
 .dlp-exl-reading {
   max-width: 40em;
 }
+
+// The Inspector's report: its title-page front matter.
+.dlp-exl-front-matter {
+  border-left: 5px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(4);
+  max-width: 46em;
+  padding-left: govuk-spacing(3);
+}
+

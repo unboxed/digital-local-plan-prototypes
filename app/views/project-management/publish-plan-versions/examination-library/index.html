@@ -22,7 +22,7 @@
 
     <div class="dlp-exl-caveat">
       <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Illustrative library — not a live examination record</p>
-      <p class="govuk-body-s govuk-!-margin-bottom-0">All records, versions and dates below are examples. No reports, findings or decisions are represented as issued.</p>
+      <p class="govuk-body-s govuk-!-margin-bottom-0">All records, names, versions and dates below are examples.</p>
     </div>
 
     <form method="get" action="{{ exl }}" novalidate class="dlp-exl-search" role="search">
@@ -55,10 +55,10 @@
     <div class="dlp-exl-banner" role="region" aria-labelledby="library-updated">
       <h2 class="govuk-heading-s govuk-!-margin-bottom-1" id="library-updated">Library last updated {{ banner.lastUpdated }}</h2>
       {% if banner.changes.length %}
-      <p class="govuk-body-s govuk-!-margin-bottom-2">{{ banner.changes.length }} item{% if banner.changes.length != 1 %}s{% endif %} updated since the library was published on {{ banner.since }}:</p>
+      <p class="govuk-body-s govuk-!-margin-bottom-2">{{ banner.changes.length }} item{% if banner.changes.length != 1 %}s{% endif %} added or updated since the library was published on {{ banner.since }}:</p>
       <ul class="govuk-list govuk-list--bullet govuk-body-s govuk-!-margin-bottom-0">
         {% for change in banner.changes %}
-        <li><a class="govuk-link" href="{{ change.href }}">{{ change.ref }} {{ change.title }}</a>: v{{ change.from }} → v{{ change.to }}, {{ change.date }}</li>
+        <li><a class="govuk-link" href="{{ change.href }}">{{ change.ref }} {{ change.title }}</a>: {% if change.from %}v{{ change.from }} → v{{ change.to }}{% else %}v{{ change.to }} published{% endif %}, {{ change.date }}</li>
         {% endfor %}
       </ul>
       {% else %}

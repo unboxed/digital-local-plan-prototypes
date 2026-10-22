@@ -1,46 +1,57 @@
 {% extends "project-management/publish-plan-versions/partials/library-layout.html" %}
-{% from "project-management/publish-plan-versions/partials/library-macros.html" import versionStamp %}
+{% from "project-management/publish-plan-versions/partials/library-macros.html" import statusTag, versionStamp %}
 
 {% set pageName = report.title %}
 {% set backLink = { href: exl + "#examination-documents", text: "Back to Local Plan Examination Library" } %}
 
 {% block main %}
-<span class="govuk-caption-m">{{ planTitle }}</span>
+<span class="govuk-caption-m">{{ planTitle }} · EX-01</span>
 <h1 class="govuk-heading-xl govuk-!-margin-bottom-3">{{ report.title }}</h1>
-<ul class="govuk-list dlp-exl-muted">
-  {% for line in report.frontMatter %}<li>{{ line }}</li>{% endfor %}
-</ul>
+
+{# Front matter, as on the report's title page. #}
+<div class="dlp-exl-front-matter">
+  <p class="govuk-body govuk-!-margin-bottom-1">by {{ report.authors | join(" and ") }}</p>
+  <p class="govuk-body">{{ report.appointment }}</p>
+  <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">Date: {{ report.date }}</p>
+  <p class="govuk-body-s dlp-exl-muted">{{ report.legislation }}</p>
+  <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ report.subtitle }}</p>
+  <ul class="govuk-list govuk-body-s dlp-exl-muted">
+    <li>The Plan was submitted for examination on {{ report.submitted }}</li>
+    <li>The examination hearings were held between {{ report.hearings }}</li>
+    <li>File Ref: {{ report.fileRef }}</li>
+  </ul>
+</div>
+
 <p class="govuk-body dlp-exl-version-line">
-  <strong class="govuk-tag govuk-tag--grey dlp-exl-tag">Illustrative example</strong>
-  <span>EX-01 · Version {{ report.version }} · Publication date and time to be confirmed</span>
+  <span>Version {{ published.version }}</span>
+  {{ statusTag(published.status) }}
+  <span>Published {{ published.publishedLabel }}</span>
 </p>
 
-<div class="dlp-exl-caveat">
-  <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Illustrative sample content — not an issued Inspector’s report</p>
-  <p class="govuk-body-s govuk-!-margin-bottom-0">The text below is solely a reading-layout demonstration of how the Inspector’s report (EX-01) would be presented. No findings, decisions, approval or soundness conclusion are represented as issued.</p>
-</div>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds-from-desktop dlp-exl-reading">
-    <h2 class="govuk-heading-l" id="version-statement">Version statement</h2>
-    <div class="govuk-inset-text">
-      This is an illustrative example, not a live release or an issued report. You are viewing EX-01, version {{ report.version }}, with the front-matter details shown above. The publication date and time are to be confirmed and the PDF snapshot will repeat the same version stamp. Its content remains a demonstration only; it does not update automatically.
-    </div>
-
-    <p class="govuk-body-s govuk-!-font-weight-bold dlp-exl-muted">ILLUSTRATIVE SAMPLE · FULL TEXT</p>
-
     {% for section in report.sections %}
     <h2 class="govuk-heading-l govuk-!-margin-top-6" id="{{ section.id }}">{{ section.heading }}</h2>
-    {% set number = loop.index %}
-    {% for paragraph in section.paragraphs %}
-    <p class="govuk-body"><span class="dlp-ppv-paragraph__number">{{ number }}.{{ loop.index }}</span> {{ paragraph }}</p>
+    {% if section.omitted %}<p class="govuk-body-s dlp-exl-muted"><em>{{ section.omitted }}</em></p>{% endif %}
+    {% for block in section.blocks %}
+      {% if block.subheading %}
+      <h3 class="govuk-heading-m govuk-!-margin-top-4">{{ block.subheading }}</h3>
+      {% elif block.list %}
+      <ul class="govuk-list govuk-list--bullet">
+        {% for entry in block.list %}<li>{{ entry }}</li>{% endfor %}
+      </ul>
+      {% else %}
+      <p class="govuk-body">{% if block.number %}<span class="dlp-ppv-paragraph__number">{{ block.number }}.</span> {% endif %}{{ block.text }}</p>
+      {% endif %}
     {% endfor %}
     {% endfor %}
 
     <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
-    <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">Prepared for the Digital Local Plan prototypes</p>
-    <p class="govuk-body-s dlp-exl-muted">Demonstration text only. Not authored or signed by an Inspector. End of illustrative sample · EX-01 · Version {{ report.version }}</p>
-    <p class="govuk-body"><a class="govuk-link" href="#version-statement">Back to contents</a> · <a class="govuk-link" href="{{ exl }}#examination-documents">Back to examination library</a></p>
+    <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">{{ report.authorsShort }}</p>
+    <p class="govuk-body">Inspectors</p>
+    <p class="govuk-body-s dlp-exl-muted">This report is accompanied by an Appendix containing the Main Modifications.</p>
+    <p class="govuk-body"><a class="govuk-link" href="#summary">Back to contents</a> · <a class="govuk-link" href="{{ exl }}#examination-documents">Back to examination library</a></p>
   </div>
 
   <aside class="govuk-grid-column-one-third-from-desktop" aria-labelledby="about">
@@ -48,20 +59,25 @@
       <h2 class="govuk-heading-m" id="about">About this version</h2>
       <dl class="dlp-exl-about__list">
         <dt>Reference</dt><dd>EX-01</dd>
-        <dt>Version</dt><dd>{{ report.version }} · Example</dd>
-        <dt>Published</dt><dd>{{ report.published }}</dd>
-        <dt>Content</dt><dd>Illustrative sample text</dd>
+        <dt>Version</dt><dd>{{ published.version }} · {{ published.status }}</dd>
+        <dt>Published</dt><dd>{{ published.publishedLabel }}</dd>
+        <dt>Authors</dt><dd>{{ report.authorsShort }}, Inspectors</dd>
+        <dt>Status</dt><dd>As submitted to the City of London Corporation</dd>
       </dl>
-      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Version note</h3>
-      <p class="govuk-body-s">{{ report.note }}</p>
+
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">What changed</h3>
+      <p class="govuk-body-s">{{ published.changes }}</p>
+
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Cite this version</h3>
+      <p class="govuk-body-s dlp-exl-citation">{{ citation }}</p>
 
       <h3 class="govuk-heading-s govuk-!-margin-bottom-2">Download this version</h3>
-      <a class="govuk-button govuk-button--secondary dlp-exl-full-width govuk-!-margin-bottom-2" data-module="govuk-button" href="#" aria-disabled="true">Download PDF · EX-01 v{{ report.version }}<span class="govuk-visually-hidden"> (prototype: no file)</span></a>
-      <p class="govuk-body-s dlp-exl-muted">Full illustrative text · version-stamped PDF snapshot. Same reference, version and publication metadata as this page.</p>
-      <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Example filename</p>
+      <a class="govuk-button govuk-button--secondary dlp-exl-full-width govuk-!-margin-bottom-2" data-module="govuk-button" href="#" aria-disabled="true">Download PDF · EX-01 v{{ published.version }}<span class="govuk-visually-hidden"> (prototype: no file)</span></a>
+      <p class="govuk-body-s">Select to download this report as submitted.</p>
+      <p class="govuk-body-s govuk-!-font-weight-bold govuk-!-margin-bottom-1">Filename</p>
       <p class="govuk-body-s dlp-exl-muted dlp-exl-break">{{ filename }}</p>
     </div>
-    {{ versionStamp("EX-01", report.version, "to be confirmed", "Illustrative example · not an issued report") }}
+    {{ versionStamp("EX-01", published.version, published.publishedLabel, "Planning Inspectorate · City of London City Plan 2040") }}
   </aside>
 </div>
 {% endblock %}
