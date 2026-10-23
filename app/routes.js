@@ -3796,8 +3796,11 @@ router.post(PD + '/chapters/:pdChapterId/draft/:areaId', (req, res) => {
   const chapter = req.pdChapter
   const policyArea = selectedPolicyAreas(chapter).find(area => area.id === req.params.areaId)
   if (policyArea) {
+    // The draft page no longer has a title field (the policy chosen above it is the title), so a
+    // title saved before then is kept rather than blanked.
+    const existing = chapter.drafts[policyArea.id] || {}
     chapter.drafts[policyArea.id] = {
-      title: (req.body._policyTitle || '').trim(),
+      title: typeof req.body._policyTitle === 'string' ? req.body._policyTitle.trim() : (existing.title || ''),
       context: (req.body._policyContext || '').trim(),
       detail: (req.body._policyDetail || '').trim(),
       strategic: req.body._strategic === 'yes',

@@ -50,8 +50,8 @@
       <form method="get" action="{{ chapterUrl }}/draft" class="dlp-pd-inline-field">
         {% if viewerSource %}<input type="hidden" name="_source" value="{{ viewerSource.id }}">{% endif %}
         <div class="govuk-form-group">
-          <label class="govuk-label govuk-label--m" for="pd-policy-area">Policy area</label>
-          <div class="govuk-hint" id="pd-policy-area-hint">Select the policy area this draft belongs to.</div>
+          <label class="govuk-label govuk-label--m" for="pd-policy-area">Policy title</label>
+          <div class="govuk-hint" id="pd-policy-area-hint">Select the policy you want to draft</div>
           <select class="govuk-select" id="pd-policy-area" name="_policy" aria-describedby="pd-policy-area-hint">
             {% for area in policyAreas %}
               <option value="{{ area.id }}" {% if area.id == policyArea.id %}selected{% endif %}>{{ area.ref }}: {{ area.name }}</option>
@@ -76,14 +76,6 @@
 
       <form method="post" action="{{ chapterUrl }}/draft/{{ policyArea.id }}">
         {% if viewerSource %}<input type="hidden" name="_source" value="{{ viewerSource.id }}">{% endif %}
-
-        {{ govukInput({
-          id: "pd-policy-title",
-          name: "_policyTitle",
-          value: draft.title,
-          label: { text: "Policy title", classes: "govuk-label--m" },
-          hint: { text: "Enter a clear policy title." }
-        }) }}
 
         {{ govukTextarea({
           id: "pd-policy-context",
