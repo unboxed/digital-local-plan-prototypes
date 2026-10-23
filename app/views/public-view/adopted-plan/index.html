@@ -1,0 +1,140 @@
+{#
+  Adopted plan, search-led variant: modelled on the GOV.UK homepage. A full-width band with a
+  big search box, then two ways to search by place (postcode, or drawing on a map revealed in
+  a details component), then popular chapters and every chapter as a grid.
+#}
+{% extends "public-view/partials/layout.html" %}
+
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+{% from "public-view/adopted-plan/partials/macros.html" import pubSearch, pubPostcodeForm, pubChapterGrid, pubDrawMap %}
+
+{% set pageName = plan.title %}
+
+{% block hero %}
+<div class="dlp-pub-hero">
+  <div class="govuk-width-container">
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-two-thirds">
+        <h1 class="dlp-pub-hero__title">{{ plan.title }}</h1>
+        <p class="dlp-pub-hero__lead">
+          The long term strategy for development and land use in our city, up to 2042.
+        </p>
+        <p class="dlp-pub-hero__meta">Adopted {{ adoptedOn }}</p>
+        {{ pubSearch({ id: "pub-search", variant: variant, large: true, termsJson: searchTermsJson }) }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<a class="govuk-back-link govuk-!-margin-top-0" href="/public-view">Back to Public view</a>
+
+{% if postcodeError %}
+  {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: postcodeError, href: "#pub-postcode" }] }) }}
+{% endif %}
+
+<h2 class="govuk-heading-l">Search in your area</h2>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">
+      A local plan helps the Council decide what gets built or developed in our city. Find out
+      how the plan might affect your area.
+    </p>
+  </div>
+</div>
+<div class="govuk-grid-row dlp-pub-place">
+  <div class="govuk-grid-column-one-half">
+    <div class="dlp-pub-card">
+      <h3 class="govuk-heading-m">Search by postcode</h3>
+      <p class="govuk-body">See which parts of the plan apply to a street or neighbourhood.</p>
+      {{ pubPostcodeForm({ variant: variant, error: postcodeError, value: postcodeValue }) }}
+    </div>
+  </div>
+  <div class="govuk-grid-column-one-half">
+    <div class="dlp-pub-card">
+      <h3 class="govuk-heading-m">Draw an area on a map</h3>
+      <p class="govuk-body">Select the area you're interested in and choose which information you want to see.</p>
+      {% set drawMap %}{{ pubDrawMap({ variant: variant, mapJson: mapJson }) }}{% endset %}
+      {{ govukDetails({ summaryText: "Open the map", html: drawMap, classes: "govuk-!-margin-bottom-0", attributes: { "data-dlp-pub-map-details": "" } }) }}
+    </div>
+  </div>
+</div>
+
+<h2 class="govuk-heading-l dlp-pub-popular-heading">Popular</h2>
+<ul class="govuk-list dlp-pub-popular">
+  {% for chapter in popular %}
+    <li>
+      {# The circled-arrow link from the GOV.UK homepage's "Popular" list. #}
+      <a class="govuk-link dlp-pub-action-link" href="{{ chapter.href }}">
+        <svg class="dlp-pub-action-link__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true" focusable="false">
+          <circle cx="20" cy="20" r="20" fill="currentColor"></circle>
+          <path d="M10 20h18M20 12l8 8-8 8" fill="none" stroke="#ffffff" stroke-width="3.5"></path>
+        </svg>
+        {{ chapter.title }}
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<h2 class="govuk-heading-l">Chapters</h2>
+{{ pubChapterGrid(chapters) }}
+
+{# Three equal columns with a rule above each, like the GOV.UK homepage's featured sections. #}
+<div class="govuk-grid-row dlp-pub-features">
+  <div class="govuk-grid-column-one-third dlp-pub-feature">
+    <h2 class="govuk-heading-m">What is a local plan?</h2>
+    <p class="govuk-body">
+      A local plan sets out how land in the city can be used and developed over the next 15 to 20
+      years. It says how many new homes and jobs we need, where they should go, and which places
+      should be protected.
+    </p>
+    <p class="govuk-body">
+      Every council in England must have one. It is written by the council, checked by an
+      independent inspector, and shaped by what local people tell us.
+    </p>
+  </div>
+  <div class="govuk-grid-column-one-third dlp-pub-feature">
+    <h2 class="govuk-heading-m">How does a local plan affect me?</h2>
+    <p class="govuk-body">
+      The council uses the local plan to decide planning applications, from large developments to
+      changes to homes and businesses near you.
+    </p>
+    <p class="govuk-body">
+      It can affect what gets built on your street, how tall new buildings can be, which green
+      spaces are protected, and where new schools, shops and health centres go.
+    </p>
+  </div>
+  <div class="govuk-grid-column-one-third dlp-pub-feature">
+    <h2 class="govuk-heading-m">What isn&rsquo;t covered by the local plan?</h2>
+    <p class="govuk-body">The local plan doesn&rsquo;t cover:</p>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>decisions on individual planning applications</li>
+      <li>building regulations and safety</li>
+      <li>minerals and waste, which Hampshire&rsquo;s minerals and waste plan covers</li>
+      <li>things the government sets nationally, such as permitted development rights</li>
+      <li>day-to-day services like bins, roads maintenance and parking permits</li>
+    </ul>
+  </div>
+</div>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h2 class="govuk-heading-m">About this plan</h2>
+    <p class="govuk-body">
+      The Southampton Local Plan was examined by an independent inspector and adopted by the
+      council on {{ adoptedOn }}. It replaces the Core Strategy and the City Centre Action Plan.
+    </p>
+    <ul class="govuk-list">
+      <li><a class="govuk-link" href="#">Download the full plan (PDF)</a></li>
+      <li><a class="govuk-link" href="#">View evidence and consultation information</a></li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

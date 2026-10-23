@@ -1,0 +1,19 @@
+{% extends "public-view/partials/layout.html" %}
+
+{% set pageName = chapter.title + " – " + plan.title %}
+
+{% block content %}
+<a class="govuk-back-link" href="/public-view/adopted-plan">Back to the plan</a>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">{{ plan.title }} – Chapter {{ chapter.number }}</span>
+    <h1 class="govuk-heading-xl">{{ chapter.title }}</h1>
+    <p class="govuk-body-l">{{ chapter.summary }}</p>
+    <div class="govuk-inset-text">
+      This chapter page has not been built yet.
+      <a class="govuk-link" href="/public-view/adopted-plan">Go back to the plan's homepage</a>.
+    </div>
+  </div>
+</div>
+{% endblock %}

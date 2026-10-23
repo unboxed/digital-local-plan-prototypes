@@ -1,0 +1,106 @@
+{% extends "public-view/partials/layout.html" %}
+
+{% from "public-view/partials/milestone-timeline.njk" import publicMilestoneTimeline %}
+
+{% set pageName = "A Local Plan for Southampton" %}
+
+{% block content %}
+<a class="govuk-back-link" href="/public-view">Back to Public view</a>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">{{ authority }}</span>
+    <h1 class="govuk-heading-xl">A Local Plan for Southampton</h1>
+    <p class="govuk-body-l">
+      We're developing a new local plan for Southampton. The local plan will guide development and land use in the city up to 2045.
+    </p>
+  </div>
+</div>
+
+<h2 class="govuk-heading-l">Where we are now</h2>
+{{ publicMilestoneTimeline(milestones) }}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <div class="dlp-pub-cta">
+      <h2 class="govuk-heading-l">You can comment now</h2>
+      <p class="govuk-body">
+        Read about what we're proposing to include in our local plan and tell us what's important
+        to you or what we should change. Your comments will help form planning policy for our area.
+      </p>
+      <p class="govuk-body">
+        <strong>{{ current.title }}</strong><br>
+        Closes at 11:59pm on {{ closes }}
+      </p>
+      {{ govukButton({ text: "View and comment", href: "#", classes: "govuk-!-margin-bottom-0" }) }}
+    </div>
+
+    <h2 class="govuk-heading-l">What is a local plan?</h2>
+    <p class="govuk-body">
+      A local plan sets out how land in Southampton can be used and developed. It says how many
+      new homes we need and where they should go, which places should be protected, and what new
+      buildings should look like.
+    </p>
+    <p class="govuk-body">
+      Once it is adopted, the council must use it to decide planning applications. That includes
+      large developments, and changes to homes and businesses near you.
+    </p>
+
+    <h2 class="govuk-heading-l">Why it matters to you</h2>
+    <p class="govuk-body">The local plan affects things like:</p>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>where new homes are built, and how many are affordable</li>
+      <li>which parks, green spaces and wildlife areas are protected</li>
+      <li>how tall new buildings can be</li>
+      <li>where schools, health centres and shops go</li>
+      <li>how the city prepares for flooding and climate change</li>
+    </ul>
+
+    <h2 class="govuk-heading-l">How you can get involved</h2>
+    <p class="govuk-body">
+      There are several points where you can tell us what you think. The timeline above shows when
+      they are.
+    </p>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>
+        <strong>Consultation on the proposed plan content and evidence</strong> – happening now.
+        Tell us what you think of our vision, where development should go and the evidence behind it.
+      </li>
+      <li>
+        <strong>Consultation on the proposed local plan</strong> – in 2027. Comment on the
+        near-final plan before it is sent for examination.
+      </li>
+      <li>
+        <strong>Examination</strong> – an independent inspector checks the plan. People who
+        commented on the proposed local plan may be invited to speak at hearings.
+      </li>
+    </ul>
+    <p class="govuk-body">
+      You don't need to know about planning to take part. Tell us about the places you know, in
+      your own words.
+    </p>
+
+    <h2 class="govuk-heading-l">What happens to your comments</h2>
+    <p class="govuk-body">
+      We read every comment. We publish a summary of what people told us and explain how it
+      changed the plan, or why it didn't. Your name may be published with your comment, but your
+      address and contact details will not be.
+    </p>
+  </div>
+
+  <div class="govuk-grid-column-one-third">
+    <aside class="dlp-pub-aside" aria-labelledby="pub-updates-heading">
+      <h2 class="govuk-heading-m" id="pub-updates-heading">Get updates</h2>
+      <p class="govuk-body">
+        We'll email you when a consultation opens or a milestone is reached.
+      </p>
+      <p class="govuk-body"><a class="govuk-link" href="#">Sign up for email updates</a></p>
+      <h2 class="govuk-heading-m">Contact us</h2>
+      <p class="govuk-body">
+        <a class="govuk-link" href="#">Email the planning policy team</a>
+      </p>
+    </aside>
+  </div>
+</div>
+{% endblock %}

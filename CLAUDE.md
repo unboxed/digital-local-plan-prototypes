@@ -135,7 +135,8 @@ prototype" menu.
    The active nav item is `#1d8feb` (a precise brand blue, not a `govuk-colour()` tint);
    everything else is white — see `app/assets/sass/_service-header.scss`.
 2. `activeSection` (`"project-management"` | `"policy-writing"` | `"evidence"` |
-   `"consultations"` | `"pins-view"` | `"user-stories"` | `"statement-of-compliance"`) is set
+   `"consultations"` | `"pins-view"` | `"public-view"` | `"user-stories"` |
+   `"statement-of-compliance"`) is set
    automatically by a `router.use` middleware at the top of `app/routes.js`, based on the
    request path — no per-page wiring needed, since that middleware runs for every request
    (including plain `app/views/*/index.html` pages with no custom route). `"pins-view"` covers
@@ -833,6 +834,52 @@ It is the public site for the examination, read by the inspector, participants a
   and `stamp` for that.
   - The report is the latest change in the library, so the change banner handles a newly
     published item, which has no `from` version.
+
+## Public view
+
+`/public-view` is the hub for what **members of the public** see, with Southampton as the example
+authority. The hub shows the internal nav; the prototypes it lists use
+`public-view/partials/layout.html`, which overrides `header` **without `super()`** (the URLs are
+under `/public-view`, so `super()` would bring the internal nav back) and shows
+`appExternalHeader` with the council's name. Its optional `hero` block is a full-width band under
+the header.
+
+- **Static, no session state.** Everything is in `app/data/public-view.js`: the milestones, the
+  adopted plan's chapters, rough area polygons, and test postcodes. Dates, chapters, areas and
+  postcodes are invented, not Southampton's real plan. Search fields are `_`-prefixed (`_q`,
+  `_postcode`, `_area`, `_from`), so the kit doesn't store them.
+- **A local plan being made** (`/public-view/plan-making`): a horizontal timeline
+  (`public-view/partials/milestone-timeline.njk`) with the current milestone larger, a "You can
+  comment now" call to action, and plain English sections. Milestone `status` is
+  `completed` | `current` | `upcoming` | `optional`; `pubMilestoneView` in routes.js writes the
+  date line. `initPublicTimeline` scrolls the current card into view. Narrow screens stack the
+  timeline vertically.
+- **An adopted local plan** has two variants to compare: search-led (`/public-view/adopted-plan`,
+  modelled on the GOV.UK homepage) and map-led (`/public-view/adopted-plan/map-first`). Both
+  share `adopted-plan/partials/macros.html` and one results route,
+  `/public-view/adopted-plan/results`, for words, a postcode or a drawn shape. A postcode error
+  re-renders the variant named in `_from`.
+- **Search suggestions reuse `initSuggestSearch`**, fed by `searchTerms`: every chapter keyword
+  as a Topic (choosing one runs the search) and every chapter with its `href` (choosing one opens
+  it).
+- **Drawing on the map is our own small tool** (`initPublicPlanMap`), not Leaflet.draw: click to
+  add corners, click the first corner or "Finish shape" to close it. Areas are matched by
+  bounding-box overlap, the same test in `areasOverlapping` (server) and
+  `publicAreasOverlapping` (browser), so the live list and the results page agree.
+- **A place's results have a layers map**, after planning.data.gov.uk's map: `pubLayerMap` in
+  the macros, `initPublicLayerMap`, layers in `MAP_LAYERS` (grouped, each with a colour, an
+  optional dash and the chapter that governs it). `DEFAULT_MAP_LAYERS` are ticked on load. Each
+  layer shows how many of its features are in the place (`layerCountsFor`, the same bounding-box
+  test). Clicking a feature links to its chapter. The place's outline is drawn on top but isn't
+  clickable, so it doesn't block the features inside it. Shapes are invented; the listed
+  buildings are real, at approximate positions.
+- **Searches for things the plan doesn't cover** (noise, bins, parking permits …) match
+  `NOT_COVERED` (`findNotCovered`, whole words) and show a grey signpost box on the results page
+  explaining why, with a placeholder link to the council page that does. They are also offered in
+  the suggestions, labelled "Not in the local plan". Matching chapters, if any, still show below.
+- **Chapter pages aren't built.** `/public-view/adopted-plan/chapters/:slug` says so.
+- **Inert placeholders:** "View and comment", email updates, contact, and the plan download
+  links.
 
 ## GIS layers
 

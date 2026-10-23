@@ -1,0 +1,181 @@
+{#
+  Shared pieces of the adopted plan's pages (Public view). Every form is a plain GET to
+  /public-view/adopted-plan/results, so all of it works without JavaScript. `_from` says which
+  variant to go back to, for the back link and for a postcode error.
+#}
+
+{# The keyword search, with chapter suggestions from initSuggestSearch. `large` is the hero's. #}
+{% macro pubSearch(params) %}
+<form method="get" action="/public-view/adopted-plan/results" role="search" class="dlp-pub-search{% if params.large %} dlp-pub-search--large{% endif %}">
+  <input type="hidden" name="_from" value="{{ params.variant }}">
+  <label class="govuk-label {% if params.large %}govuk-label--m{% else %}govuk-label--s{% endif %}" for="{{ params.id }}">
+    {{ params.label or "Search the local plan" }}
+  </label>
+  <div class="govuk-hint" id="{{ params.id }}-hint">For example, &lsquo;jobs&rsquo;, &lsquo;flooding&rsquo; or &lsquo;affordable housing&rsquo;</div>
+  <div class="dlp-pub-search__row">
+    <div class="dlp-suggest dlp-pub-search__field" data-dlp-suggest data-dlp-suggest-source="#{{ params.id }}-terms">
+      <input class="govuk-input" id="{{ params.id }}" name="_q" type="search" value="{{ params.value }}"
+             autocomplete="off" spellcheck="false"
+             role="combobox" aria-autocomplete="list" aria-expanded="false"
+             aria-controls="{{ params.id }}-suggestions" aria-describedby="{{ params.id }}-hint"
+             data-dlp-suggest-input>
+      <ul class="dlp-typeahead dlp-suggest__list" id="{{ params.id }}-suggestions" role="listbox"
+          aria-label="Suggested chapters" data-dlp-suggest-list hidden></ul>
+      <p class="govuk-visually-hidden" role="status" aria-live="polite" data-dlp-suggest-status></p>
+    </div>
+    <button class="govuk-button dlp-pub-search__button" data-module="govuk-button">
+      <svg class="dlp-pub-search__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27 27" width="22" height="22" aria-hidden="true" focusable="false">
+        <circle cx="11" cy="11" r="8.5" fill="none" stroke="currentColor" stroke-width="3"></circle>
+        <line x1="17.5" y1="17.5" x2="25" y2="25" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"></line>
+      </svg>
+      Search
+    </button>
+  </div>
+  <script type="application/json" id="{{ params.id }}-terms">{{ params.termsJson | safe }}</script>
+</form>
+{% endmacro %}
+
+{# Find a place by postcode, with the GOV.UK error pattern. #}
+{% macro pubPostcodeForm(params) %}
+<form method="get" action="/public-view/adopted-plan/results" novalidate>
+  <input type="hidden" name="_from" value="{{ params.variant }}">
+  <div class="govuk-form-group{% if params.error %} govuk-form-group--error{% endif %} govuk-!-margin-bottom-4">
+    <label class="govuk-label govuk-label--s" for="pub-postcode">Postcode</label>
+    <div class="govuk-hint" id="pub-postcode-hint">For example, SO14 7DU</div>
+    {% if params.error %}
+      <p id="pub-postcode-error" class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ params.error }}</p>
+    {% endif %}
+    <input class="govuk-input govuk-input--width-10{% if params.error %} govuk-input--error{% endif %}" id="pub-postcode" name="_postcode" type="text"
+           autocomplete="postal-code" spellcheck="false" value="{{ params.value }}"
+           aria-describedby="pub-postcode-hint{% if params.error %} pub-postcode-error{% endif %}">
+  </div>
+  <button class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">Search</button>
+</form>
+{% endmacro %}
+
+{% macro pubChapterGrid(chapters) %}
+<ul class="dlp-pub-chapters">
+  {% for chapter in chapters %}
+    <li class="dlp-pub-chapters__item">
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">
+        <a class="govuk-link" href="{{ chapter.href }}">{{ chapter.number }}. {{ chapter.title }}</a>
+      </h3>
+      <p class="govuk-body-s govuk-!-margin-bottom-0">{{ chapter.summary }}</p>
+    </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro pubChapterList(chapters) %}
+<ul class="govuk-list dlp-pub-results">
+  {% for chapter in chapters %}
+    <li class="dlp-pub-results__item">
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">
+        <a class="govuk-link" href="{{ chapter.href }}">Chapter {{ chapter.number }}: {{ chapter.title }}</a>
+      </h3>
+      <p class="govuk-body govuk-!-margin-bottom-0">{{ chapter.summary }}</p>
+    </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{#
+  Draw an area on a map (initPublicPlanMap, data-dlp-pub-map). Clicking the map adds corners;
+  "Finish shape" (or clicking the first corner) closes it, which fills the hidden `_area` field
+  with the points and enables the submit button. With `live`, the overlapping areas and their
+  chapters are also listed beside the map as soon as the shape is finished. Needs JavaScript
+  and Leaflet (partials/gis/map-assets.html); without them the map says so and points to the
+  postcode search.
+#}
+{% macro pubDrawMap(params) %}
+<div class="dlp-pub-map{% if params.live %} dlp-pub-map--live{% endif %}" data-dlp-pub-map data-dlp-pub-map-source="#pub-map-data">
+  <div class="dlp-pub-map__main">
+    <div class="dlp-pub-map__canvas" data-dlp-pub-map-canvas>
+      <p class="govuk-body dlp-pub-map__fallback">
+        The map needs JavaScript and an internet connection. You can
+        <a class="govuk-link" href="#pub-postcode">search by postcode</a> instead.
+      </p>
+    </div>
+    <p class="govuk-hint govuk-!-margin-top-2" id="pub-map-hint">
+      Click the map to mark each corner of the area you're interested in. Click the first corner
+      again, or choose &lsquo;Finish shape&rsquo;, to close it.
+    </p>
+    <p class="govuk-visually-hidden" role="status" aria-live="polite" data-dlp-pub-map-status></p>
+    <form method="get" action="/public-view/adopted-plan/results" class="dlp-pub-map__actions">
+      <input type="hidden" name="_from" value="{{ params.variant }}">
+      <input type="hidden" name="_area" value="" data-dlp-pub-map-area>
+      <div class="govuk-button-group">
+        <button type="button" class="govuk-button govuk-button--secondary" data-dlp-pub-map-finish disabled>Finish shape</button>
+        <button type="button" class="govuk-button govuk-button--secondary" data-dlp-pub-map-clear disabled>Start again</button>
+        <button class="govuk-button" data-dlp-pub-map-submit disabled>{{ params.submitText or "Show policies for this area" }}</button>
+      </div>
+    </form>
+  </div>
+  {% if params.live %}
+    <div class="dlp-pub-map__results" aria-labelledby="pub-map-results-heading">
+      <h2 class="govuk-heading-m" id="pub-map-results-heading">Policies for your area</h2>
+      <div data-dlp-pub-map-results aria-live="polite">
+        <p class="govuk-body">Draw an area on the map to see the chapters that apply there.</p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+<script type="application/json" id="pub-map-data">{{ params.mapJson | safe }}</script>
+{% endmacro %}
+
+{#
+  A place's map with layers to choose from, after planning.data.gov.uk's map: grouped layer
+  checkboxes, each with its colour key and how many of its features are in the place, beside a
+  large map (initPublicLayerMap, data-dlp-pub-layer-map). Clicking a feature names it and links
+  to the chapter that covers it. Without JavaScript the list still says what's in the place.
+
+  params.layerGroups, params.layersJson: from pubLayerLocals in routes.js.
+  params.mapJson: the city's centre and areas. params.areas, params.point, params.drawn: the place.
+#}
+{% macro pubLayerMap(params) %}
+<section class="dlp-pub-layers" aria-labelledby="pub-layers-heading" data-dlp-pub-layer-map
+         data-dlp-pub-map-source="#pub-map-data" data-dlp-pub-layers-source="#pub-layers-data"
+         data-areas="{{ params.areas | dump }}"
+         {% if params.point %}data-point="{{ params.point | dump }}"{% endif %}
+         {% if params.drawn %}data-drawn="{{ params.drawn | dump }}"{% endif %}>
+  <div class="dlp-pub-layers__panel">
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-2" id="pub-layers-heading">Map layers</h2>
+    <p class="govuk-body-s">Choose what to show on the map. The numbers show how many are in this area.</p>
+    {% for group in params.layerGroups %}
+      <fieldset class="govuk-fieldset dlp-pub-layers__group">
+        <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">{{ group.name }}</legend>
+        <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">
+          {% for layer in group.layers %}
+            <div class="govuk-checkboxes__item">
+              <input class="govuk-checkboxes__input" type="checkbox" id="pub-layer-{{ layer.key }}"
+                     data-dlp-pub-layer="{{ layer.key }}" aria-describedby="pub-layer-{{ layer.key }}-hint"
+                     {%- if layer.selected %} checked{% endif %}>
+              <label class="govuk-label govuk-checkboxes__label dlp-pub-layers__label" for="pub-layer-{{ layer.key }}">
+                <span class="dlp-pub-layers__swatch{% if layer.point %} dlp-pub-layers__swatch--point{% endif %}"
+                      style="--dlp-swatch: {{ layer.colour }}; {% if layer.dash %}border-style: dashed;{% endif %}" aria-hidden="true"></span>
+                <span class="dlp-pub-layers__name">{{ layer.name }}</span>
+                <span class="dlp-pub-layers__count{% if not layer.count %} dlp-pub-layers__count--none{% endif %}">
+                  {{ layer.count if layer.count else "None" }}<span class="govuk-visually-hidden"> in this area</span>
+                </span>
+              </label>
+              <div class="govuk-hint govuk-checkboxes__hint dlp-pub-layers__hint" id="pub-layer-{{ layer.key }}-hint">{{ layer.description }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% endfor %}
+    <p class="govuk-body-s dlp-pub-layers__note">Map shapes are illustrative, for this prototype.</p>
+  </div>
+  <div class="dlp-pub-layers__frame">
+    <div class="dlp-pub-layers__canvas" data-dlp-pub-layer-canvas
+         role="region" aria-label="Map of this area. Use the layer list to choose what it shows.">
+      <p class="govuk-body dlp-pub-map__fallback">
+        The map needs JavaScript and an internet connection. The layer list still shows what is in this area.
+      </p>
+    </div>
+    <p class="govuk-visually-hidden" role="status" aria-live="polite" data-dlp-pub-layer-status></p>
+  </div>
+</section>
+<script type="application/json" id="pub-map-data">{{ params.mapJson | safe }}</script>
+<script type="application/json" id="pub-layers-data">{{ params.layersJson | safe }}</script>
+{% endmacro %}

@@ -1,0 +1,625 @@
+// Public view (/public-view): the public's local plan pages. Plan-making timeline, the call to
+// action, and the adopted plan's homepage-style search, place search and chapter grid.
+
+$dlp-pub-blue: govuk-colour("blue");
+$dlp-pub-dark-blue: govuk-colour("blue", $variant: "shade-50");
+$dlp-pub-light-blue: govuk-colour("blue", $variant: "tint-95");
+$dlp-pub-grey: govuk-colour("black", $variant: "tint-80");
+$dlp-pub-muted: govuk-colour("black", $variant: "tint-25");
+
+// --- Plan-making timeline -------------------------------------------------------------------
+
+.dlp-pub-timeline {
+  margin-bottom: govuk-spacing(8);
+  overflow-x: auto;
+  padding-bottom: govuk-spacing(3);
+
+  &:focus {
+    outline: $govuk-focus-width solid $govuk-focus-colour;
+    outline-offset: 2px;
+  }
+}
+
+.dlp-pub-timeline__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  @include govuk-media-query($from: tablet) {
+    align-items: stretch;
+    display: flex;
+    gap: govuk-spacing(3);
+    min-width: max-content;
+    padding-top: govuk-spacing(6);
+  }
+}
+
+.dlp-pub-timeline__item {
+  position: relative;
+
+  // Narrow screens: a vertical list with the line down the left.
+  border-left: 4px solid $dlp-pub-grey;
+  margin-left: 10px;
+  padding: 0 0 govuk-spacing(4) govuk-spacing(5);
+
+  &:last-child {
+    border-left-color: transparent;
+  }
+
+  @include govuk-media-query($from: tablet) {
+    border-left: 0;
+    display: flex;
+    flex: 0 0 13rem;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+
+    // The connecting line runs through the markers, from this one to the next.
+    &::before {
+      background: $dlp-pub-grey;
+      content: "";
+      height: 4px;
+      left: 0;
+      position: absolute;
+      right: - govuk-spacing(3);
+      top: - govuk-spacing(5);
+    }
+
+    &:last-child::before {
+      right: 50%;
+    }
+  }
+}
+
+.dlp-pub-timeline__item--completed {
+  border-left-color: $dlp-pub-blue;
+
+  @include govuk-media-query($from: tablet) {
+    &::before {
+      background: $dlp-pub-blue;
+    }
+  }
+}
+
+.dlp-pub-timeline__marker {
+  background: govuk-colour("white");
+  border: 4px solid $dlp-pub-grey;
+  border-radius: 50%;
+  box-sizing: border-box;
+  height: 24px;
+  left: -14px;
+  position: absolute;
+  top: 0;
+  width: 24px;
+
+  @include govuk-media-query($from: tablet) {
+    left: govuk-spacing(3);
+    top: - govuk-spacing(5) - 10px;
+  }
+
+  .dlp-pub-timeline__item--completed & {
+    background: $dlp-pub-blue;
+    border-color: $dlp-pub-blue;
+  }
+
+  .dlp-pub-timeline__item--current & {
+    background: govuk-colour("white");
+    border-color: $dlp-pub-blue;
+    border-width: 6px;
+    height: 32px;
+    left: -18px;
+    width: 32px;
+
+    @include govuk-media-query($from: tablet) {
+      left: govuk-spacing(3);
+      top: - govuk-spacing(5) - 14px;
+    }
+  }
+
+  .dlp-pub-timeline__item--optional & {
+    border-style: dashed;
+  }
+}
+
+.dlp-pub-timeline__card {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-pub-grey;
+  flex: 1;
+  padding: govuk-spacing(3);
+
+  .dlp-pub-timeline__item--completed & {
+    background: govuk-colour("black", $variant: "tint-95");
+  }
+
+  .dlp-pub-timeline__item--current & {
+    background: $dlp-pub-light-blue;
+    border: 4px solid $dlp-pub-blue;
+    padding: govuk-spacing(4);
+  }
+
+  .dlp-pub-timeline__item--optional & {
+    border-style: dashed;
+    border-width: 2px;
+  }
+}
+
+// The current milestone is wider than the others.
+.dlp-pub-timeline__item--current {
+  @include govuk-media-query($from: tablet) {
+    flex-basis: 20rem;
+  }
+}
+
+.dlp-pub-timeline__status {
+  @include govuk-font($size: 16, $weight: bold);
+  color: $dlp-pub-muted;
+  margin: 0 0 govuk-spacing(1);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+
+  .dlp-pub-timeline__item--current & {
+    color: $dlp-pub-blue;
+  }
+}
+
+.dlp-pub-timeline__title {
+  @include govuk-font($size: 19, $weight: bold);
+  margin: 0 0 govuk-spacing(2);
+
+  .dlp-pub-timeline__item--current & {
+    @include govuk-font-size($size: 27);
+  }
+}
+
+.dlp-pub-timeline__description {
+  @include govuk-font($size: 16);
+  margin: 0 0 govuk-spacing(2);
+
+  .dlp-pub-timeline__item--current & {
+    @include govuk-font-size($size: 19);
+  }
+}
+
+.dlp-pub-timeline__when {
+  @include govuk-font($size: 16, $weight: bold);
+  margin: 0;
+
+  .dlp-pub-timeline__item--current & {
+    @include govuk-font-size($size: 19);
+  }
+}
+
+// --- Call to action and sidebar -------------------------------------------------------------
+
+.dlp-pub-cta {
+  background: $dlp-pub-light-blue;
+  border-left: 10px solid $dlp-pub-blue;
+  margin-bottom: govuk-spacing(8);
+  padding: govuk-spacing(5) govuk-spacing(5) govuk-spacing(6);
+}
+
+.dlp-pub-aside {
+  border-top: 4px solid $dlp-pub-blue;
+  padding-top: govuk-spacing(3);
+}
+
+// --- Adopted plan: homepage hero ------------------------------------------------------------
+
+.dlp-pub-hero {
+  background: $dlp-pub-dark-blue;
+  color: govuk-colour("white");
+  padding: govuk-spacing(7) 0 govuk-spacing(6);
+
+  .govuk-label,
+  .govuk-hint {
+    color: govuk-colour("white");
+  }
+
+  // The suggestions sit on white, so they mustn't inherit the band's white text. The active
+  // option keeps its white-on-blue from .dlp-suggest__option--active.
+  .dlp-suggest__option:not(.dlp-suggest__option--active):not(:hover) {
+    color: govuk-colour("black");
+  }
+}
+
+.dlp-pub-hero__title {
+  @include govuk-font($size: 48, $weight: bold);
+  margin: 0 0 govuk-spacing(4);
+}
+
+.dlp-pub-hero__lead {
+  @include govuk-font($size: 24);
+  color: govuk-colour("white");
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-pub-hero__meta {
+  @include govuk-font($size: 16);
+  color: govuk-colour("white");
+  margin: 0 0 govuk-spacing(6);
+}
+
+// --- Search ---------------------------------------------------------------------------------
+
+.dlp-pub-search__row {
+  display: flex;
+}
+
+.dlp-pub-search__field {
+  flex: 1;
+  // Above the Leaflet map's panes (z-index 400+), so the suggestions aren't hidden under it.
+  z-index: 1001;
+
+  .govuk-input {
+    height: 50px;
+  }
+}
+
+// The button is joined to the box, GOV.UK search style: the same height and border, no gap, and
+// no drop shadow pushing it lower than the box. Focus keeps GOV.UK's yellow with a black bar,
+// drawn inside the button so it doesn't change its height.
+.dlp-pub-search__button {
+  align-items: center;
+  border: $govuk-border-width-form-element solid govuk-colour("black");
+  box-shadow: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: govuk-spacing(2);
+  height: 50px;
+  margin: 0 0 0 - $govuk-border-width-form-element;
+  min-height: 0;
+  padding: 0 govuk-spacing(4);
+
+  &:active {
+    top: 0;
+  }
+
+  &:focus:not(:active):not(:hover) {
+    border-color: govuk-colour("black");
+    box-shadow: inset 0 -4px 0 govuk-colour("black");
+  }
+}
+
+// Suggestion rows are `width: 100%` plus padding, which pushed the right-hand label ("Topic in
+// 2 chapters") past the list's edge. Count the padding inside the width, and let a long name wrap
+// rather than squeezing the label.
+.dlp-pub-search .dlp-typeahead__option {
+  align-items: baseline;
+  box-sizing: border-box;
+}
+
+.dlp-pub-search .dlp-typeahead__option > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dlp-pub-search .dlp-typeahead__kind {
+  white-space: nowrap;
+}
+
+.dlp-pub-search__icon {
+  flex: 0 0 auto;
+}
+
+.dlp-pub-search--large {
+  .govuk-input {
+    @include govuk-font-size($size: 24);
+    border-color: govuk-colour("white");
+    height: 60px;
+  }
+
+  .dlp-pub-search__button {
+    @include govuk-font($size: 24, $weight: bold);
+    background: govuk-colour("white");
+    border-color: govuk-colour("white");
+    color: $dlp-pub-dark-blue;
+    height: 60px;
+
+    &:hover {
+      background: govuk-colour("black", $variant: "tint-95");
+    }
+
+    &:focus:not(:active):not(:hover) {
+      background: $govuk-focus-colour;
+      border-color: $govuk-focus-colour;
+      color: govuk-colour("black");
+    }
+  }
+}
+
+// --- Place search and map -------------------------------------------------------------------
+
+.dlp-pub-card {
+  border: 1px solid $dlp-pub-grey;
+  border-top: 5px solid $dlp-pub-blue;
+  height: 100%;
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(4);
+  box-sizing: border-box;
+}
+
+.dlp-pub-place {
+  @include govuk-media-query($from: tablet) {
+    display: flex;
+  }
+}
+
+.dlp-pub-map {
+  margin-bottom: govuk-spacing(6);
+}
+
+.dlp-pub-map--live {
+  @include govuk-media-query($from: desktop) {
+    display: grid;
+    gap: govuk-spacing(6);
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.dlp-pub-map__canvas {
+  background: govuk-colour("black", $variant: "tint-95");
+  border: 1px solid $dlp-pub-grey;
+  cursor: crosshair;
+  height: 26rem;
+  position: relative;
+
+  .dlp-pub-map--live & {
+    height: 34rem;
+  }
+}
+
+.dlp-pub-map__fallback {
+  padding: govuk-spacing(4);
+}
+
+.dlp-pub-map__actions .govuk-button-group {
+  margin-bottom: 0;
+}
+
+.dlp-pub-map__results {
+  border-top: 5px solid govuk-colour("green");
+  padding-top: govuk-spacing(3);
+}
+
+.dlp-pub-toolbar {
+  margin-bottom: govuk-spacing(6);
+
+  @include govuk-media-query($from: tablet) {
+    align-items: flex-end;
+    display: flex;
+    gap: govuk-spacing(6);
+  }
+}
+
+.dlp-pub-toolbar__postcode {
+  flex: 0 0 auto;
+  margin-bottom: govuk-spacing(4);
+
+  @include govuk-media-query($from: tablet) {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-pub-toolbar__search {
+  flex: 1;
+
+  .dlp-pub-search__button {
+    margin-bottom: 0;
+  }
+}
+
+// --- A place's map, with layers (after planning.data.gov.uk's map) --------------------------
+
+.dlp-pub-layers {
+  border: 1px solid $dlp-pub-grey;
+  margin-bottom: govuk-spacing(6);
+
+  @include govuk-media-query($from: desktop) {
+    display: grid;
+    grid-template-columns: 22rem 1fr;
+    height: 40rem;
+  }
+}
+
+.dlp-pub-layers__panel {
+  background: govuk-colour("black", $variant: "tint-95");
+  border-bottom: 1px solid $dlp-pub-grey;
+  padding: govuk-spacing(4);
+
+  @include govuk-media-query($from: desktop) {
+    border-bottom: 0;
+    border-right: 1px solid $dlp-pub-grey;
+    overflow-y: auto;
+  }
+}
+
+.dlp-pub-layers__group {
+  border-top: 1px solid $dlp-pub-grey;
+  margin-bottom: govuk-spacing(3);
+  padding-top: govuk-spacing(3);
+
+  .govuk-checkboxes__item {
+    margin-bottom: govuk-spacing(2);
+  }
+}
+
+// The label runs the panel's width: swatch, name, then the count pushed to the right.
+.dlp-pub-layers__label {
+  align-items: center;
+  display: flex;
+  gap: govuk-spacing(2);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dlp-pub-layers__swatch {
+  background: color-mix(in srgb, var(--dlp-swatch) 25%, transparent);
+  border: 3px solid var(--dlp-swatch);
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  height: 20px;
+  width: 20px;
+}
+
+.dlp-pub-layers__swatch--point {
+  background: var(--dlp-swatch);
+  border-color: govuk-colour("white");
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--dlp-swatch);
+}
+
+.dlp-pub-layers__name {
+  flex: 1;
+}
+
+.dlp-pub-layers__count {
+  @include govuk-font($size: 16, $weight: bold);
+  background: govuk-colour("white");
+  border: 1px solid $dlp-pub-grey;
+  border-radius: 1em;
+  min-width: 1.5em;
+  padding: 0 govuk-spacing(2);
+  text-align: center;
+}
+
+.dlp-pub-layers__count--none {
+  color: $dlp-pub-muted;
+  font-weight: normal;
+}
+
+.dlp-pub-layers__hint {
+  @include govuk-font($size: 16);
+  margin-bottom: 0;
+}
+
+.dlp-pub-layers__note {
+  color: $dlp-pub-muted;
+  margin-bottom: 0;
+}
+
+.dlp-pub-layers__frame {
+  position: relative;
+}
+
+.dlp-pub-layers__canvas {
+  background: govuk-colour("black", $variant: "tint-95");
+  height: 30rem;
+
+  @include govuk-media-query($from: desktop) {
+    height: 100%;
+  }
+}
+
+.dlp-pub-layers__popup-kind {
+  color: $dlp-pub-muted;
+}
+
+// --- Chapters -------------------------------------------------------------------------------
+
+.dlp-pub-popular-heading {
+  margin-top: govuk-spacing(6);
+}
+
+// Equal columns, so the links line up whatever the length of their titles.
+.dlp-pub-popular {
+  @include govuk-media-query($from: tablet) {
+    display: grid;
+    gap: govuk-spacing(4) govuk-spacing(6);
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include govuk-media-query($from: desktop) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  li {
+    margin-bottom: govuk-spacing(3);
+
+    @include govuk-media-query($from: tablet) {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// A link led by a circled arrow, as in the GOV.UK homepage's "Popular" list.
+.dlp-pub-action-link {
+  @include govuk-font($size: 19, $weight: bold);
+  align-items: center;
+  display: inline-flex;
+  gap: govuk-spacing(2);
+}
+
+.dlp-pub-action-link__icon {
+  color: $dlp-pub-blue;
+  flex: 0 0 auto;
+
+  .dlp-pub-action-link:hover & {
+    color: $dlp-pub-dark-blue;
+  }
+
+  .dlp-pub-action-link:focus & {
+    color: govuk-colour("black");
+  }
+}
+
+.dlp-pub-chapters {
+  list-style: none;
+  margin: 0 0 govuk-spacing(6);
+  padding: 0;
+
+  @include govuk-media-query($from: tablet) {
+    display: grid;
+    gap: govuk-spacing(6);
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include govuk-media-query($from: desktop) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.dlp-pub-chapters__item {
+  border-top: 1px solid $dlp-pub-grey;
+  margin-bottom: govuk-spacing(4);
+  padding-top: govuk-spacing(3);
+
+  @include govuk-media-query($from: tablet) {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-pub-results__item {
+  border-bottom: 1px solid $dlp-pub-grey;
+  margin-bottom: govuk-spacing(4);
+  padding-bottom: govuk-spacing(4);
+}
+
+// --- Featured explainers (GOV.UK homepage "featured" sections) ------------------------------
+
+.dlp-pub-features {
+  @include govuk-media-query($from: tablet) {
+    display: flex;
+  }
+}
+
+.dlp-pub-feature {
+  margin-bottom: govuk-spacing(6);
+
+  // The rule sits inside the column's gutters, so the three line up as separate blocks.
+  &::before {
+    border-top: 5px solid $dlp-pub-blue;
+    content: "";
+    display: block;
+    margin-bottom: govuk-spacing(3);
+  }
+}
+
+// --- Search for something the local plan doesn't cover --------------------------------------
+
+.dlp-pub-signpost {
+  background: govuk-colour("black", $variant: "tint-95");
+  border-left: 10px solid $dlp-pub-muted;
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(4) govuk-spacing(5);
+}

@@ -1,0 +1,85 @@
+{% extends "layouts/main.html" %} {% set pageName="Public view" %} {% block
+content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/">Back to prototypes</a>
+
+    <h1 class="govuk-heading-xl">Public view</h1>
+
+    <p class="govuk-body">
+      Prototypes exploring what members of the public see of a local plan,
+      while it is being made and once it is adopted. Southampton is the example
+      authority. These are for residents, businesses and community groups
+      rather than LPA staff, so each one uses the council's own header without
+      the site's internal navigation. Pick one to try it out.
+    </p>
+
+    <hr
+      class="govuk-section-break govuk-section-break--visible govuk-section-break--m"
+    />
+
+    <h2 class="govuk-heading-l">Current prototypes</h2>
+    <p class="govuk-body">
+      These are the most recent prototypes we've developed. We'll be testing
+      these over the next few weeks.
+    </p>
+
+    <div class="govuk-!-margin-bottom-6">
+      <h3 class="govuk-heading-m">
+        <a class="govuk-link" href="/public-view/plan-making"
+          >A local plan being made</a
+        >
+      </h3>
+      <p class="govuk-body">
+        The council's local plan page during plan-making: a timeline of the
+        key milestones, what you can do now, and a plain English explanation
+        of what a local plan is.
+      </p>
+      <div class="govuk-inset-text">
+        <p class="govuk-body">
+          <span class="govuk-!-font-weight-bold">User need</span>
+        </p>
+        <p class="govuk-body">
+          As a member of the public I need to know where the local plan is up
+          to and when I can have my say, so that I can influence the planning
+          policy for where I live
+        </p>
+      </div>
+    </div>
+
+    <div class="govuk-!-margin-bottom-6">
+      <h3 class="govuk-heading-m">An adopted local plan</h3>
+      <p class="govuk-body">
+        A front door to an adopted plan, modelled on the GOV.UK homepage.
+        Search for a topic, enter a postcode or draw an area on a map to find
+        the chapters that matter to you. Chapter pages are not built yet.
+        There are two versions to compare:
+      </p>
+      <ul class="govuk-list govuk-list--bullet">
+        <li>
+          <a class="govuk-link" href="/public-view/adopted-plan"
+            >Search-led</a
+          >: a big search box first, with place search and chapters below
+        </li>
+        <li>
+          <a class="govuk-link" href="/public-view/adopted-plan/map-first"
+            >Map-led</a
+          >: a map first, with results that update as you draw
+        </li>
+      </ul>
+      <div class="govuk-inset-text">
+        <p class="govuk-body">
+          <span class="govuk-!-font-weight-bold">User need</span>
+        </p>
+        <p class="govuk-body">
+          As a member of the public I need to find the policies in the local
+          plan that apply to a topic or a place I care about, so that I can
+          understand what can be built there
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

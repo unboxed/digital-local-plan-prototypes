@@ -1,0 +1,90 @@
+{#
+  Results for all three searches (see the results route in routes.js). `mode` is search (words)
+  or place (a postcode or a drawn shape). A place shows a map with layers to choose from
+  (pubLayerMap), the chapters specific to its areas, then the chapters that apply everywhere.
+#}
+{% extends "public-view/partials/layout.html" %}
+
+{% from "public-view/adopted-plan/partials/macros.html" import pubSearch, pubChapterList, pubLayerMap %}
+
+{% set pageName = (("Search results for ‘" + query + "’") if mode == "search" else heading) + " – " + plan.title %}
+
+{% block content %}
+<a class="govuk-back-link" href="{{ backHref }}">Back</a>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">{{ plan.title }}</span>
+
+    {% if mode == "search" %}
+      <h1 class="govuk-heading-xl">Search results</h1>
+      {{ pubSearch({ id: "pub-search", variant: variant, value: query, termsJson: searchTermsJson }) }}
+      <p class="govuk-body govuk-!-margin-top-4" role="status">
+        {% if results | length %}
+          {{ results | length }} chapter{% if results | length != 1 %}s{% endif %} about &lsquo;{{ query }}&rsquo;
+        {% else %}
+          No chapters about &lsquo;{{ query }}&rsquo;
+        {% endif %}
+      </p>
+
+      {# A topic the local plan doesn't cover (findNotCovered): say so, and where to go instead. #}
+      {% if notCovered %}
+        <div class="dlp-pub-signpost">
+          <h2 class="govuk-heading-m">{{ notCovered.topic }} {{ "aren&rsquo;t" | safe if notCovered.plural else "isn&rsquo;t" | safe }} covered by the local plan</h2>
+          <p class="govuk-body">{{ notCovered.explanation }}</p>
+          <p class="govuk-body govuk-!-margin-bottom-0">
+            Go to <a class="govuk-link" href="#">{{ notCovered.linkText }}</a> on the council&rsquo;s website.
+          </p>
+        </div>
+      {% endif %}
+
+      {% if results | length %}
+        {% if notCovered %}<h2 class="govuk-heading-m">Related chapters in the local plan</h2>{% endif %}
+        {{ pubChapterList(results) }}
+      {% elif notCovered %}
+        <p class="govuk-body">
+          <a class="govuk-link" href="{{ backHref }}">Find out what the local plan does cover</a>
+        </p>
+      {% else %}
+        <p class="govuk-body">Try:</p>
+        <ul class="govuk-list govuk-list--bullet">
+          <li>checking your spelling</li>
+          <li>using fewer or different words, like &lsquo;homes&rsquo; or &lsquo;parks&rsquo;</li>
+          <li><a class="govuk-link" href="{{ backHref }}">browsing all chapters</a></li>
+        </ul>
+      {% endif %}
+
+    {% else %}
+      <h1 class="govuk-heading-xl">{{ heading }}</h1>
+      {% if areas | length %}
+        <p class="govuk-body-l">
+          This is in
+          {% for area in areas %}{% if not loop.first %}{% if loop.last %} and {% else %}, {% endif %}{% endif %}<strong>{{ area.name }}</strong>{% endfor %}.
+        </p>
+      {% else %}
+        <p class="govuk-body-l">This area isn't covered by any place-specific policies.</p>
+      {% endif %}
+
+    {% endif %}
+  </div>
+</div>
+
+{% if mode == "place" %}
+  {{ pubLayerMap({ layerGroups: layerGroups, layersJson: layersJson, mapJson: mapJson, areas: areas, point: point, drawn: drawn }) }}
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      {% if specific | length %}
+        <h2 class="govuk-heading-l govuk-!-margin-top-6">Policies for this area</h2>
+        {{ pubChapterList(specific) }}
+      {% endif %}
+
+      <h2 class="govuk-heading-l govuk-!-margin-top-6">Policies that apply everywhere</h2>
+      <p class="govuk-body">These chapters apply to every part of Southampton.</p>
+      {{ pubChapterList(citywide) }}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block pageScripts %}{% if mode == "place" %}{% include "partials/gis/map-assets.html" %}{% endif %}{% endblock %}

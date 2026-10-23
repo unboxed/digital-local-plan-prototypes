@@ -50,6 +50,9 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-committee-board]').forEach(safeInit(initCommitteeBoard))
   document.querySelectorAll('[data-dlp-gis-map]').forEach(safeInit(initGisMap))
   document.querySelectorAll('[data-dlp-gis-preview]').forEach(safeInit(initGisPreview))
+  document.querySelectorAll('[data-dlp-pub-timeline]').forEach(safeInit(initPublicTimeline))
+  document.querySelectorAll('[data-dlp-pub-map]').forEach(safeInit(initPublicPlanMap))
+  document.querySelectorAll('[data-dlp-pub-layer-map]').forEach(safeInit(initPublicLayerMap))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2752,3 +2755,318 @@ function initGisPreview (root) {
   observer.observe(root)
 }
 
+
+// --- Public view ----------------------------------------------------------------------------
+//
+// The public's local plan pages (/public-view). See public-view.js for the data.
+
+// The plan-making timeline scrolls sideways on wide screens. Start it with the current
+// milestone in view, without moving the page (so not scrollIntoView).
+function initPublicTimeline (root) {
+  const current = root.querySelector('[data-dlp-pub-timeline-current]')
+  if (!current || root.scrollWidth <= root.clientWidth) return
+  root.scrollLeft = Math.max(0, current.offsetLeft - root.offsetLeft - 24)
+}
+
+function readPublicMapData (root) {
+  const source = querySelectorOrNull(root.dataset.dlpPubMapSource)
+  if (!source) return null
+  try {
+    return JSON.parse(source.textContent)
+  } catch (error) {
+    return null
+  }
+}
+
+function publicBaseMap (canvas, centre, options) {
+  canvas.innerHTML = ''
+  const map = L.map(canvas, options || {}).setView([centre.lat, centre.lng], centre.zoom)
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map)
+  return map
+}
+
+// The plan's areas, outlined faintly so people can see where the place-specific policies apply.
+function publicAreaLayer (areas, highlighted) {
+  return L.layerGroup(areas.map(area => {
+    const on = highlighted && highlighted.includes(area.key)
+    return L.polygon(area.polygon.map(point => [point[1], point[0]]), {
+      color: on ? '#00703c' : '#505a5f',
+      weight: on ? 3 : 1,
+      dashArray: on ? null : '4 4',
+      fillOpacity: on ? 0.2 : 0.04
+    }).bindTooltip(area.name)
+  }))
+}
+
+// Same test as areasOverlapping in public-view.js, so the live list and the results page agree.
+function publicAreasOverlapping (areas, points) {
+  function bounds (list) {
+    const lngs = list.map(point => point[0])
+    const lats = list.map(point => point[1])
+    return { west: Math.min(...lngs), east: Math.max(...lngs), south: Math.min(...lats), north: Math.max(...lats) }
+  }
+  const drawn = bounds(points)
+  return areas.filter(area => {
+    const box = bounds(area.polygon)
+    return box.west < drawn.east && box.east > drawn.west && box.south < drawn.north && box.north > drawn.south
+  })
+}
+
+// Draw an area on the map: each click adds a corner; clicking the first corner, or Finish
+// shape, closes it. The points go into the form's hidden _area field as [lng, lat] pairs, the
+// GeoJSON order the server expects. In the map-led variant ([data-dlp-pub-map-results]) the
+// chapters for the overlapping areas are listed straight away.
+function initPublicPlanMap (root) {
+  const canvas = root.querySelector('[data-dlp-pub-map-canvas]')
+  const data = readPublicMapData(root)
+  if (!canvas || !data || !window.L) return
+
+  const field = root.querySelector('[data-dlp-pub-map-area]')
+  const finishButton = root.querySelector('[data-dlp-pub-map-finish]')
+  const clearButton = root.querySelector('[data-dlp-pub-map-clear]')
+  const submitButton = root.querySelector('[data-dlp-pub-map-submit]')
+  const status = root.querySelector('[data-dlp-pub-map-status]')
+  const results = root.querySelector('[data-dlp-pub-map-results]')
+
+  const map = publicBaseMap(canvas, data.centre)
+  let areaLayer = publicAreaLayer(data.areas).addTo(map)
+  let points = []
+  let finished = false
+  const drawing = L.layerGroup().addTo(map)
+
+  function say (text) {
+    if (status) status.textContent = text
+  }
+
+  function setDisabled (button, disabled) {
+    if (button) button.disabled = disabled
+  }
+
+  function redraw () {
+    drawing.clearLayers()
+    const latlngs = points.map(point => [point[1], point[0]])
+    if (finished) {
+      L.polygon(latlngs, { color: '#1d70b8', weight: 3, fillOpacity: 0.2 }).addTo(drawing)
+    } else if (latlngs.length > 1) {
+      L.polyline(latlngs, { color: '#1d70b8', weight: 3, dashArray: '6 4' }).addTo(drawing)
+    }
+    latlngs.forEach((latlng, index) => {
+      const marker = L.circleMarker(latlng, {
+        radius: index === 0 && !finished && points.length >= 3 ? 8 : 5,
+        color: '#1d70b8',
+        weight: 2,
+        fillColor: '#ffffff',
+        fillOpacity: 1
+      }).addTo(drawing)
+      if (index === 0) {
+        marker.on('click', event => {
+          L.DomEvent.stopPropagation(event)
+          finish()
+        })
+      }
+    })
+    setDisabled(finishButton, finished || points.length < 3)
+    setDisabled(clearButton, points.length === 0)
+    setDisabled(submitButton, !finished)
+    if (field) field.value = finished ? JSON.stringify(points) : ''
+  }
+
+  function renderResults () {
+    if (!results) return
+    results.innerHTML = ''
+    if (!finished) {
+      const prompt = document.createElement('p')
+      prompt.className = 'govuk-body'
+      prompt.textContent = 'Draw an area on the map to see the chapters that apply there.'
+      results.appendChild(prompt)
+      return
+    }
+    const areas = publicAreasOverlapping(data.areas, points)
+    const keys = areas.map(area => area.key)
+
+    const summary = document.createElement('p')
+    summary.className = 'govuk-body'
+    summary.textContent = areas.length
+      ? 'Your area includes ' + areas.map(area => area.name).join(', ') + '.'
+      : 'Your area isn’t covered by any place-specific policies. The city-wide chapters still apply.'
+    results.appendChild(summary)
+
+    function list (heading, chapters) {
+      if (!chapters.length) return
+      const title = document.createElement('h3')
+      title.className = 'govuk-heading-s'
+      title.textContent = heading
+      results.appendChild(title)
+      const ul = document.createElement('ul')
+      ul.className = 'govuk-list'
+      chapters.forEach(chapter => {
+        const li = document.createElement('li')
+        const link = document.createElement('a')
+        link.className = 'govuk-link'
+        link.href = chapter.href
+        link.textContent = chapter.number + '. ' + chapter.title
+        li.appendChild(link)
+        ul.appendChild(li)
+      })
+      results.appendChild(ul)
+    }
+    list('For this area', data.chapters.filter(chapter => chapter.areas.some(key => keys.includes(key))))
+    list('For all of Southampton', data.chapters.filter(chapter => chapter.areas.includes('all')))
+
+    map.removeLayer(areaLayer)
+    areaLayer = publicAreaLayer(data.areas, keys).addTo(map)
+  }
+
+  function finish () {
+    if (finished || points.length < 3) return
+    finished = true
+    redraw()
+    renderResults()
+    say('Shape finished with ' + points.length + ' corners.' + (results ? ' The results have been updated.' : ''))
+  }
+
+  map.on('click', event => {
+    if (finished) return
+    points.push([Number(event.latlng.lng.toFixed(5)), Number(event.latlng.lat.toFixed(5))])
+    redraw()
+    say('Corner ' + points.length + ' added.' + (points.length >= 3 ? ' You can now finish the shape.' : ''))
+  })
+
+  if (finishButton) finishButton.addEventListener('click', finish)
+  if (clearButton) {
+    clearButton.addEventListener('click', () => {
+      points = []
+      finished = false
+      redraw()
+      renderResults()
+      map.removeLayer(areaLayer)
+      areaLayer = publicAreaLayer(data.areas).addTo(map)
+      say('Shape cleared.')
+    })
+  }
+
+  // The search-led variant keeps the map in a closed details component, where Leaflet measures
+  // it as 0 by 0. Remeasure whenever its size changes.
+  if (window.ResizeObserver) {
+    new window.ResizeObserver(() => map.invalidateSize()).observe(canvas)
+  }
+
+  redraw()
+}
+
+// A place's results map, with layers to turn on and off (public-view adopted-plan macros,
+// pubLayerMap). The place itself (the postcode's area and point, or the drawn shape) is always
+// shown; each ticked layer is drawn in its key's colour and dash, and clicking a feature names it
+// and links to the chapter that covers it.
+function initPublicLayerMap (root) {
+  const canvas = root.querySelector('[data-dlp-pub-layer-canvas]')
+  const data = readPublicMapData(root)
+  const layersSource = querySelectorOrNull(root.dataset.dlpPubLayersSource)
+  if (!canvas || !data || !layersSource || !window.L) return
+
+  let layers = []
+  try {
+    layers = JSON.parse(layersSource.textContent)
+  } catch (error) {
+    return
+  }
+
+  function attribute (name) {
+    try {
+      return JSON.parse(root.getAttribute(name) || 'null')
+    } catch (error) {
+      return null
+    }
+  }
+  const found = attribute('data-areas') || []
+  const point = attribute('data-point')
+  const drawn = attribute('data-drawn')
+  const status = root.querySelector('[data-dlp-pub-layer-status]')
+  const toLatLngs = list => list.map(p => [p[1], p[0]])
+
+  const map = publicBaseMap(canvas, data.centre, { scrollWheelZoom: false })
+
+  function popupFor (layer, feature) {
+    const box = document.createElement('div')
+    const kind = document.createElement('p')
+    kind.className = 'govuk-body-s govuk-!-margin-bottom-1 dlp-pub-layers__popup-kind'
+    kind.textContent = layer.name
+    const title = document.createElement('p')
+    title.className = 'govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1'
+    title.textContent = feature.name
+    box.append(kind, title)
+    if (feature.detail) {
+      const detail = document.createElement('p')
+      detail.className = 'govuk-body-s govuk-!-margin-bottom-1'
+      detail.textContent = feature.detail
+      box.appendChild(detail)
+    }
+    const link = document.createElement('a')
+    link.className = 'govuk-link govuk-body-s'
+    link.href = layer.chapter.href
+    link.textContent = 'Read chapter ' + layer.chapter.number + ': ' + layer.chapter.title
+    box.appendChild(link)
+    return box
+  }
+
+  // Built on first tick, then kept, so turning a layer off and on again is instant.
+  const drawnLayers = {}
+  function buildLayer (layer) {
+    return L.layerGroup(layer.features.map(feature => {
+      const shape = feature.point
+        ? L.circleMarker([feature.point[1], feature.point[0]], {
+          radius: 7, color: '#ffffff', weight: 2, fillColor: layer.colour, fillOpacity: 1
+        })
+        : L.polygon(toLatLngs(feature.polygon), {
+          color: layer.colour, weight: 2, dashArray: layer.dash || null, fillColor: layer.colour, fillOpacity: 0.15
+        })
+      return shape.bindPopup(() => popupFor(layer, feature)).bindTooltip(feature.name)
+    }))
+  }
+
+  function show (key, on) {
+    const layer = layers.find(item => item.key === key)
+    if (!layer) return
+    if (on) {
+      drawnLayers[key] = drawnLayers[key] || buildLayer(layer)
+      drawnLayers[key].addTo(map)
+      place.bringToFront()
+    } else if (drawnLayers[key]) {
+      map.removeLayer(drawnLayers[key])
+    }
+  }
+
+  // The place's outline goes on top of the layers, so it's never hidden under them, but isn't
+  // clickable, so it doesn't block the features inside it.
+  const place = L.featureGroup()
+  if (drawn) {
+    L.polygon(toLatLngs(drawn), { color: '#0b0c0c', weight: 3, fillOpacity: 0, interactive: false }).addTo(place)
+  } else {
+    found.forEach(area => {
+      L.polygon(toLatLngs(area.polygon), { color: '#0b0c0c', weight: 3, fillOpacity: 0, interactive: false }).addTo(place)
+    })
+  }
+  if (point) {
+    L.circleMarker([point.lat, point.lng], { radius: 9, color: '#d4351c', weight: 4, fillColor: '#ffffff', fillOpacity: 1 })
+      .bindTooltip('Your postcode').addTo(place)
+  }
+  place.addTo(map)
+  root.querySelectorAll('[data-dlp-pub-layer]').forEach(checkbox => {
+    if (checkbox.checked) show(checkbox.dataset.dlpPubLayer, true)
+    checkbox.addEventListener('change', () => {
+      show(checkbox.dataset.dlpPubLayer, checkbox.checked)
+      const layer = layers.find(item => item.key === checkbox.dataset.dlpPubLayer)
+      if (status && layer) status.textContent = layer.name + (checkbox.checked ? ' shown on the map' : ' hidden')
+    })
+  })
+
+  const focus = place.getBounds()
+  if (focus.isValid()) map.fitBounds(focus, { padding: [32, 32], maxZoom: 16 })
+
+  if (window.ResizeObserver) {
+    new window.ResizeObserver(() => map.invalidateSize()).observe(canvas)
+  }
+}

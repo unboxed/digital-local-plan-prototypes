@@ -1,0 +1,24 @@
+{#
+  The public's screens. A member of the public is outside the LPA, so these pages show the
+  external header, with the council's name, rather than the service header and its internal nav.
+  The `header` block is overridden WITHOUT super() on purpose: these URLs sit under /public-view,
+  so `activeSection` is set and super() would bring the internal nav back.
+
+  Children may fill `hero`, a full-width band under the header (the adopted plan's search).
+#}
+
+{% extends "layouts/main.html" %}
+
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
+{% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+
+{% block header %}
+  {{ appExternalHeader({ organisationName: authority, title: "Planning policy" }) }}
+  {{ govukPhaseBanner({
+    tag: { text: "Prototype" },
+    text: "This is a prototype – it is not a live service. Do not enter live data or use it to support a live service"
+  }) }}
+  {% block hero %}{% endblock %}
+{% endblock %}

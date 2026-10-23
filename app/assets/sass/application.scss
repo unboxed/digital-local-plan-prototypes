@@ -1294,3 +1294,6 @@ $dlp-confidence-low: govuk-colour("orange");
 
 // Publish plan versions. Uses the variables above.
 @import "plan-versions";
+
+// Public view.
+@import "public-view";

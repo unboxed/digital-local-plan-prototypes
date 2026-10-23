@@ -1,0 +1,47 @@
+{#
+  Adopted plan, map-led variant: place comes first. A compact search box, then a large map whose
+  results list updates as soon as a shape is drawn, with the postcode search beside it, then the
+  chapters underneath.
+#}
+{% extends "public-view/partials/layout.html" %}
+
+{% from "public-view/adopted-plan/partials/macros.html" import pubSearch, pubPostcodeForm, pubChapterGrid, pubDrawMap %}
+
+{% set pageName = plan.title %}
+
+{% block content %}
+<a class="govuk-back-link" href="/public-view">Back to Public view</a>
+
+{% if postcodeError %}
+  {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: postcodeError, href: "#pub-postcode" }] }) }}
+{% endif %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">Adopted {{ adoptedOn }}</span>
+    <h1 class="govuk-heading-xl">{{ plan.title }}</h1>
+    <p class="govuk-body-l">
+      Find out what the plan says about the places you care about. Draw an area on the map,
+      enter a postcode, or search for a topic.
+    </p>
+  </div>
+</div>
+
+<div class="dlp-pub-toolbar">
+  <div class="dlp-pub-toolbar__postcode">
+    {{ pubPostcodeForm({ variant: variant, error: postcodeError, value: postcodeValue }) }}
+  </div>
+  <div class="dlp-pub-toolbar__search">
+    {{ pubSearch({ id: "pub-search", variant: variant, label: "Or search by topic", termsJson: searchTermsJson }) }}
+  </div>
+</div>
+
+{{ pubDrawMap({ variant: variant, mapJson: mapJson, live: true, submitText: "See full results" }) }}
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<h2 class="govuk-heading-l">Browse all chapters</h2>
+{{ pubChapterGrid(chapters) }}
+{% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

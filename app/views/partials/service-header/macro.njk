@@ -13,7 +13,7 @@
   inherit the calling template's context, only its own explicit parameters.
 
   params.activeSection: one of "project-management" | "policy-writing" | "evidence" |
-  "consultations" | "pins-view" | "user-stories" | "statement-of-compliance" (optional —
+  "consultations" | "pins-view" | "public-view" | "user-stories" | "statement-of-compliance" (optional —
   set automatically by routes.js middleware based on the request path; omit/leave unmatched for
   no highlighted item)
   params.organisationName, params.serviceName: string (required) — see app/config.json
@@ -46,6 +46,10 @@
           <li class="app-service-header__nav-item">
             <a class="app-service-header__nav-link {%- if params.activeSection == 'pins-view' %} app-service-header__nav-link--active{% endif %}"
                href="/pins-view">PINS view</a>
+          </li>
+          <li class="app-service-header__nav-item">
+            <a class="app-service-header__nav-link {%- if params.activeSection == 'public-view' %} app-service-header__nav-link--active{% endif %}"
+               href="/public-view">Public view</a>
           </li>
           <li class="app-service-header__nav-item">
             <a class="app-service-header__nav-link {%- if params.activeSection == 'user-stories' %} app-service-header__nav-link--active{% endif %}"

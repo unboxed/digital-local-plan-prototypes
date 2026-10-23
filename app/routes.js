@@ -35,6 +35,10 @@ router.use((req, res, next) => {
     // Only the PINS hub page. The prototypes it links to are seen by inspectors, so they keep
     // their own external header with no internal nav (see partials/external-header).
     res.locals.activeSection = 'pins-view'
+  } else if (req.path.startsWith('/public-view')) {
+    // The hub page shows this nav; the prototypes it lists are seen by members of the public, so
+    // they override the header block to leave it out (see public-view/partials/layout.html).
+    res.locals.activeSection = 'public-view'
   }
   next()
 })
@@ -6236,4 +6240,177 @@ router.get(EXL + '/inspectors-report', (req, res) => {
     // The report's own contents replace the library sections in the sidebar.
     sidebarSections: [{ heading: 'In this report', items: EX.REPORT.sections.map(section => ({ text: section.heading, href: '#' + section.id })) }]
   })
+})
+
+// --- Public view (/public-view) ---
+//
+// What a member of the public sees: a local plan being made, and an adopted one. Static
+// content only, from app/data/public-view.js, with Southampton as the example authority. The
+// prototype pages show the external header (see public-view/partials/layout.html). Search
+// fields are `_`-prefixed so the kit doesn't store them in session data.
+
+const PUB = require('./data/public-view.js')
+
+function pubDate (iso, precision) {
+  const options = precision === 'month'
+    ? { month: 'long', year: 'numeric' }
+    : { day: 'numeric', month: 'long', year: 'numeric' }
+  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', Object.assign({ timeZone: 'Europe/London' }, options))
+}
+
+// "5 October to 16 November 2026", dropping the first year when both ends share it.
+function pubDateRange (start, end, precision) {
+  const from = pubDate(start, precision)
+  const to = pubDate(end, precision)
+  return start.slice(0, 4) === end.slice(0, 4) ? from.replace(/ \d{4}$/, '') + ' to ' + to : from + ' to ' + to
+}
+
+function pubMilestoneView (milestone) {
+  let when
+  if (milestone.status === 'optional') {
+    when = 'Dates to be confirmed'
+  } else if (milestone.status === 'completed') {
+    when = 'Completed ' + pubDate(milestone.endDate || milestone.date)
+  } else {
+    const dates = milestone.endDate
+      ? pubDateRange(milestone.date, milestone.endDate, milestone.precision)
+      : pubDate(milestone.date, milestone.precision)
+    when = milestone.status === 'current' ? dates : 'Due ' + dates
+  }
+  return Object.assign({}, milestone, { when })
+}
+
+function pubChapterView (chapter) {
+  return Object.assign({}, chapter, { href: '/public-view/adopted-plan/chapters/' + chapter.slug })
+}
+
+function pubAdoptedPlanLocals () {
+  return {
+    plan: PUB.ADOPTED_PLAN,
+    adoptedOn: pubDate(PUB.ADOPTED_PLAN.adopted),
+    chapters: PUB.ADOPTED_PLAN.chapters.map(pubChapterView),
+    popular: PUB.POPULAR_CHAPTERS.map(slug => pubChapterView(PUB.getChapter(slug))),
+    searchTermsJson: JSON.stringify(PUB.searchTerms(chapter => pubChapterView(chapter).href)),
+    mapJson: JSON.stringify({
+      centre: PUB.CITY_CENTRE,
+      areas: PUB.PLAN_AREAS,
+      chapters: PUB.ADOPTED_PLAN.chapters.map(chapter => ({
+        number: chapter.number, title: chapter.title, areas: chapter.areas, href: pubChapterView(chapter).href
+      }))
+    })
+  }
+}
+
+// The layer list and map data for a place's results page. `shapes` is the place: the areas a
+// postcode is in, or the shape that was drawn.
+function pubLayerLocals (shapes) {
+  const counts = PUB.layerCountsFor(shapes)
+  const groups = []
+  PUB.MAP_LAYERS.forEach(layer => {
+    let group = groups.find(g => g.name === layer.group)
+    if (!group) groups.push(group = { name: layer.group, layers: [] })
+    group.layers.push({
+      key: layer.key,
+      name: layer.name,
+      description: layer.description,
+      colour: layer.colour,
+      dash: layer.dash,
+      point: !!layer.features[0].point,
+      count: counts[layer.key],
+      selected: PUB.DEFAULT_MAP_LAYERS.includes(layer.key)
+    })
+  })
+  return {
+    layerGroups: groups,
+    layersJson: JSON.stringify(PUB.MAP_LAYERS.map(layer => {
+      const chapter = PUB.getChapter(layer.chapter)
+      return Object.assign({}, layer, {
+        chapter: { number: chapter.number, title: chapter.title, href: pubChapterView(chapter).href }
+      })
+    }))
+  }
+}
+
+const PUB_ADOPTED_VARIANTS = { index: 'public-view/adopted-plan/index', 'map-first': 'public-view/adopted-plan/map-first' }
+
+router.get('/public-view/plan-making', (req, res) => {
+  const current = pubMilestoneView(PUB.getCurrentMilestone())
+  res.render('public-view/plan-making', {
+    authority: PUB.AUTHORITY,
+    milestones: PUB.SOUTHAMPTON_MILESTONES.map(pubMilestoneView),
+    current,
+    closes: pubDate(current.endDate)
+  })
+})
+
+router.get('/public-view/adopted-plan', (req, res) => {
+  res.render(PUB_ADOPTED_VARIANTS.index, Object.assign({ authority: PUB.AUTHORITY, variant: 'index' }, pubAdoptedPlanLocals()))
+})
+
+router.get('/public-view/adopted-plan/map-first', (req, res) => {
+  res.render(PUB_ADOPTED_VARIANTS['map-first'], Object.assign({ authority: PUB.AUTHORITY, variant: 'map-first' }, pubAdoptedPlanLocals()))
+})
+
+// One results page for all three ways of searching: words (_q), a postcode (_postcode) or a
+// drawn shape (_area, a JSON array of [lng, lat] points). A postcode that can't be found goes
+// back to the page it came from (_from) with an error, as a GOV.UK form would.
+router.get('/public-view/adopted-plan/results', (req, res) => {
+  const from = PUB_ADOPTED_VARIANTS[req.query._from] ? req.query._from : 'index'
+  const backHref = from === 'index' ? '/public-view/adopted-plan' : '/public-view/adopted-plan/' + from
+  const locals = Object.assign({ authority: PUB.AUTHORITY, variant: from, backHref }, pubAdoptedPlanLocals())
+
+  if (req.query._postcode !== undefined) {
+    const found = PUB.lookupPostcode(req.query._postcode)
+    if (found.error) {
+      return res.render(PUB_ADOPTED_VARIANTS[from], Object.assign(locals, {
+        postcodeError: found.error,
+        postcodeValue: req.query._postcode
+      }))
+    }
+    const { specific, citywide } = PUB.chaptersForAreas([found.area.key])
+    return res.render('public-view/adopted-plan/results', Object.assign(locals, pubLayerLocals([found.area.polygon]), {
+      mode: 'place',
+      heading: 'Policies for ' + found.postcode,
+      areas: [found.area],
+      point: { lat: found.lat, lng: found.lng },
+      specific: specific.map(pubChapterView),
+      citywide: citywide.map(pubChapterView)
+    }))
+  }
+
+  if (req.query._area !== undefined) {
+    let points = []
+    try {
+      points = JSON.parse(req.query._area)
+    } catch (error) {}
+    const valid = Array.isArray(points) && points.length >= 3 &&
+      points.every(point => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite))
+    if (!valid) return res.redirect(backHref)
+    const areas = PUB.areasOverlapping(points)
+    const { specific, citywide } = PUB.chaptersForAreas(areas.map(area => area.key))
+    return res.render('public-view/adopted-plan/results', Object.assign(locals, pubLayerLocals([points]), {
+      mode: 'place',
+      heading: 'Policies for the area you drew',
+      areas,
+      drawn: points,
+      specific: specific.map(pubChapterView),
+      citywide: citywide.map(pubChapterView)
+    }))
+  }
+
+  const query = String(req.query._q || '').trim()
+  if (!query) return res.redirect(backHref)
+  res.render('public-view/adopted-plan/results', Object.assign(locals, {
+    mode: 'search',
+    query,
+    results: PUB.searchChapters(query).map(pubChapterView),
+    notCovered: PUB.findNotCovered(query)
+  }))
+})
+
+// Chapter pages aren't built yet.
+router.get('/public-view/adopted-plan/chapters/:slug', (req, res) => {
+  const chapter = PUB.getChapter(req.params.slug)
+  if (!chapter) return res.redirect('/public-view/adopted-plan')
+  res.render('public-view/adopted-plan/chapter', Object.assign({ authority: PUB.AUTHORITY, chapter: pubChapterView(chapter) }, pubAdoptedPlanLocals()))
 })

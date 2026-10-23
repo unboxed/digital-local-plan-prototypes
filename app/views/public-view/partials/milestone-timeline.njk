@@ -1,0 +1,29 @@
+{#
+  A horizontal timeline of plan-making milestones for the public. Cards sit on a connecting line,
+  in order, with the current one larger. Wide screens scroll it sideways (the region is focusable,
+  so it scrolls with the keyboard too) and initPublicTimeline scrolls the current card into view;
+  narrow screens stack it vertically. It is an ordered list, so it reads in order without CSS.
+
+  milestones: [{ key, title, description, when, status }], status one of
+  completed | current | upcoming | optional — see public-view.js and pubMilestoneView in routes.js.
+#}
+
+{% macro publicMilestoneTimeline(milestones) %}
+{% set statusLabels = { completed: "Completed", current: "Happening now", upcoming: "Coming up", optional: "If needed" } %}
+<div class="dlp-pub-timeline" role="region" aria-label="Local plan timeline" tabindex="0" data-dlp-pub-timeline>
+  <ol class="dlp-pub-timeline__list">
+    {% for milestone in milestones %}
+      <li class="dlp-pub-timeline__item dlp-pub-timeline__item--{{ milestone.status }}"
+          {%- if milestone.status == "current" %} aria-current="step" data-dlp-pub-timeline-current{% endif %}>
+        <span class="dlp-pub-timeline__marker" aria-hidden="true"></span>
+        <div class="dlp-pub-timeline__card">
+          <p class="dlp-pub-timeline__status">{{ statusLabels[milestone.status] }}</p>
+          <h3 class="dlp-pub-timeline__title">{{ milestone.title }}</h3>
+          <p class="dlp-pub-timeline__description">{{ milestone.description }}</p>
+          <p class="dlp-pub-timeline__when">{{ milestone.when }}</p>
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+</div>
+{% endmacro %}
