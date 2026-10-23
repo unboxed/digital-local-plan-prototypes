@@ -163,7 +163,7 @@ function layers (versions) {
 const SEED_VERSIONS = [
   {
     id: 'scoping',
-    title: 'Scoping consultation: proposed local plan content',
+    title: 'Consultation: proposed local plan content and evidence',
     versionDate: '12 Sep 2025',
     published: '12 Sep 2025',
     publishedLong: '12 September 2025',
@@ -227,7 +227,7 @@ const SEED_VERSIONS = [
 
 // Milestones a published version can be linked to (frame 4).
 const MILESTONES = [
-  'Scoping consultation: proposed local plan content',
+  'Consultation: proposed local plan content and evidence',
   'Consultation: proposed local plan',
   'Examination: proposed local plan',
   'Adopted plan'

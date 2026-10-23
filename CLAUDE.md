@@ -724,8 +724,9 @@ internally for non-public review. The research question is where that sharing fi
 
 - **No "Publish plan" header item.** The frames add one, but the prototype sits under Project
   management by request, and the `activeSection` middleware already highlights that.
-- **Names and dates are the frames' own, by design request.** The four versions (Scoping …
-  Adopted) run Sep–Oct 2025, the draft is "Version 3 · Saved 29 September 2025", and the layer
+- **Names and dates are the frames' own, by design request.** The four versions (Consultation:
+  proposed local plan content and evidence … Adopted; the first was "Scoping consultation: proposed
+  local plan content" in the frames and was renamed by request) run Sep–Oct 2025, the draft is "Version 3 · Saved 29 September 2025", and the layer
   dates are the frame's (one is in 2026). Don't "fix" them to the other prototypes' timeline
   without asking.
 - **State** is one object, `planVersions`, read only through `getPlanVersions` and stamped with
@@ -755,7 +756,7 @@ internally for non-public review. The research question is where that sharing fi
   had no way into step 2), the Purpose row on the preview, and the confirmation banner. The
   compare toolbar's "100%" is static text, as drawn.
 - **Changed from the frames by request:** the milestone list ends with "Adopted plan", and the
-  history table is in body small (16px) text. The Scoping version has no layers, as in frame 1.
+  history table is in body small (16px) text. The first version (proposed local plan content and evidence) has no layers, as in frame 1.
   The sidebar has only
   version history and Share or publish. Preview and export is reached only from Share or publish,
   so that item stays current on the preview.
