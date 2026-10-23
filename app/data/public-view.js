@@ -130,6 +130,117 @@ const ADOPTED_PLAN = {
 // The chapters most people look for, shown as the homepage's "Popular" links.
 const POPULAR_CHAPTERS = ['homes', 'city-centre', 'green-spaces', 'design-heritage', 'climate-flooding', 'transport']
 
+// Policies with their own public page. Only HO3 is written out; the others are named so the
+// chapter and "Related policies" can list them. Wording, figures, documents and consultation
+// numbers are invented for the prototype. `mapShapes` are drawn on the policy's map; `area`
+// names a PLAN_AREAS polygon, or `polygon` gives one. Each policy has two layouts to compare:
+// sidebar (the default) and one page.
+const POLICIES = [
+  {
+    // The wording is Southampton's own: Policy HO3 (S) in the draft City Vision Local Plan
+    // (Regulation 18 consultation, 2022), with its "[See Key Options …]" consultation notes
+    // removed. The "why" draws on that plan's supporting text (paragraphs 3.31 to 3.36). The
+    // prototype presents it as adopted; the consultation and examination details are invented.
+    ref: 'HO3',
+    slug: 'ho3-affordable-housing',
+    chapter: 'homes',
+    title: 'Affordable housing',
+    keywords: ['affordable housing', 'affordable homes', 'social rent', 'social housing', 'first homes', 'shared ownership', 'build to rent', 'housing'],
+    lead: 'New housing developments must include affordable homes for people who can\'t afford to rent or buy at market prices.',
+    atAGlance: [
+      { label: 'Applies to', value: 'Sites of 10 or more homes, or of half a hectare or more' },
+      { label: 'What it asks for', value: '35% of the homes to be affordable' }
+    ],
+    means: [
+      'On sites of 10 or more homes, or half a hectare or more, the council will ask for 35% of the homes to be affordable.',
+      'At least a quarter of the affordable homes should be First Homes, sold at a discount to first-time buyers with a local connection. Most of the rest should be for rent.',
+      'Build to rent schemes must also make 35% of their homes affordable, as homes at a discounted rent.',
+      'Developers can\'t split a site into smaller parts to avoid the rule.',
+      'A developer can only provide fewer affordable homes if an independent check, paid for by the developer, shows the scheme couldn\'t go ahead otherwise.',
+      'Student housing is exempt.'
+    ],
+    why: [
+      'Only half of the homes in Southampton are owned by the people living in them, and a quarter are privately rented.',
+      'In 2021 the average house cost £235,000, more than 7 times the average salary. Renting privately costs a typical £800 a month, so it isn\'t an affordable option for many people either.',
+      'At the end of 2021, 7,647 people were on the council\'s housing register waiting for social housing. Families needing a home with 3 or more bedrooms can wait more than 10 years.'
+    ],
+    // Clauses, each with optional lettered sub-clauses, as in the plan.
+    text: [
+      { text: 'On housing sites of 10 or more dwellings, or of 0.5 hectare or more in size (irrespective of the number of dwellings), the council will seek provision of, through negotiation, 35% of dwellings to be affordable housing.' },
+      {
+        text: 'The appropriate proportion and type of affordable housing to be provided by a particular site will take into account:',
+        items: [
+          'The costs relating to the development; in particular, the financial viability of developing the site (using an approved viability model and made publicly available). For exceptional cases not covered by the Local Plan viability assessment, where targets cannot be met in full as demonstrated in an independent viability appraisal commissioned by the council and paid for by the applicant, the maximum viable level will be sought;',
+          'Constraints on the development of the site imposed by other planning objectives;',
+          'Local needs in respect of the mix of dwelling types and sizes and levels of affordability, including the criteria set by the Government\'s First Homes initiative; and',
+          'The need to achieve a successful housing development in terms of the location and mix of affordable homes.'
+        ]
+      },
+      { text: 'Where a site is developed in phases, the affordable housing requirement will be calculated based on the total development size and must be provided on each phase or subdivision. The Council will not accept the deliberate subdivision of sites to provide individual parcels of development land to avoid the affordable housing threshold.' },
+      { text: 'Affordable housing should be provided on-site, unless in exceptional circumstances when the provision of an alternative site or a commuted sum would result in a more effective use of resources or mix of housing as agreed by the council.' },
+      {
+        text: 'The exact tenure split on each site will be subject to negotiation using the following criteria:',
+        items: [
+          'A minimum of 25% of all affordable housing provision will be First Homes in accordance with national policy, meeting the Government criteria and price cap and available to purchasers meeting the local connection criteria;',
+          'No less than 10% of all dwellings on the site will be affordable home ownership (including First Homes);',
+          'The preferred tenure for the remaining proportion of affordable housing will be rented, unless an alternative housing tenure is required to meet local need or other strong reasons in connection with the delivery of affordable housing.'
+        ]
+      },
+      { text: 'The exception to the tenure split above is Build to Rent Schemes, fully meeting the government definition and requirements, where the affordable element is expected to be delivered as Affordable Private Rent. To address the high levels of affordable housing need in the city, the Council will seek 35% affordable housing on Build to Rent schemes.' },
+      { text: 'Student housing schemes with occupation restrictions are exempt.' }
+    ],
+    strategic: true,
+    related: ['HO1', 'HO2', 'INF1'],
+    map: {
+      description: 'The whole of Southampton. It applies wherever a site meets the size threshold.',
+      shapes: [
+        { name: 'Southampton: 35% affordable on qualifying sites', colour: '#1d70b8', polygon: [[-1.462, 50.890], [-1.342, 50.890], [-1.340, 50.945], [-1.460, 50.947]] }
+      ]
+    },
+    evidence: [
+      { ref: 'EB-H01', title: 'Affordable Housing Framework', year: 2022, kind: 'PDF' },
+      { ref: 'EB-H02', title: 'Local Housing Needs Assessment', year: 2024, kind: 'PDF' },
+      { ref: 'EB-V02', title: 'Whole Plan Viability Assessment', year: 2024, kind: 'PDF' }
+    ],
+    consultation: {
+      name: 'Consultation on the proposed local plan',
+      dates: 'June to August 2024',
+      comments: 312,
+      themes: [
+        { label: 'Ask for more affordable homes', percent: 41 },
+        { label: 'Worried it makes sites unviable', percent: 28 },
+        { label: 'Comments on First Homes', percent: 19 },
+        { label: 'Other', percent: 12 }
+      ]
+    },
+    examination: {
+      summary: 'An independent inspector examined this policy in October 2025. They agreed the 35% requirement, which the viability assessment supports, and asked for the wording on phased sites to be made clearer.',
+      short: 'Examined October 2025. The inspector agreed the 35% requirement.'
+    }
+  },
+  { ref: 'HO1', slug: 'ho1-housing-supply', chapter: 'homes', title: 'Housing supply' },
+  { ref: 'HO2', slug: 'ho2-housing-mix', chapter: 'homes', title: 'Housing mix' },
+  { ref: 'INF1', slug: 'inf1-infrastructure', chapter: 'infrastructure', title: 'Infrastructure and developer contributions' }
+]
+
+function getPolicy (slug) {
+  return POLICIES.find(policy => policy.slug === slug)
+}
+
+function getPolicyByRef (ref) {
+  return POLICIES.find(policy => policy.ref === ref)
+}
+
+// Policies written out in full (with a page) matching a search, like searchChapters.
+function searchPolicies (query) {
+  const words = String(query || '').toLowerCase().split(/\s+/).filter(word => word.length > 1)
+  if (!words.length) return []
+  return POLICIES.filter(policy => policy.text).filter(policy => {
+    const haystack = (policy.ref + ' ' + policy.title + ' ' + policy.keywords.join(' ')).toLowerCase()
+    return words.some(word => haystack.includes(word))
+  })
+}
+
 // Rough areas of the city, as GeoJSON polygons in [longitude, latitude]. Drawn for the
 // prototype, not real policy boundaries.
 const PLAN_AREAS = [
@@ -463,8 +574,9 @@ function findNotCovered (query) {
 
 // The suggestion list for initSuggestSearch. Topics (every chapter keyword, once) run a search
 // and say how many chapters they're in; chapters open their page (`hrefFor`). initSuggestSearch
-// lists terms starting with what was typed first, then Topics before chapters.
-function searchTerms (hrefFor) {
+// lists terms starting with what was typed first, then Topics before chapters. Policies with a
+// page are offered too, and open it (`policyHrefFor`).
+function searchTerms (hrefFor, policyHrefFor) {
   const topics = {}
   ADOPTED_PLAN.chapters.forEach(chapter => {
     chapter.keywords.forEach(keyword => {
@@ -492,7 +604,14 @@ function searchTerms (hrefFor) {
     label: 'Not in the local plan',
     search: item.topic + ' ' + item.terms.join(' ')
   }))
-  return topicTerms.concat(chapterTerms, notCoveredTerms)
+  const policyTerms = POLICIES.filter(policy => policy.text).map(policy => ({
+    term: policy.ref + ': ' + policy.title,
+    kind: 'Policy',
+    label: 'Policy',
+    search: policy.ref + ' ' + policy.title + ' ' + policy.keywords.join(' '),
+    href: policyHrefFor(policy)
+  }))
+  return topicTerms.concat(policyTerms, chapterTerms, notCoveredTerms)
 }
 
 module.exports = {
@@ -508,6 +627,10 @@ module.exports = {
   getCurrentMilestone,
   getArea,
   getChapter,
+  POLICIES,
+  getPolicy,
+  getPolicyByRef,
+  searchPolicies,
   lookupPostcode,
   searchChapters,
   findNotCovered,

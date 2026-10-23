@@ -12,20 +12,21 @@ const OWNER = 'City of London planning team'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-// '2025-10-08T09:00' → { short: '8 Oct 2025, 09:00', long: '8 October 2025',
-//   longTime: '8 October 2025, 09:00', time: '09:00', stamp: '2025-10-08_0900' }
-// Published items always show their time as well as their date, so readers can tell exactly
-// which publication they're looking at.
+// '2025-10-08T09:00' → { short: '8 Oct 2025', long: '8 October 2025',
+//   longTime: '8 October 2025', time: '09:00', stamp: '2025-10-08' }
+// Published items show their date only (times were removed by request).
 function formatDate (iso) {
   const [date, time] = iso.split('T')
   const [year, month, day] = date.split('-').map(Number)
   const longMonth = MONTHS[month - 1]
   return {
-    short: day + ' ' + longMonth.slice(0, 3) + ' ' + year + ', ' + time,
+    // Dates only on screen, by request: the time stays in the data, where it orders versions
+    // published on the same day, but isn't shown.
+    short: day + ' ' + longMonth.slice(0, 3) + ' ' + year,
     long: day + ' ' + longMonth + ' ' + year,
-    longTime: day + ' ' + longMonth + ' ' + year + ', ' + time,
+    longTime: day + ' ' + longMonth + ' ' + year,
     time,
-    stamp: date + '_' + time.replace(':', '')
+    stamp: date
   }
 }
 
@@ -415,7 +416,7 @@ function pdfFilename (item, version) {
 
 function citation (item, version) {
   const date = formatDate(version.published)
-  return item.ref + ' ' + item.title + ', version ' + version.version + ', published ' + date.long + ' at ' + date.time
+  return item.ref + ' ' + item.title + ', version ' + version.version + ', published ' + date.long
 }
 
 // Items whose current version was published after the library was first published: an update

@@ -1,0 +1,84 @@
+{#
+  Pieces of a policy's public page (policy-sidebar.html). `policy` is a pubPolicyView from
+  routes.js.
+#}
+
+{% macro pubPolicyText(policy) %}
+<div class="dlp-pub-policy-text">
+  <p class="dlp-pub-policy-text__ref">Policy {{ policy.ref }}: {{ policy.title }}</p>
+  <ol class="dlp-pub-policy-text__list">
+    {% for clause in policy.text %}
+      <li>
+        {{ clause.text }}
+        {% if clause.items %}
+          <ol class="dlp-pub-policy-text__items">
+            {% for item in clause.items %}<li>{{ item }}</li>{% endfor %}
+          </ol>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</div>
+{% endmacro %}
+
+{#
+  The policy's map (initPublicPolicyMap, data-dlp-pub-policy-map): its shapes, with a key that
+  doubles as the description without JavaScript. `small` is the sidebar's still thumbnail.
+#}
+{% macro pubPolicyMap(policy, small) %}
+<div class="dlp-pub-policy-map{% if small %} dlp-pub-policy-map--small{% endif %}" data-dlp-pub-policy-map
+     {%- if small %} data-still{% endif %} aria-hidden="true">
+  <p class="govuk-body-s dlp-pub-map__fallback">The map needs JavaScript and an internet connection.</p>
+</div>
+<script type="application/json" data-dlp-pub-policy-map-data>{{ policy.mapJson | safe }}</script>
+<ul class="dlp-pub-policy-key">
+  {% for shape in policy.map.shapes %}
+    <li><span class="dlp-pub-policy-key__swatch" style="--dlp-swatch: {{ shape.colour }};{% if shape.dash %} border-style: dashed;{% endif %}" aria-hidden="true"></span>{{ shape.name }}</li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro pubPolicyEvidence(policy) %}
+<ul class="dlp-pub-evidence">
+  {% for item in policy.evidence %}
+    <li class="dlp-pub-evidence__item">
+      <a class="govuk-link" href="#">{{ item.title }}</a>
+      <span class="dlp-pub-evidence__meta">{{ item.ref }} · {{ item.year }} · {{ item.kind }}</span>
+    </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro pubPolicyConsultation(policy) %}
+{% set c = policy.consultation %}
+<p class="govuk-body">From the {{ c.name | lower }}, {{ c.dates }}.</p>
+<p class="govuk-body"><span class="dlp-pub-stat">{{ c.comments }}</span> comments on this policy. What they were about:</p>
+<ul class="dlp-pub-themes">
+  {% for theme in c.themes %}
+    <li class="dlp-pub-themes__row">
+      <span class="dlp-pub-themes__label">{{ theme.label }}</span>
+      <span class="dlp-pub-themes__bar" aria-hidden="true"><span style="width: {{ theme.percent }}%"></span></span>
+      <span class="dlp-pub-themes__value">{{ theme.percent }}%</span>
+    </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro pubPolicyWhy(policy) %}
+{% for paragraph in policy.why %}<p class="govuk-body">{{ paragraph }}</p>{% endfor %}
+{% endmacro %}
+
+{# "(S)" in the plan: a strategic policy, which neighbourhood plans must be in line with. #}
+{% macro pubPolicyStrategic(policy) %}
+{% if policy.strategic %}
+  <p class="govuk-body"><strong class="govuk-tag govuk-tag--grey">Strategic policy</strong></p>
+{% endif %}
+{% endmacro %}
+
+{% macro pubPolicyRelated(policy) %}
+<ul class="govuk-list">
+  {% for related in policy.relatedViews %}
+    <li><a class="govuk-link" href="{{ related.href }}">{{ related.ref }}: {{ related.title }}</a></li>
+  {% endfor %}
+</ul>
+{% endmacro %}

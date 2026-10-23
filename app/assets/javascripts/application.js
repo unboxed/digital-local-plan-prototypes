@@ -53,6 +53,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-pub-timeline]').forEach(safeInit(initPublicTimeline))
   document.querySelectorAll('[data-dlp-pub-map]').forEach(safeInit(initPublicPlanMap))
   document.querySelectorAll('[data-dlp-pub-layer-map]').forEach(safeInit(initPublicLayerMap))
+  document.querySelectorAll('[data-dlp-pub-policy-map]').forEach(safeInit(initPublicPolicyMap))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2234,9 +2235,16 @@ function initSuggestSearch (root) {
   // Matches anywhere in the term, but terms starting with what was typed come first, then
   // topics before individual sources, so "hous" offers "housing" before a document title.
   // A term may carry `search`, extra text to match on (an item's reference as well as its title).
+  // A select elsewhere in the form can narrow the suggestions to one `scope` (the examination
+  // library's section select, data-dlp-suggest-scope="#this-root"). Terms without a scope always
+  // show.
+  const scopeSelect = root.id ? document.querySelector('[data-dlp-suggest-scope="#' + root.id + '"]') : null
+
   function matchesFor (typed) {
     const query = typed.toLowerCase()
+    const scope = scopeSelect ? scopeSelect.value : ''
     return terms
+      .filter(option => !scope || !option.scope || option.scope === scope)
       .filter(option => (option.search || option.term).toLowerCase().includes(query))
       .sort((a, b) => {
         const aStarts = a.term.toLowerCase().startsWith(query) ? 0 : 1
@@ -3068,5 +3076,36 @@ function initPublicLayerMap (root) {
 
   if (window.ResizeObserver) {
     new window.ResizeObserver(() => map.invalidateSize()).observe(canvas)
+  }
+}
+
+// A policy's map (public-view adopted-plan partials/policy.html): its shapes, each in its key's
+// colour and dash, fitted to the largest. Its data is the JSON script straight after it, so a
+// page could carry more than one. `data-still` makes the sidebar's thumbnail non-interactive.
+function initPublicPolicyMap (root) {
+  const source = root.nextElementSibling
+  if (!window.L || !source || !source.matches('[data-dlp-pub-policy-map-data]')) return
+  let data
+  try {
+    data = JSON.parse(source.textContent)
+  } catch (error) {
+    return
+  }
+  const still = root.hasAttribute('data-still')
+  const map = publicBaseMap(root, data.centre, still
+    ? { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false }
+    : { scrollWheelZoom: false })
+  const shapes = L.featureGroup(data.shapes.map(shape => L.polygon(shape.polygon.map(p => [p[1], p[0]]), {
+    color: shape.colour,
+    weight: 3,
+    dashArray: shape.dash || null,
+    fillColor: shape.colour,
+    fillOpacity: 0.15,
+    interactive: !still
+  }).bindTooltip(shape.name))).addTo(map)
+  const bounds = shapes.getBounds()
+  if (bounds.isValid()) map.fitBounds(bounds, { padding: [12, 12] })
+  if (window.ResizeObserver) {
+    new window.ResizeObserver(() => map.invalidateSize()).observe(root)
   }
 }

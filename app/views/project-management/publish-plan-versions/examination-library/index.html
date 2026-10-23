@@ -30,11 +30,19 @@
         <h2 class="govuk-label-wrapper">
           <label class="govuk-label govuk-label--m" for="library-search">Search examination library</label>
         </h2>
-        <div class="govuk-hint" id="library-search-hint">Enter a title, reference, policy title or keyword.</div>
+        <div class="govuk-hint" id="library-search-hint">Enter a title, reference, policy title or keyword, and choose a section to search in.</div>
         <div class="dlp-exl-search__row">
+          {# Narrows the search, and the suggestions, to one section (data-dlp-suggest-scope). #}
+          <label class="govuk-visually-hidden" for="library-section">Section to search</label>
+          <select class="govuk-select dlp-exl-search__section" id="library-section" name="_section" data-dlp-suggest-scope="#library-search-suggest">
+            <option value="" {%- if not searchSection %} selected{% endif %}>All sections</option>
+            {% for section in sections %}
+              <option value="{{ section.id }}" {%- if searchSection == section.id %} selected{% endif %}>{{ section.title }}</option>
+            {% endfor %}
+          </select>
           {# Type-ahead: initSuggestSearch offers matching items as you type; choosing one opens it.
              Without JavaScript, or on Enter, the form runs the full search. #}
-          <div class="dlp-suggest dlp-exl-search__suggest" data-dlp-suggest data-dlp-suggest-source="#library-search-terms">
+          <div class="dlp-suggest dlp-exl-search__suggest" id="library-search-suggest" data-dlp-suggest data-dlp-suggest-source="#library-search-terms">
             <input class="govuk-input" id="library-search" name="_q" type="search" value="{{ query }}"
                    autocomplete="off" spellcheck="false"
                    role="combobox" aria-autocomplete="list" aria-expanded="false"
@@ -70,7 +78,7 @@
 
 {% if results %}
 <section class="dlp-exl-section" aria-labelledby="results-heading">
-  <h2 class="govuk-heading-l govuk-!-margin-bottom-2" id="results-heading">{{ results.length }} result{% if results.length != 1 %}s{% endif %} for ‘{{ query }}’</h2>
+  <h2 class="govuk-heading-l govuk-!-margin-bottom-2" id="results-heading">{{ results.length }} result{% if results.length != 1 %}s{% endif %} for ‘{{ query }}’{% if searchSectionTitle %} in {{ searchSectionTitle }}{% endif %}</h2>
   <p class="govuk-body"><a class="govuk-link" href="{{ exl }}">Clear search and show the whole library</a></p>
   {% if results.length %}
   <ul class="govuk-list dlp-exl-rows">
@@ -95,28 +103,9 @@
   {{ sectionHeading(section) }}
 
   {% if section.id == "evidence-base" %}
-    <form method="get" action="{{ exl }}#evidence-base" novalidate class="dlp-exl-evidence-search">
-      <div class="govuk-form-group govuk-!-margin-bottom-0">
-        <label class="govuk-label govuk-label--s" for="evidence-search">Search all policies and evidence</label>
-        <div class="dlp-exl-search__row">
-          <input class="govuk-input" id="evidence-search" name="_eq" type="search" value="{{ evidence.query }}" placeholder="Policy reference or keyword">
-          <label class="govuk-visually-hidden" for="evidence-type">Record type</label>
-          <select class="govuk-select" id="evidence-type" name="_etype">
-            <option value="" {%- if not evidence.type %} selected{% endif %}>All record types</option>
-            <option value="policy" {%- if evidence.type == "policy" %} selected{% endif %}>Policies</option>
-            <option value="evidence" {%- if evidence.type == "evidence" %} selected{% endif %}>Evidence documents</option>
-          </select>
-          <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">Search database</button>
-        </div>
-      </div>
-    </form>
-
     <p class="govuk-body-s dlp-exl-muted">
-      {% if evidence.filtered %}
-        Showing {{ evidence.records.length }} of {{ evidence.total }} records. <a class="govuk-link" href="{{ exl }}#evidence-base">Clear</a>
-      {% else %}
-        Showing {{ evidence.records.length }} of {{ evidence.total }} records · Policies and related evidence
-      {% endif %}
+      Showing {{ evidence.records.length }} of {{ evidence.total }} records · Policies and related evidence.
+      To find others, search the library above and choose &lsquo;Evidence base&rsquo;.
     </p>
 
     <ul class="govuk-list dlp-exl-rows">

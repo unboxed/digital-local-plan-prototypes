@@ -5741,7 +5741,7 @@ function ppvNow () {
     timeZone: 'Europe/London', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false
   }).formatToParts(now).map(part => [part.type, part.value]))
   return {
-    short: parts.day + ' ' + parts.month + ' ' + parts.year + ', ' + parts.hour + ':' + parts.minute,
+    short: parts.day + ' ' + parts.month + ' ' + parts.year,
     long: new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'long', year: 'numeric' }).format(now)
   }
 }
@@ -6005,7 +6005,7 @@ router.post(PPV + '/preview', (req, res) => {
 // a version line (reference · version · Current/Superseded · published), the library says when
 // it last changed and what, each item has a version page with its history and a superseded
 // warning on old versions, and links into other prototypes say which version they open.
-//   EXL                         - the library, with its search (_q) and the evidence filter (_eq, _etype)
+//   EXL                         - the library, with its search (_q), narrowed by section (_section)
 //   EXL/items/:ref              - an item's current version
 //   EXL/items/:ref/v/:version   - an earlier version, with the superseded warning
 //   EXL/inspectors-report       - the Inspector's report reading page (EX-01)
@@ -6122,35 +6122,35 @@ router.get(EXL, (req, res) => {
   const items = EX.allItems().map(exlItemView)
   const records = exlEvidenceRecords()
   const query = (req.query._q || '').trim()
-  const evidenceQuery = (req.query._eq || '').trim()
-  const evidenceType = ['policy', 'evidence'].includes(req.query._etype) ? req.query._etype : ''
-
-  const filteredRecords = records.filter(record =>
-    (!evidenceType || record.kind === evidenceType) &&
-    (!evidenceQuery || exlMatches(record.ref + ' ' + record.title + ' ' + (record.summary || ''), evidenceQuery)))
-  const evidenceFiltered = Boolean(evidenceQuery || evidenceType)
+  // One search for the whole library, narrowed to a section by `_section`. The evidence base's
+  // policy and evidence records are searched with it, as part of the Evidence base section.
+  const searchSection = EX.SECTIONS.find(section => section.id === req.query._section) || null
+  const inSection = id => !searchSection || searchSection.id === id
 
   const results = query
-    ? items.filter(item => exlMatches([item.ref, item.title, item.kind, item.summary].join(' '), query))
+    ? items.filter(item => inSection(item.section.id) && exlMatches([item.ref, item.title, item.kind, item.summary].join(' '), query))
       .map(item => ({ ref: item.ref, title: item.title, href: item.href, meta: item.kind + ' · v' + item.current.version + ' · ' + item.section.title, summary: item.summary }))
-      .concat(records.filter(record => exlMatches(record.ref + ' ' + record.title + ' ' + (record.summary || ''), query))
+      .concat(records.filter(record => inSection('evidence-base') && exlMatches(record.ref + ' ' + record.title + ' ' + (record.summary || ''), query))
         .map(record => ({ ref: record.ref, title: record.title, href: record.href, meta: (record.kind === 'policy' ? 'Policy content' : 'Evidence document') + ' · v1.0 · Evidence base', summary: record.summary })))
     : null
 
   const lastUpdated = EX.lastUpdated()
   renderExl(res, 'index', {
     // Type-ahead suggestions: every item and evidence record, matched on its reference as well as
-    // its title, and opening its page when chosen.
+    // its title, and opening its page when chosen. `scope` is its section, so choosing a section
+    // narrows the suggestions too.
     searchTermsJson: JSON.stringify(items.map(item => ({
       term: item.title,
       search: item.ref + ' ' + item.title,
       label: item.ref + ' · ' + item.kind,
-      href: item.href
+      href: item.href,
+      scope: item.section.id
     })).concat(records.map(record => ({
       term: record.title,
       search: record.ref + ' ' + record.title,
       label: record.ref + ' · ' + (record.kind === 'policy' ? 'Policy content' : 'Evidence document'),
-      href: record.href
+      href: record.href,
+      scope: 'evidence-base'
     })))),
     sections: EX.SECTIONS.map(section => Object.assign({}, section, {
       items: items.filter(item => item.section.id === section.id)
@@ -6171,14 +6171,13 @@ router.get(EXL, (req, res) => {
     libraryPublished: EX.formatDate(EX.LIBRARY_PUBLISHED).short,
     query,
     results,
+    searchSection: searchSection ? searchSection.id : '',
+    searchSectionTitle: searchSection ? searchSection.title : '',
     evidence: {
-      query: evidenceQuery,
-      type: evidenceType,
-      filtered: evidenceFiltered,
       total: records.length,
       // Unfiltered, the section shows a few records, as the frame does, and links to the rest: a
       // policy, a document supporting it, and the next policy.
-      records: evidenceFiltered ? filteredRecords : ['S3', 'EB-01', 'HS1'].map(ref => records.find(record => record.ref === ref)).filter(Boolean)
+      records: ['S3', 'EB-01', 'HS1'].map(ref => records.find(record => record.ref === ref)).filter(Boolean)
     }
   })
 })
@@ -6287,13 +6286,50 @@ function pubChapterView (chapter) {
   return Object.assign({}, chapter, { href: '/public-view/adopted-plan/chapters/' + chapter.slug })
 }
 
+const PUB_POLICIES = '/public-view/adopted-plan/policies/'
+// The examination library prototype, linked from each policy so people can see how it was
+// examined. It is the City of London example, not Southampton's.
+const PUB_EXAMINATION_LIBRARY = '/project-management/publish-plan-versions/examination-library'
+
+function pubPolicyHref (policy) {
+  return PUB_POLICIES + policy.slug
+}
+
+// A policy for its page: its link, its chapter, related policies (linked only when
+// they have a page of their own, otherwise to their chapter), and its map shapes resolved to
+// polygons for initPublicPolicyMap.
+function pubPolicyView (policy) {
+  const chapter = pubChapterView(PUB.getChapter(policy.chapter))
+  return Object.assign({}, policy, {
+    href: pubPolicyHref(policy),
+    chapterView: chapter,
+    relatedViews: (policy.related || []).map(ref => {
+      const related = PUB.getPolicyByRef(ref)
+      return {
+        ref: related.ref,
+        title: related.title,
+        href: related.text ? pubPolicyHref(related) : pubChapterView(PUB.getChapter(related.chapter)).href
+      }
+    }),
+    mapJson: policy.map && JSON.stringify({
+      centre: PUB.CITY_CENTRE,
+      shapes: policy.map.shapes.map(shape => ({
+        name: shape.name,
+        colour: shape.colour,
+        dash: shape.dash,
+        polygon: shape.polygon || PUB.getArea(shape.area).polygon
+      }))
+    })
+  })
+}
+
 function pubAdoptedPlanLocals () {
   return {
     plan: PUB.ADOPTED_PLAN,
     adoptedOn: pubDate(PUB.ADOPTED_PLAN.adopted),
     chapters: PUB.ADOPTED_PLAN.chapters.map(pubChapterView),
     popular: PUB.POPULAR_CHAPTERS.map(slug => pubChapterView(PUB.getChapter(slug))),
-    searchTermsJson: JSON.stringify(PUB.searchTerms(chapter => pubChapterView(chapter).href)),
+    searchTermsJson: JSON.stringify(PUB.searchTerms(chapter => pubChapterView(chapter).href, policy => pubPolicyHref(policy))),
     mapJson: JSON.stringify({
       centre: PUB.CITY_CENTRE,
       areas: PUB.PLAN_AREAS,
@@ -6407,13 +6443,38 @@ router.get('/public-view/adopted-plan/results', (req, res) => {
     mode: 'search',
     query,
     results: PUB.searchChapters(query).map(pubChapterView),
+    policies: PUB.searchPolicies(query).map(pubPolicyView),
     notCovered: PUB.findNotCovered(query)
   }))
 })
 
-// Chapter pages aren't built yet.
+// Chapter pages aren't built yet, beyond listing the chapter's policies.
 router.get('/public-view/adopted-plan/chapters/:slug', (req, res) => {
   const chapter = PUB.getChapter(req.params.slug)
   if (!chapter) return res.redirect('/public-view/adopted-plan')
-  res.render('public-view/adopted-plan/chapter', Object.assign({ authority: PUB.AUTHORITY, chapter: pubChapterView(chapter) }, pubAdoptedPlanLocals()))
+  res.render('public-view/adopted-plan/chapter', Object.assign({
+    authority: PUB.AUTHORITY,
+    chapter: pubChapterView(chapter),
+    policies: PUB.POLICIES.filter(policy => policy.chapter === chapter.slug && policy.text).map(pubPolicyView)
+  }, pubAdoptedPlanLocals()))
+})
+
+// A policy's page: the policy in the main column, its map, evidence, consultation and examination
+// as previews alongside. Only policies written out in full have a page.
+router.get('/public-view/adopted-plan/policies/:slug', (req, res) => {
+  const policy = PUB.getPolicy(req.params.slug)
+  if (!policy || !policy.text) return res.redirect('/public-view/adopted-plan')
+  const view = pubPolicyView(policy)
+  // Back to wherever they came from in the plan (search results, a chapter), else the chapter.
+  const referer = req.get('referer') || ''
+  const cameFrom = referer.replace(/^https?:\/\/[^/]+/, '')
+  const backHref = cameFrom.startsWith('/public-view/adopted-plan') && !cameFrom.startsWith(PUB_POLICIES)
+    ? cameFrom
+    : view.chapterView.href
+  res.render('public-view/adopted-plan/policy-sidebar', Object.assign({
+    authority: PUB.AUTHORITY,
+    policy: view,
+    backHref,
+    examinationLibraryHref: PUB_EXAMINATION_LIBRARY
+  }, pubAdoptedPlanLocals()))
 })

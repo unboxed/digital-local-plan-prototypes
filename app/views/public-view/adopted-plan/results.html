@@ -38,6 +38,23 @@
         </div>
       {% endif %}
 
+      {# Policies with their own page come first: they are the most specific answer. #}
+      {% if policies | length %}
+        <h2 class="govuk-heading-m">Policies</h2>
+        <ul class="govuk-list dlp-pub-results">
+          {% for policy in policies %}
+            <li class="dlp-pub-results__item">
+              <h3 class="govuk-heading-s govuk-!-margin-bottom-1">
+                <a class="govuk-link" href="{{ policy.href }}">Policy {{ policy.ref }}: {{ policy.title }}</a>
+              </h3>
+              <p class="govuk-body govuk-!-margin-bottom-1">{{ policy.lead }}</p>
+              <p class="govuk-body-s dlp-pub-results__meta govuk-!-margin-bottom-0">Chapter {{ policy.chapterView.number }}: {{ policy.chapterView.title }}</p>
+            </li>
+          {% endfor %}
+        </ul>
+        {% if results | length %}<h2 class="govuk-heading-m">Chapters</h2>{% endif %}
+      {% endif %}
+
       {% if results | length %}
         {% if notCovered %}<h2 class="govuk-heading-m">Related chapters in the local plan</h2>{% endif %}
         {{ pubChapterList(results) }}

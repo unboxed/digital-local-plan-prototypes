@@ -96,7 +96,7 @@ const FOREWORD = [
 const DRAFT = {
   label: 'Version 3',
   saved: '29 September 2025',
-  versionDate: '29 Sep 2025, 17:05'
+  versionDate: '29 Sep 2025'
 }
 
 function draftChapter (chapter, index) {
@@ -164,8 +164,8 @@ const SEED_VERSIONS = [
   {
     id: 'scoping',
     title: 'Scoping consultation: proposed local plan content',
-    versionDate: '12 Sep 2025, 14:30',
-    published: '12 Sep 2025, 14:30',
+    versionDate: '12 Sep 2025',
+    published: '12 Sep 2025',
     publishedLong: '12 September 2025',
     exportedBy: 'Priya Shah',
     status: 'published',
@@ -179,8 +179,8 @@ const SEED_VERSIONS = [
   {
     id: 'consultation',
     title: 'Consultation: proposed local plan',
-    versionDate: '18 Sep 2025, 09:15',
-    published: '20 Sep 2025, 08:00',
+    versionDate: '18 Sep 2025',
+    published: '20 Sep 2025',
     publishedLong: '20 September 2025',
     exportedBy: 'Marcus Chen',
     status: 'published',
@@ -194,8 +194,8 @@ const SEED_VERSIONS = [
   {
     id: 'examination',
     title: 'Examination: proposed local plan',
-    versionDate: '02 Oct 2025, 16:45',
-    published: '03 Oct 2025, 16:45',
+    versionDate: '02 Oct 2025',
+    published: '03 Oct 2025',
     publishedLong: '3 October 2025',
     exportedBy: 'Leila Hassan',
     status: 'published',
@@ -210,8 +210,8 @@ const SEED_VERSIONS = [
   {
     id: 'adopted',
     title: 'Adopted local plan',
-    versionDate: '10 Oct 2025, 11:20',
-    published: '10 Oct 2025, 11:20',
+    versionDate: '10 Oct 2025',
+    published: '10 Oct 2025',
     publishedLong: '10 October 2025',
     exportedBy: 'Danny Dyer',
     status: 'published',

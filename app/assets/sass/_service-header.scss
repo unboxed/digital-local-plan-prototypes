@@ -73,3 +73,30 @@ $app-service-header-active-colour: #1d8feb;
     text-decoration: none;
   }
 }
+
+// "Prototypes home", at the right-hand end of both the service header and the external header
+// (_external-header.scss), so testers can always get back to the list of prototypes.
+.app-header-home,
+.app-header-home:visited {
+  @include govuk-font($size: 16, $weight: bold);
+  color: govuk-colour("white");
+  margin-left: auto;
+  white-space: nowrap;
+
+  &::before {
+    content: "\2039\00a0";
+  }
+
+  &:hover {
+    text-decoration-thickness: 3px;
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+// After "You are logged in as …", which already takes the free space.
+.app-external-header__user + .app-header-home {
+  margin-left: 0;
+}

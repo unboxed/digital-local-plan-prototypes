@@ -32,6 +32,8 @@
     {% if params.user %}
       <p class="app-external-header__user">You are logged in as {{ params.user }}</p>
     {% endif %}
+    {# Back to the root "pick a prototype" page, as on the service header. #}
+    <a class="app-header-home" href="/">Prototypes home</a>
   </div>
 </div>
 {% endmacro %}

@@ -156,6 +156,12 @@ already wraps itself in `govuk-width-container`, so it sizes itself correctly wh
 
 Styling lives in `app/assets/sass/_service-header.scss` (`.app-service-header*`).
 
+Both headers, the service header and the external header (`partials/external-header`), end with
+a **"Prototypes home"** link back to `/` (`.app-header-home`, in `_service-header.scss`), so a
+tester can always get back to the list of prototypes. Every page uses one of the two headers, so
+a new screen gets the link for free; a page that overrides `header` with neither would need
+one adding.
+
 ## Adding a new prototype
 
 1. Create `app/views/<slug>/index.html`, extending `layouts/main.html` (see existing prototypes
@@ -797,8 +803,10 @@ It is the public site for the examination, read by the inspector, participants a
 - **Evidence base records are derived**, from `POLICY_TEXT`'s policies (S3 and HS1 to HS8, which
   the Examination – inspector view covers in full) and the evidence each already lists. Each links
   to its `/examination-inspector-view/paragraphs/<ref>-1` page, and the section links to the
-  examination view itself. Unfiltered, it shows S3, EB-01 and HS1. The library search (`_q`) and
-  the evidence filter (`_eq`, `_etype`) are plain GET forms.
+  examination view itself. It shows S3, EB-01 and HS1. There is one search for the whole library
+  (`_q`, a plain GET form), with a section select (`_section`) that narrows the results and the
+  type-ahead (`data-dlp-suggest-scope`, matched against each term's `scope`). Evidence base
+  records are searched as part of the Evidence base section; it no longer has its own search.
 - **Other cross-links:**
   - LP-05 and "View all consultation representations" go to `/consultations/managing-responses/inspector`
   - CS-01 shows the Statement of compliance prototype's completed statement in its record page,
@@ -828,10 +836,12 @@ It is the public site for the examination, read by the inspector, participants a
   - **No prototype note, by request.** The page reads as the submitted document. The real
     report's URL is kept in the data (`REPORT.sourceUrl`) as a record of the source, and isn't
     shown. The sidebar heading is "In this report".
-- **Dates and times everywhere.** A published item shows its date and time wherever it's
-  identified: the version line, About this version, the citation ("published … at 09:00"), the
-  PDF filename and the version stamp. `formatDate` returns `short`, `long`, `longTime`, `time`
-  and `stamp` for that.
+- **Dates only, no times.** A published item shows its date wherever it's identified: the
+  version line, About this version, the citation, the PDF filename and the version stamp. Times
+  were shown once and removed by request. The data keeps them (`published` is ISO with a time),
+  so versions from the same day still sort, but `formatDate`'s `short`, `longTime` and `stamp`
+  are date only. The same goes for Publish plan versions: its seeded dates and `ppvNow` have no
+  time.
   - The report is the latest change in the library, so the change banner handles a newly
     published item, which has no `from` version.
 
@@ -877,7 +887,17 @@ the header.
   `NOT_COVERED` (`findNotCovered`, whole words) and show a grey signpost box on the results page
   explaining why, with a placeholder link to the council page that does. They are also offered in
   the suggestions, labelled "Not in the local plan". Matching chapters, if any, still show below.
-- **Chapter pages aren't built.** `/public-view/adopted-plan/chapters/:slug` says so.
+- **Policy pages** (`/public-view/adopted-plan/policies/:slug`, `policy-sidebar.html`): the
+  summary, then why the policy is needed and its wording in an accordion, then what people said
+  (bar charts) and related policies; the map, evidence, consultation and examination are previews
+  in a sidebar. A one-page layout was tried and dropped. Shared pieces are in
+  `adopted-plan/partials/policy.html`. Only `POLICIES` entries with `text` have a page (HO3 is the
+  worked example, using the wording of Policy HO3 (S) from Southampton's draft City Vision
+  Local Plan, 2022; its consultation and examination details are invented); others are named
+  for chapter lists and Related policies. Policies show first
+  in search results and in the suggestions. The examination link goes to the Publish plan
+  versions examination library, which is the City of London example.
+- **Chapter pages aren't built**, beyond listing their policies. `/public-view/adopted-plan/chapters/:slug` says so.
 - **Inert placeholders:** "View and comment", email updates, contact, and the plan download
   links.
 

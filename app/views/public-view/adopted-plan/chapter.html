@@ -10,8 +10,16 @@
     <span class="govuk-caption-l">{{ plan.title }} – Chapter {{ chapter.number }}</span>
     <h1 class="govuk-heading-xl">{{ chapter.title }}</h1>
     <p class="govuk-body-l">{{ chapter.summary }}</p>
+    {% if policies | length %}
+      <h2 class="govuk-heading-m">Policies in this chapter</h2>
+      <ul class="govuk-list">
+        {% for policy in policies %}
+          <li><a class="govuk-link" href="{{ policy.href }}">Policy {{ policy.ref }}: {{ policy.title }}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
     <div class="govuk-inset-text">
-      This chapter page has not been built yet.
+      The rest of this chapter page has not been built yet.
       <a class="govuk-link" href="/public-view/adopted-plan">Go back to the plan's homepage</a>.
     </div>
   </div>

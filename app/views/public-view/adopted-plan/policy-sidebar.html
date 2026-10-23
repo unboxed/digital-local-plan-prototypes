@@ -1,0 +1,86 @@
+{#
+  A policy's public page: the policy in the main column (what it means, then the reasons for it
+  and the wording in an accordion, then what people said in consultation and related policies),
+  with its map, evidence, consultation and examination as short previews in a sidebar that moves
+  below on narrow screens. Rendered by the policy route in routes.js.
+#}
+{% extends "public-view/partials/layout.html" %}
+
+{% from "govuk/components/accordion/macro.njk" import govukAccordion %}
+{% from "public-view/adopted-plan/partials/policy.html" import pubPolicyText, pubPolicyMap, pubPolicyEvidence, pubPolicyConsultation, pubPolicyWhy, pubPolicyStrategic, pubPolicyRelated %}
+
+{% set pageName = "Policy " + policy.ref + ": " + policy.title + " – " + plan.title %}
+
+{% block content %}
+<a class="govuk-back-link" href="{{ backHref }}">Back</a>
+
+<span class="govuk-caption-l">{{ plan.title }} · <a class="govuk-link govuk-link--text-colour" href="{{ policy.chapterView.href }}">Chapter {{ policy.chapterView.number }}: {{ policy.chapterView.title }}</a></span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Policy {{ policy.ref }}: {{ policy.title }}</h1>
+{{ pubPolicyStrategic(policy) }}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body-l">{{ policy.lead }}</p>
+
+    <div class="dlp-pub-means">
+      <h2 class="govuk-heading-m">What this means</h2>
+      <ul class="govuk-list govuk-list--bullet govuk-!-margin-bottom-0">
+        {% for point in policy.means %}<li>{{ point }}</li>{% endfor %}
+      </ul>
+    </div>
+
+    {% set textHtml %}{{ pubPolicyText(policy) }}{% endset %}
+    {% set whyHtml %}{{ pubPolicyWhy(policy) }}{% endset %}
+    {{ govukAccordion({
+      id: "pub-policy-accordion",
+      headingLevel: 2,
+      items: [
+        { heading: { text: "Why we need this policy" }, content: { html: whyHtml }, expanded: true },
+        { heading: { text: "Full policy text" }, content: { html: textHtml }, expanded: true }
+      ]
+    }) }}
+
+    {# The sidebar's "Read what people said" jumps here. Headings are the accordion's size. #}
+    <h2 class="govuk-heading-m govuk-!-margin-top-8" id="what-people-said" tabindex="-1">What people said</h2>
+    {{ pubPolicyConsultation(policy) }}
+    <p class="govuk-body"><a class="govuk-link" href="#">Read the comments and the council&rsquo;s responses</a></p>
+
+    <h2 class="govuk-heading-m govuk-!-margin-top-8">Related policies</h2>
+    {{ pubPolicyRelated(policy) }}
+  </div>
+
+  <aside class="govuk-grid-column-one-third dlp-pub-related" aria-label="About this policy">
+    <section class="dlp-pub-related__item" aria-labelledby="pub-related-map">
+      <h2 class="govuk-heading-s govuk-!-margin-bottom-1" id="pub-related-map">Where it applies</h2>
+      <p class="govuk-body-s">The whole of Southampton</p>
+      {{ pubPolicyMap(policy, true) }}
+    </section>
+
+    <section class="dlp-pub-related__item" aria-labelledby="pub-related-evidence">
+      <h2 class="govuk-heading-s" id="pub-related-evidence">Evidence</h2>
+      <p class="govuk-body-s">{{ policy.evidence | length }} documents, including the {{ policy.evidence[0].title }} ({{ policy.evidence[0].year }}).</p>
+      <details class="govuk-details govuk-!-margin-bottom-0">
+        <summary class="govuk-details__summary"><span class="govuk-details__summary-text">See the evidence</span></summary>
+        <div class="govuk-details__text">{{ pubPolicyEvidence(policy) }}</div>
+      </details>
+    </section>
+
+    <section class="dlp-pub-related__item" aria-labelledby="pub-related-said">
+      <h2 class="govuk-heading-s" id="pub-related-said">What people said</h2>
+      <p class="govuk-body-s">
+        <span class="dlp-pub-stat">{{ policy.consultation.comments }}</span> comments.
+        The most common was &lsquo;{{ policy.consultation.themes[0].label | lower }}&rsquo; ({{ policy.consultation.themes[0].percent }}%).
+      </p>
+      <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link" href="#what-people-said">Read what people said</a></p>
+    </section>
+
+    <section class="dlp-pub-related__item dlp-pub-related__item--exam" aria-labelledby="pub-related-exam">
+      <h2 class="govuk-heading-s" id="pub-related-exam">Examination</h2>
+      <p class="govuk-body-s">{{ policy.examination.short }}</p>
+      <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link" href="{{ examinationLibraryHref }}">Go to the examination library</a></p>
+    </section>
+  </aside>
+</div>
+{% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

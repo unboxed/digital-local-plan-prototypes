@@ -291,10 +291,9 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
   }
 }
 
-.dlp-exl-evidence-search {
-  background-color: govuk-colour("black", $variant: "tint-95");
-  margin-bottom: govuk-spacing(3);
-  padding: govuk-spacing(3);
+.dlp-exl-search__section {
+  flex: 0 1 auto;
+  max-width: 100%;
 }
 
 .dlp-exl-section {
