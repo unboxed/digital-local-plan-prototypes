@@ -1,0 +1,74 @@
+// Statement of compliance.
+
+// PDF version — modelled on GOV.UK's attachment component as it appears in a grey panel on
+// GOV.UK guidance pages: heading, intro line, document thumbnail beside the title link and file
+// details.
+.dlp-attachment {
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(4);
+  background: $dlp-panel-background;
+}
+
+.dlp-attachment__body {
+  display: flex;
+  gap: govuk-spacing(4);
+  align-items: flex-start;
+}
+
+.dlp-attachment__thumbnail {
+  flex: 0 0 auto;
+
+  svg {
+    display: block;
+    box-shadow: 0 2px 2px rgba($govuk-text-colour, .4);
+  }
+}
+
+.dlp-attachment__page {
+  fill: govuk-colour("white");
+  stroke: $dlp-border-grey;
+}
+
+.dlp-attachment__ink {
+  fill: $dlp-muted-text;
+}
+
+.dlp-attachment__label {
+  font-family: $govuk-font-family;
+  font-size: 15px;
+  font-weight: $govuk-font-weight-bold;
+  fill: govuk-colour("white");
+}
+
+.dlp-attachment__details {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dlp-attachment__title {
+  @include govuk-font($size: 24, $weight: regular);
+  margin: 0 0 govuk-spacing(2);
+}
+
+.dlp-attachment__metadata {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0;
+}
+
+// Share link: read-only URL with a "Copy link" button beside it.
+.dlp-share-link__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+  align-items: flex-start;
+}
+
+.dlp-share-link__input {
+  flex: 1 1 20em;
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-share-link__button {
+  margin-bottom: govuk-spacing(2);
+}

@@ -3212,12 +3212,24 @@ function socRequirementRows (variant) {
   }))
 }
 
+// The PDF version is stamped with the date it's generated (today), as a real download would be.
+// Size and page count are illustrative — there's no file behind the link.
+const SOC_PDF = {
+  draft: { size: '412 KB', pages: 18 },
+  completed: { size: '486 KB', pages: 24 }
+}
+
 router.get('/statement-of-compliance/:socVariant', (req, res) => {
   const variant = req.params.socVariant
   res.render('statement-of-compliance/checklist.html', {
     variant,
     requirements: socRequirementRows(variant),
-    statusColours: STATEMENT_STATUS_COLOURS
+    statusColours: STATEMENT_STATUS_COLOURS,
+    pdf: {
+      ...SOC_PDF[variant],
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    },
+    shareUrl: req.protocol + '://' + req.get('host') + req.path
   })
 })
 

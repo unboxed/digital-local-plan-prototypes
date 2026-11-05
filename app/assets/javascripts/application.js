@@ -21,6 +21,35 @@ function safeInit (init) {
   }
 }
 
+// navigator.clipboard needs a secure context, which localhost is; the
+// textarea fallback covers anything served over plain http.
+function copyToClipboard (text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text)
+  }
+
+  return new Promise((resolve, reject) => {
+    const area = document.createElement('textarea')
+    area.value = text
+    area.setAttribute('readonly', 'readonly')
+    area.style.position = 'fixed'
+    area.style.opacity = '0'
+    document.body.appendChild(area)
+    area.select()
+
+    let copied = false
+    try {
+      copied = document.execCommand('copy')
+    } catch (error) {
+      copied = false
+    }
+
+    document.body.removeChild(area)
+    if (copied) resolve()
+    else reject(new Error('Copying is not available in this browser'))
+  })
+}
+
 window.GOVUKPrototypeKit.documentReady(() => {
   // Side navigation: mobile collapse/expand toggle
   document.querySelectorAll('[data-app-side-navigation-toggle]').forEach((button) => {
@@ -54,6 +83,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-pub-map]').forEach(safeInit(initPublicPlanMap))
   document.querySelectorAll('[data-dlp-pub-layer-map]').forEach(safeInit(initPublicLayerMap))
   document.querySelectorAll('[data-dlp-pub-policy-map]').forEach(safeInit(initPublicPolicyMap))
+  document.querySelectorAll('[data-dlp-copy-link]').forEach(safeInit(initCopyLink))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -754,35 +784,6 @@ function initEvidenceSearchModal (root) {
       : ''
 
     return '"' + passage.text + '"\n— ' + where + refs
-  }
-
-  // navigator.clipboard needs a secure context, which localhost is; the
-  // textarea fallback covers anything served over plain http.
-  function copyToClipboard (text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(text)
-    }
-
-    return new Promise((resolve, reject) => {
-      const area = document.createElement('textarea')
-      area.value = text
-      area.setAttribute('readonly', 'readonly')
-      area.style.position = 'fixed'
-      area.style.opacity = '0'
-      document.body.appendChild(area)
-      area.select()
-
-      let copied = false
-      try {
-        copied = document.execCommand('copy')
-      } catch (error) {
-        copied = false
-      }
-
-      document.body.removeChild(area)
-      if (copied) resolve()
-      else reject(new Error('Copying is not available in this browser'))
-    })
   }
 
   function renderExcerpt (passage, index, terms) {
@@ -3108,4 +3109,25 @@ function initPublicPolicyMap (root) {
   if (window.ResizeObserver) {
     new window.ResizeObserver(() => map.invalidateSize()).observe(root)
   }
+}
+
+// Statement of compliance: "Copy link" next to the share link's read-only field. The field
+// itself is the no-JavaScript fallback — the URL can still be selected and copied by hand.
+function initCopyLink (container) {
+  const input = container.querySelector('[data-dlp-copy-link-input]')
+  const button = container.querySelector('[data-dlp-copy-link-button]')
+  const status = container.querySelector('[data-dlp-copy-link-status]')
+  if (!input || !button) return
+
+  button.hidden = false
+  input.addEventListener('focus', () => input.select())
+
+  button.addEventListener('click', () => {
+    copyToClipboard(input.value).then(() => {
+      if (status) status.textContent = 'Link copied'
+    }, () => {
+      input.select()
+      if (status) status.textContent = 'Could not copy — select the link and copy it yourself'
+    })
+  })
 }

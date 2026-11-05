@@ -24,6 +24,57 @@
     </p>
     {% endif %}
 
+    <section class="dlp-attachment" id="soc-pdf" aria-labelledby="soc-pdf-heading">
+      <h2 class="govuk-heading-s" id="soc-pdf-heading">PDF version</h2>
+      <p class="govuk-body-s">Download a PDF version of the {{ "draft statement" if variant == "draft" else "statement" }} of compliance:</p>
+      <div class="dlp-attachment__body">
+        <a class="dlp-attachment__thumbnail" href="#soc-pdf" tabindex="-1" aria-hidden="true">
+          <svg viewBox="0 0 84 120" width="84" height="120" focusable="false">
+            <rect x="0.5" y="0.5" width="83" height="119" class="dlp-attachment__page" />
+            <rect x="12" y="12" width="60" height="22" class="dlp-attachment__ink" />
+            <text x="42" y="28.5" text-anchor="middle" class="dlp-attachment__label">PDF</text>
+            <rect x="12" y="48" width="6" height="6" class="dlp-attachment__ink" />
+            <rect x="24" y="48" width="48" height="6" class="dlp-attachment__ink" />
+            <rect x="12" y="62" width="6" height="6" class="dlp-attachment__ink" />
+            <rect x="24" y="62" width="36" height="6" class="dlp-attachment__ink" />
+            <rect x="12" y="76" width="6" height="6" class="dlp-attachment__ink" />
+            <rect x="24" y="76" width="48" height="6" class="dlp-attachment__ink" />
+            <rect x="12" y="90" width="6" height="6" class="dlp-attachment__ink" />
+            <rect x="24" y="90" width="28" height="6" class="dlp-attachment__ink" />
+          </svg>
+        </a>
+        <div class="dlp-attachment__details">
+          <h3 class="dlp-attachment__title">
+            <a class="govuk-link" href="#soc-pdf">
+              {{ "Draft statement" if variant == "draft" else "Statement" }} of compliance: {{ organisationName }} Local Plan ({{ pdf.date }})
+            </a>
+          </h3>
+          <p class="dlp-attachment__metadata">
+            <abbr title="Portable Document Format">PDF</abbr>, {{ pdf.size }}, {{ pdf.pages }} pages
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="govuk-form-group dlp-share-link" data-dlp-copy-link>
+      <h2 class="govuk-label-wrapper">
+        <label class="govuk-label govuk-label--m" for="soc-share-link">Share a link to this page</label>
+      </h2>
+      <div class="govuk-hint" id="soc-share-link-hint">
+        Send this link to allow others to view the current version of this page. The audit log
+        will record the version that you shared.
+      </div>
+      <div class="dlp-share-link__row">
+        <input class="govuk-input dlp-share-link__input" id="soc-share-link" type="text" value="{{ shareUrl }}" readonly aria-describedby="soc-share-link-hint" data-dlp-copy-link-input>
+        <button type="button" class="govuk-button govuk-button--secondary dlp-share-link__button" data-module="govuk-button" data-dlp-copy-link-button hidden>
+          Copy link
+        </button>
+      </div>
+      <p class="govuk-body govuk-!-margin-bottom-0" role="status" aria-live="polite" data-dlp-copy-link-status></p>
+    </div>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
+
     {{ socRequirementList(requirements, statusColours) }}
 
   </div>

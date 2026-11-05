@@ -1297,3 +1297,6 @@ $dlp-confidence-low: govuk-colour("orange");
 
 // Public view.
 @import "public-view";
+
+// Statement of compliance. Uses the variables above.
+@import "statement-of-compliance";
