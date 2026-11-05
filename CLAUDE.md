@@ -487,13 +487,18 @@ the repo. Ask the user for them if you need to compare against the design.
 - **The draft page reuses `.dlp-split` and the v2 `.dlp-pw2-pane` chrome.** The draft is on the
   left and the evidence viewer on the right. The viewer can be closed, and "Show evidence"
   brings it back.
+- **"(Assigned to …)" after each policy title on the draft page is derived, not stored**
+  (`pdPolicyAssignee`): the chapter's officers in turn down its selected policies, or the whole
+  team if it has none yet. The policy select loads as soon as it changes (`initAutosubmit`); its
+  "Change" button is the no-JavaScript fallback, hidden once JavaScript runs.
 - **The "Relevant NPPF requirements" references are real**, to the August 2026 NPPF, which
   numbers paragraphs within each policy ("HO1.2" is policy HO1, paragraph 2). The wording is
   summarised, not quoted, as with the rest of the corpus. The panel says so and links to the
   PDF. Keep both on any new entry.
 - **Some controls are deliberately inert placeholders from the design**, awaiting
   functionality: "Save and add another" (explanatory text), "+ Add new source", "View in
-  consultation panel", and the policy detail's formatting toolbar. The field under the toolbar is
+  consultation panel", "Invite collaborators" (draft policy), and the policy detail's
+  formatting toolbar. The field under the toolbar is
   still a plain textarea. The toolbar buttons are `aria-hidden` and out of the tab order, as in
   the other prototypes.
 - **Add sources search.** Three small generic components in application.js drive it, each opted

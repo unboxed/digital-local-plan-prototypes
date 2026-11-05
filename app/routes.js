@@ -3792,6 +3792,16 @@ function viewerLocals (req, chapter, sourceId) {
   }
 }
 
+// Who a policy is assigned to: one of the chapter's officers, taken in turn down its policy list,
+// so each policy keeps the same person and choosing another policy can change the name. A
+// chapter with no officers yet falls back to the whole team, so there's always someone shown.
+function pdPolicyAssignee (chapter, areas, policyArea) {
+  const team = chapter.officers.length
+    ? chapter.officers.map(id => OFFICERS.find(officer => officer.id === id)).filter(Boolean)
+    : OFFICERS
+  return team[areas.indexOf(policyArea) % team.length] || null
+}
+
 router.get(PD + '/chapters/:pdChapterId/draft', (req, res) => {
   const chapter = req.pdChapter
   const areas = selectedPolicyAreas(chapter)
@@ -3800,6 +3810,7 @@ router.get(PD + '/chapters/:pdChapterId/draft', (req, res) => {
   renderChapterPage(req, res, 'chapter/draft', 'draft', Object.assign({
     policyAreas: areas,
     policyArea,
+    assignees: Object.fromEntries(areas.map(area => [area.id, pdPolicyAssignee(chapter, areas, area)])),
     draft: (policyArea && chapter.drafts[policyArea.id]) || {}
   }, viewerLocals(req, chapter, req.query._source)))
 })

@@ -148,6 +148,11 @@
   }
 }
 
+// With JavaScript the policy loads as soon as it's chosen, so "Change" is only the fallback.
+.govuk-frontend-supported .dlp-pd-policy-picker__change {
+  display: none;
+}
+
 // --- Add sources -----------------------------------------------------------------------------
 
 .dlp-pd-search {
