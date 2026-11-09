@@ -481,6 +481,9 @@ the repo. Ask the user for them if you need to compare against the design.
   icons and the chapter's status on the chapters list. The sidebar nests the current chapter's
   steps under it using the side navigation macro's `children` (one level deep), added for this
   prototype.
+  A step may carry its own `href`: "Share and publish" goes to Publish plan versions' Share or
+  publish (`/project-management/publish-plan-versions/share?_new=1`), by request. The chapter's
+  own export page is still reached from the draft's "View and export chapter".
 - **Free-text fields are named `_…`** (`_brief`, `_policyDetail` …), so the kit doesn't copy
   them into the top level of session data as well. The sources search's `pd*` query fields are
   deliberately not underscored: they are the sticky filter.

@@ -3318,7 +3318,9 @@ const CHAPTER_STEPS = [
   { slug: 'sources', label: 'Add sources', done: chapter => chapter.sources.length > 0 },
   { slug: 'policies', label: 'Manage policies', done: chapter => Boolean(chapter.policiesConfirmed) },
   { slug: 'draft', label: 'Draft policy', done: chapter => Object.keys(chapter.drafts).length > 0 },
-  { slug: 'export', label: 'Share and publish', done: chapter => chapter.exports.length > 0 }
+  // Goes to Publish plan versions' Share or publish (a new share), not the chapter's own export
+  // page, by request. The export page is still there, from the draft's "View and export chapter".
+  { slug: 'export', label: 'Share and publish', href: '/project-management/publish-plan-versions/share?_new=1', done: chapter => chapter.exports.length > 0 }
 ]
 
 const pdChapterUrl = (chapter, step) => PD + '/chapters/' + chapter.id + '/' + step
@@ -3436,7 +3438,7 @@ function buildDraftingSidebar (data, active) {
           const isActive = step.slug === active.step
           return {
             text: step.label,
-            href: pdChapterUrl(chapter, step.slug),
+            href: step.href || pdChapterUrl(chapter, step.slug),
             active: isActive,
             status: step.done(chapter) ? 'Completed' : (isActive ? 'In progress' : 'Not started')
           }
