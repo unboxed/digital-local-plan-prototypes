@@ -94,7 +94,6 @@ const FOREWORD = [
 
 // The draft being shared or published (frames 4 and 5).
 const DRAFT = {
-  label: 'Version 3',
   saved: '29 September 2025',
   versionDate: '29 Sep 2025'
 }
@@ -233,6 +232,317 @@ const MILESTONES = [
   'Adopted plan'
 ]
 
+// Where each item stands, shown beside it in Share or publish: 'draft' | 'pending' (approval) |
+// 'complete'. Invented. Anything the tester sends for approval also shows as pending.
+const ITEM_STATUSES = {
+  draft: { text: 'Draft', classes: 'govuk-tag--grey' },
+  pending: { text: 'Pending approval', classes: 'govuk-tag--yellow' },
+  complete: { text: 'Complete', classes: 'govuk-tag--green' }
+}
+
+const CHAPTER_STATUSES = {
+  'strategic-priorities': 'complete',
+  'spatial-strategy': 'complete',
+  health: 'draft',
+  housing: 'draft',
+  offices: 'complete',
+  retail: 'draft',
+  culture: 'draft',
+  infrastructure: 'pending',
+  design: 'draft',
+  transport: 'complete',
+  heritage: 'pending',
+  'open-spaces': 'draft',
+  climate: 'draft',
+  'temple-thames': 'draft',
+  implementation: 'draft'
+}
+
+// The supporting documents Share or publish can include, after the chapters. "Other" asks for the
+// document's name, and has no status.
+const PLAN_DOCUMENTS = [
+  { id: 'timetable', title: 'Timetable', status: 'complete' },
+  { id: 'pid', title: 'Project initiation document', status: 'complete' },
+  { id: 'notice', title: 'Notice of intention to commence', status: 'complete' },
+  { id: 'gateway-1', title: 'Gateway 1 self-assessment summary', status: 'complete' },
+  { id: 'statement-of-compliance', title: 'Statement of compliance', status: 'draft' },
+  { id: 'scoping-summary', title: 'Summary of scoping consultation', status: 'complete' },
+  { id: 'timetable-amendments', title: 'Schedule of amendments to timetable', status: 'pending' },
+  { id: 'policy-map', title: 'Policy map', status: 'draft' },
+  { id: 'sea', title: 'Strategic environmental assessment (SEA)', status: 'draft' },
+  { id: 'modifications', title: 'Modifications report', status: 'draft' },
+  { id: 'other', title: 'Other' }
+]
+
+// The supporting documents and their versions, for the table under the plan's version history,
+// each version's page and comparing two versions of one document (one per PLAN_DOCUMENTS entry
+// but "Other"). Text, dates, version numbers and people are invented for the prototype, in the
+// history's 2025 timeline. Each version's text is the document's `base` paragraphs with that
+// version's `edits` (by paragraph index; an index past the end adds one), in the same
+// {chapters: [{id, heading, paragraphs}]} shape as a plan version, so ppvDiff compares them too.
+// Versions are oldest first; the last is the latest. A draft has no published date. Only the
+// policy map (plan layers) and the SEA (evidence layers) carry layers, in a plan version's
+// {id, type, version, created} shape. `link` opens the document in the prototype that makes it.
+const POLICY_MAP_LAYERS = [
+  { id: 'compass-draft-policy-13', type: 'plan', version: '1.0.0', created: '14 March 2025' },
+  { id: 'compass-draft-policy-15', type: 'plan', version: '1.0.0', created: '1 February 2024' },
+  { id: 'compass-draft-policy-16', type: 'plan', version: '2.0.0', created: '14 March 2025' },
+  { id: 'compass-draft-policy-17', type: 'plan', version: '1.1.0', created: '1 February 2025' }
+]
+const SEA_LAYERS = [
+  { id: 'compass-historic-environment-2', type: 'evidence', version: '3.2.0', created: '30 June 2025' },
+  { id: 'compass-historic-environment-6', type: 'evidence', version: '1.0.0', created: '19 October 2026' },
+  { id: 'housing-completions', type: 'evidence', version: '1.0.0', created: '12 September 2025' }
+]
+
+const DOCUMENT_SOURCES = [
+  {
+    id: 'timetable',
+    heading: 'Local plan timetable',
+    link: { href: '/project-management/make-your-plan/timetable-placeholder', text: 'Open in Make your plan' },
+    base: [
+      'This timetable sets out the key stages for preparing the City Plan 2040 under the new plan-making system, and when each is expected.',
+      'Scoping consultation will run for six weeks from July 2025. Gateway 1 is expected in August 2025.',
+      'Consultation on the proposed local plan is planned for spring 2026, followed by Gateway 2 and submission for examination.'
+    ],
+    versions: [
+      { version: '1.0', versionDate: '02 Jun 2025', published: '04 Jun 2025', exportedBy: 'Priya Shah' },
+      {
+        version: '2.0',
+        versionDate: '10 Sep 2025',
+        published: '12 Sep 2025',
+        exportedBy: 'Priya Shah',
+        edits: {
+          1: 'Scoping consultation ran for six weeks from July 2025. Gateway 1 was held in September 2025, a month later than planned.',
+          3: 'Later milestones have not moved. The timetable will be reviewed again after Gateway 2.'
+        }
+      }
+    ]
+  },
+  {
+    id: 'pid',
+    heading: 'Project initiation document',
+    link: { href: '/project-management/make-your-plan/pid', text: 'Open in Make your plan' },
+    base: [
+      'The City Plan 2040 sets out how the City will grow and change. This document sets out how the plan will be prepared, governed and resourced.',
+      'The project is led by the Planning Policy team, reporting to the Planning and Transportation Committee.',
+      'The budget covers evidence studies, consultation, examination and staff time over the 30-month plan-making period.'
+    ],
+    versions: [
+      { version: '1.0', versionDate: '12 May 2025', published: '14 May 2025', exportedBy: 'Priya Shah' },
+      {
+        version: '1.1',
+        versionDate: '30 Jun 2025',
+        published: '01 Jul 2025',
+        exportedBy: 'Marcus Chen',
+        edits: { 1: 'The project is led by the Planning Policy team, reporting to the Planning and Transportation Committee through a monthly project board.' }
+      },
+      {
+        version: '1.2',
+        versionDate: '04 Sep 2025',
+        published: '05 Sep 2025',
+        exportedBy: 'Priya Shah',
+        edits: {
+          1: 'The project is led by the Planning Policy team, reporting to the Planning and Transportation Committee through a monthly project board.',
+          2: 'The budget covers evidence studies, consultation, examination and staff time over the 30-month plan-making period, with a 10% contingency for additional evidence.'
+        }
+      }
+    ]
+  },
+  {
+    id: 'notice',
+    heading: 'Notice of intention to commence',
+    link: { href: '/project-management/make-your-plan/notice', text: 'Open in Make your plan' },
+    base: [
+      'The City of London Corporation gives notice that it intends to begin preparing a new local plan, the City Plan 2040.',
+      'The plan will cover the whole of the City of London and set out planning policies to 2040.',
+      'You can find out more and register for updates on the City of London Corporation website.'
+    ],
+    versions: [
+      { version: '1.0', versionDate: '08 Sep 2025', published: '08 Sep 2025', exportedBy: 'Marcus Chen' }
+    ]
+  },
+  {
+    id: 'gateway-1',
+    heading: 'Gateway 1 self-assessment summary',
+    base: [
+      'This summary sets out how the City Plan 2040 meets the Gateway 1 requirements before consultation on proposed plan content.',
+      'The plan\'s scope and vision were set out in the scoping consultation, and the responses have been considered.',
+      'An evidence plan is in place. Studies on housing need and employment land are under way.'
+    ],
+    versions: [
+      { version: '0.9', versionDate: '01 Sep 2025', published: null, exportedBy: 'Leila Hassan' },
+      {
+        version: '1.0',
+        versionDate: '15 Sep 2025',
+        published: '16 Sep 2025',
+        exportedBy: 'Marcus Chen',
+        edits: {
+          2: 'An evidence plan is in place. The housing need study is complete and the employment land study will report in November 2025.',
+          3: 'No risks to the timetable were identified at Gateway 1.'
+        }
+      }
+    ]
+  },
+  {
+    id: 'statement-of-compliance',
+    heading: 'Statement of compliance',
+    link: { href: '/statement-of-compliance', text: 'Open in Statement of compliance' },
+    base: [
+      'This statement sets out how the City Plan 2040 has been prepared in line with the legal and procedural requirements.',
+      'Consultation has followed the Statement of Community Involvement.',
+      'A strategic environmental assessment is being prepared alongside the plan.'
+    ],
+    versions: [
+      { version: '0.3', versionDate: '15 Sep 2025', published: null, exportedBy: 'Leila Hassan' },
+      {
+        version: '0.4',
+        versionDate: '29 Sep 2025',
+        published: null,
+        exportedBy: 'Leila Hassan',
+        edits: {
+          1: 'Consultation has followed the Statement of Community Involvement. A summary of responses to the scoping consultation has been published.',
+          3: 'The duty to cooperate has been met through regular meetings with neighbouring boroughs and the Greater London Authority.'
+        }
+      }
+    ]
+  },
+  {
+    id: 'scoping-summary',
+    heading: 'Summary of scoping consultation',
+    base: [
+      'The scoping consultation ran from 7 July to 18 August 2025. We received 214 responses.',
+      'Most responses supported the plan\'s focus on office growth, with many asking for more homes and better public spaces.',
+      'The next version of the plan will respond to these points.'
+    ],
+    versions: [
+      { version: '1.0', versionDate: '22 Sep 2025', published: '23 Sep 2025', exportedBy: 'Priya Shah' }
+    ]
+  },
+  {
+    id: 'timetable-amendments',
+    heading: 'Schedule of amendments to timetable',
+    base: [
+      'This schedule lists changes to the local plan timetable since it was last published.',
+      'Gateway 1 moved from August to September 2025 to allow time to consider scoping consultation responses.'
+    ],
+    versions: [
+      { version: '1.0', versionDate: '26 Sep 2025', published: null, exportedBy: 'Priya Shah' }
+    ]
+  },
+  {
+    id: 'policy-map',
+    heading: 'Policy map',
+    base: [
+      'The policy map shows where the plan\'s policies apply, as layers on a map of the City.',
+      'It shows the City Cluster, the protected views and the conservation areas.',
+      'The map will be updated as the plan\'s policies change.'
+    ],
+    versions: [
+      { version: '0.5', versionDate: '12 Sep 2025', published: null, exportedBy: 'Leila Hassan', layers: POLICY_MAP_LAYERS.slice(0, 3) },
+      {
+        version: '0.6',
+        versionDate: '29 Sep 2025',
+        published: null,
+        exportedBy: 'Leila Hassan',
+        layers: POLICY_MAP_LAYERS,
+        edits: { 1: 'It shows the City Cluster, the protected views, the conservation areas and the areas for new homes.' }
+      }
+    ]
+  },
+  {
+    id: 'sea',
+    heading: 'Strategic environmental assessment (SEA)',
+    base: [
+      'This assessment considers the likely environmental effects of the City Plan 2040 and reasonable alternatives to it.',
+      'The main effects are on the historic environment, air quality and climate resilience.',
+      'Mitigation will be set out for each significant effect.'
+    ],
+    versions: [
+      { version: '0.2', versionDate: '05 Sep 2025', published: null, exportedBy: 'Marcus Chen', layers: SEA_LAYERS.slice(0, 1) },
+      {
+        version: '0.3',
+        versionDate: '25 Sep 2025',
+        published: null,
+        exportedBy: 'Marcus Chen',
+        layers: SEA_LAYERS,
+        edits: {
+          1: 'The main effects are on the historic environment, air quality, climate resilience and the supply of homes.',
+          2: 'Mitigation is set out for each significant effect, with monitoring indicators.'
+        }
+      }
+    ]
+  },
+  {
+    id: 'modifications',
+    heading: 'Modifications report',
+    base: [
+      'This report will list the changes proposed to the City Plan 2040 during examination.',
+      'It will be completed once the Inspector has set out the modifications needed.'
+    ],
+    versions: [
+      { version: '0.1', versionDate: '01 Oct 2025', published: null, exportedBy: 'Leila Hassan' }
+    ]
+  }
+]
+
+const SUPPORTING_DOCUMENTS = DOCUMENT_SOURCES.map(source => {
+  const document = PLAN_DOCUMENTS.find(d => d.id === source.id)
+  const versions = source.versions.map((v, index) => {
+    const texts = source.base.slice()
+    Object.keys(v.edits || {}).forEach(i => { texts[Number(i)] = v.edits[i] })
+    return {
+      key: source.id + ':' + v.version,
+      documentId: source.id,
+      title: document.title + ', version ' + v.version,
+      version: v.version,
+      versionDate: v.versionDate,
+      published: v.published,
+      exportedBy: v.exportedBy,
+      latest: index === source.versions.length - 1,
+      layers: v.layers || [],
+      content: {
+        chapters: [{
+          id: source.id,
+          heading: source.heading,
+          paragraphs: texts.map((text, i) => ({ number: '1.' + (i + 1), text }))
+        }]
+      }
+    }
+  })
+  return { id: source.id, title: document.title, status: document.status, link: source.link || null, versions }
+})
+
+// A supporting document's version from its key, "<document id>:<version>".
+function getDocumentVersion (key) {
+  const documentId = String(key).split(':')[0]
+  const document = SUPPORTING_DOCUMENTS.find(d => d.id === documentId)
+  return document ? document.versions.find(v => v.key === key) || null : null
+}
+
+// The plan-making milestones an item can be set to publish at, in the new system's order. Fuller
+// than MILESTONES, which names the seeded versions.
+const PUBLISH_MILESTONES = [
+  'Notice of intention to commence',
+  'Scoping consultation',
+  'Gateway 1',
+  'Consultation: proposed local plan content and evidence',
+  'Gateway 2',
+  'Consultation: proposed local plan',
+  'Gateway 3',
+  'Submission for examination',
+  'Examination: proposed local plan',
+  "Inspector's report",
+  'Adopted plan'
+]
+
+// Managers who can approve publishing. Invented, like everyone else here.
+const APPROVERS = [
+  { id: 'helen-marsh', name: 'Helen Marsh', role: 'Policy Team Leader' },
+  { id: 'rob-adeyemi', name: 'Rob Adeyemi', role: 'Head of Planning Policy' },
+  { id: 'claire-whitfield', name: 'Claire Whitfield', role: 'Director of Planning' }
+]
+
 function startingState () {
   return {
     versions: JSON.parse(JSON.stringify(SEED_VERSIONS)),
@@ -258,6 +568,13 @@ module.exports = {
   CHAPTERS,
   DRAFT,
   MILESTONES,
+  PLAN_DOCUMENTS,
+  SUPPORTING_DOCUMENTS,
+  getDocumentVersion,
+  ITEM_STATUSES,
+  CHAPTER_STATUSES,
+  PUBLISH_MILESTONES,
+  APPROVERS,
   draftContent,
   startingState,
   getChapter,

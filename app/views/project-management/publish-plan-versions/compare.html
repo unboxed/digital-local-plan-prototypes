@@ -1,8 +1,8 @@
 {% extends "project-management/publish-plan-versions/partials/layout.html" %}
 {% from "project-management/publish-plan-versions/partials/macros.html" import diffColumn %}
 
-{% set pageName = "Compare plan versions" %}
-{% set backLink = { href: ppv + "/history", text: "Back to version history" } %}
+{% set pageName = compareTitle or "Compare plan versions" %}
+{% set backLink = { href: backHref or ppv + "/history", text: "Back to version history" } %}
 
 {% macro versionHead(label, version) %}
   <div class="dlp-ppv-compare__head">
@@ -10,7 +10,7 @@
     <h2 class="govuk-heading-m govuk-!-margin-bottom-3">{{ version.title }}</h2>
     <p class="govuk-body govuk-!-margin-bottom-2">{{ version.versionDate }}</p>
     <p class="govuk-body-s dlp-ppv-muted govuk-!-margin-bottom-0">
-      {% if version.published %}Published {{ version.published }}{% else %}Shared internally {{ version.sharedAt }}{% endif %}<br>
+      {% if version.published %}Published {{ version.published }}{% elif version.sharedAt %}Shared internally {{ version.sharedAt }}{% else %}Not published{% endif %}<br>
       Exported by {{ version.exportedBy }}
     </p>
   </div>
@@ -22,7 +22,7 @@
 
 {% block main %}
 <span class="govuk-caption-m">{{ planTitle }}</span>
-<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Compare plan versions</h1>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">{{ pageName }}</h1>
 
 <p class="govuk-body dlp-ppv-key">
   <span class="dlp-ppv-key__item dlp-ppv-key__item--removed">Removed</span>

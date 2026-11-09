@@ -731,7 +731,7 @@ internally for non-public review. The research question is where that sharing fi
   management by request, and the `activeSection` middleware already highlights that.
 - **Names and dates are the frames' own, by design request.** The four versions (Consultation:
   proposed local plan content and evidence … Adopted; the first was "Scoping consultation: proposed
-  local plan content" in the frames and was renamed by request) run Sep–Oct 2025, the draft is "Version 3 · Saved 29 September 2025", and the layer
+  local plan content" in the frames and was renamed by request) run Sep–Oct 2025, the draft is "Saved 29 September 2025" (no version number: versions are identified by date, by request), and the layer
   dates are the frame's (one is in 2026). Don't "fix" them to the other prototypes' timeline
   without asking.
 - **State** is one object, `planVersions`, read only through `getPlanVersions` and stamped with
@@ -739,14 +739,52 @@ internally for non-public review. The research question is where that sharing fi
   `{versions, pending, flash, nextId}`. The seed is `startingState()` in
   `app/data/plan-versions.js`, which also holds the chapters, the draft's content and the
   milestones. The landing page's reset rebuilds it.
-- **A new version is a snapshot.** Step 2 stores its choices as `pending`. Step 3's two buttons
-  (`_action` `download` | `share`) append an entry with a copy of the chosen content and, when
-  the purpose is Publish draft, the shared `gisLayers` collection as it is at that moment (built
-  with `glLayerView`). Viewing or comparing it later shows what went out, not the current
-  draft. Publishing is titled with its milestone. Sharing internally is titled "Internal review:
-  …", has no published date and no layers, and shows a "Shared internally" tag. Downloading
-  produces no file. The result is confirmed by a notification banner on the history, with the
-  new row tinted.
+- **Share or publish is two steps and a check page**, all under `/share` (`share.html`,
+  `share-how.html`, `share-check.html`), replacing the old preview and export step (`/preview`
+  now redirects to `/share`, and the old `/share/when` step to `/share/how#approval`). Choices
+  build up in `pending` (`{allChapters, chapters, documents, otherName, when, people, sharedId,
+  approver, message}`); every later step redirects to `/share` if nothing has been chosen.
+  1. **What:** two tables to tick, headed with the plan title (chapters) and "Supporting
+     documents" (a `selectTable` macro in `share.html`), each row's status tag in its own column.
+     **Everything starts ticked**, because sharing the whole plan and every document is the usual
+     case, so it's just Continue. The sidebar link is `/share?_new=1`, which clears `pending` so
+     a new share starts from everything; Back and Change links use plain `/share` and keep what
+     was chosen. Each table has a "Select all" header checkbox, an "N of M selected" count and a
+     "Clear all" link (`initSelectAll`: the count reads "N of M" with `data-dlp-select-all-of`, and
+     `data-dlp-select-all-clear` unticks in the page, its href `/share?_clear=chapters|documents`
+     being the no-JavaScript fallback). Every chapter
+     ticked is the full plan (`allChapters`). "Other" isn't a row: naming a document under "Add
+     another document" adds it. `ppvItems` turns the choices into items, and `ppvIncluded` names
+     them ("Full local plan and all supporting documents" for everything). Statuses (Draft,
+     Pending approval, Complete; `PV.ITEM_STATUSES`) are seeded in `CHAPTER_STATUSES` and on each
+     document. Anything sent for approval in the session shows as Pending approval
+     (`ppvItemStatus`). Submitting it starts a new share: `people` and `sharedId` are cleared.
+  2. **How:** no choice of method, by request. Every way to share is set out as its own section
+     with its own form and action:
+     - **Share a link:** "Link to view" and "Link to edit", each with "Copy link" (`initCopyLink`
+       and the `dlp-share-link` styles, through a `copyLink` macro in the template). A copy also
+       POSTs to `/share/how/copied` (`data-dlp-copy-link-log`, `_access`), so it's recorded.
+     - **Invite people:** an email and "Can edit" / "Can view" (`PPV_ROLES`), `_action` `add` /
+       `remove:<n>`. Each invited person gets their own link (`?invite=<token>`) with Copy link.
+     - **Send for publishing approval:** "What you're sending" (`ppvIncluded`, with the full list
+       in a details when there are more than three items), then one "When should it be
+       published?" for all of it, by request: "When approved" or "At a plan milestone" (one of
+       `PV.PUBLISH_MILESTONES`; fields `_when` and `_milestone`). The server stores that choice
+       against every item in `pending.when`, so `schedule` keeps its per-item shape. Then one of
+       `PV.APPROVERS` and a message. Continue goes to the check page, which shows What (the
+       items) and When (the one choice).
+  3. **Check** is for approval only, ending in "Send for approval".
+- **Links and invites are logged as they happen; approval is a snapshot, but never a publish.**
+  The first copy or invite adds a `shared` version ("Internal review: …") through `ppvLogShare`
+  and keeps its id in `pending.sharedId`. Later copies add to its `links` (`view`/`edit`) and
+  invites update its `people`, rather than adding more versions. Sending for approval adds an
+  `awaiting-approval` version ("Publishing approval: …") with its `schedule` and `approver`.
+  Neither has a published date or layers, because publishing needs a manager's approval. The
+  links point at the logged version, or the one the share will create (`versions/v<nextId>`).
+  Locally the server builds them with the kit's internal port (the dev proxy hides the real
+  host), so `initCopyLink` swaps in the page's own origin. Seeded versions are still
+  `published`. **Changing `pending` or the version shape means bumping
+  `PLAN_VERSIONS_SCHEMA_VERSION`.**
 - **Seeded versions are excerpts** of three chapters (Introduction, Spatial strategy, Housing),
   as in frames 2 and 3. Their layers carry only `{id, type, version, created}`, and name, shape
   and feature count come from the GIS catalogue (`GIS.getCatalogueLayer`). The map thumbnails
@@ -757,14 +795,26 @@ internally for non-public review. The research question is where that sharing fi
   `<del>`/`<ins>`, not colour alone. A chapter only in one version reads "Not in this version"
   on the other side, so comparing a full draft with an excerpt shows the extra chapters as
   added. The earlier version is whichever comes first in the history.
-- **Not in the frames:** the "Share or publish the current draft" button on the history (step 1
-  had no way into step 2), the Purpose row on the preview, and the confirmation banner. The
-  compare toolbar's "100%" is static text, as drawn.
+- **Supporting documents** have their own table under the plan's, in the same format: one
+  `colgroup` heading row per `PV.PLAN_DOCUMENTS` entry except "Other", then a row per version,
+  oldest first. The data is static, `DOCUMENT_SOURCES` in `plan-versions.js` built into
+  `SUPPORTING_DOCUMENTS` (text, versions, dates and people invented): each version's text is the
+  document's `base` paragraphs plus its `edits`, in a plan version's `content` shape, so
+  `ppvDiff` and `compare.html` compare them as they do plan versions. Two versions of the same
+  document are compared at `/documents/compare?_dv=<id>:<version>&_dv=…` (`_error=documents`
+  or `documents-mismatch` back on the history otherwise); a document with one version says
+  "Only one version" instead of a checkbox. Each version has a page,
+  `/documents/:id/versions/:version` (`/documents/:id` is the latest), with an "Open in …" link
+  to the prototype that makes it where there is one. Only the policy map and the SEA have
+  layers, and their earlier versions have fewer. The latest version's status is read through
+  `ppvItemStatus`, so sending a document for approval shows it as Pending approval.
+- **Not in the frames:** the whole Share or publish journey (by request), the supporting
+  documents table and pages, and the confirmation banner. The history page has no "Share or
+  publish" button (removed by request); the sidebar's Share or publish item is the way in. The compare toolbar's "100%" is static text, as drawn.
 - **Changed from the frames by request:** the milestone list ends with "Adopted plan", and the
   history table is in body small (16px) text. The first version (proposed local plan content and evidence) has no layers, as in frame 1.
   The sidebar has only
-  version history and Share or publish. Preview and export is reached only from Share or publish,
-  so that item stays current on the preview.
+  version history and Share or publish, which stays current on every Share or publish step.
 
 ### Examination library
 

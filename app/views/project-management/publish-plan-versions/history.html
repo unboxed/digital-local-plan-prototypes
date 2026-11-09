@@ -2,7 +2,7 @@
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 {% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
 
-{% set pageName = ("Error: " if compareError else "") + "View and compare version history" %}
+{% set pageName = ("Error: " if compareError or documentCompareError else "") + "View and compare local plan versions" %}
 {% set breadcrumbs = [
   { text: "Home", href: "/project-management" },
   { text: "Plan versions" }
@@ -11,6 +11,8 @@
 {% block main %}
 {% if compareError %}
   {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: "Select two versions to compare", href: "#compare-" + versions[0].id }] }) }}
+{% elif documentCompareError %}
+  {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: documentCompareError, href: "#compare-" + documents[0].id + "-1" }] }) }}
 {% endif %}
 
 {% if flash %}
@@ -21,13 +23,9 @@
   {{ govukNotificationBanner({ type: "success", html: flashHtml }) }}
 {% endif %}
 
-<span class="govuk-caption-m">Plan versions · Step 1 of 3</span>
-<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">View and compare version history</h1>
-<p class="govuk-body-l dlp-ppv-muted">Choose a saved version of your local plan to share or export.</p>
-
-<div class="govuk-button-group">
-  <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="{{ ppv }}/share">Share or publish the current draft ({{ draft.label }})</a>
-</div>
+<span class="govuk-caption-m">Plan versions</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">View and compare local plan versions</h1>
+<p class="govuk-body-l dlp-ppv-muted">View version history for your local plan and supporting information.</p>
 
 <h2 class="govuk-heading-l govuk-!-margin-top-6">{{ planTitle }}</h2>
 
@@ -58,7 +56,7 @@
             <td class="govuk-table__cell">{{ version.title }}</td>
             <td class="govuk-table__cell">{{ version.versionDate }}</td>
             <td class="govuk-table__cell">
-              {% if version.published %}{{ version.published }}{% else %}Not published<br><span class="dlp-ppv-muted">Shared internally {{ version.sharedAt }}</span>{% endif %}
+              {% if version.published %}{{ version.published }}{% else %}Not published<br><span class="dlp-ppv-muted">{{ "Awaiting approval" if version.status == "awaiting-approval" else "Shared internally" }} {{ version.sharedAt }}</span>{% endif %}
             </td>
             <td class="govuk-table__cell">{{ version.exportedBy }}</td>
             <td class="govuk-table__cell">
@@ -84,6 +82,77 @@
           </tr>
           {% endfor %}
         </tbody>
+      </table>
+    </div>
+  </div>
+
+  <button type="submit" class="govuk-button" data-module="govuk-button">Compare selected versions</button>
+</form>
+
+<h2 class="govuk-heading-l govuk-!-margin-top-6" id="supporting-documents">Supporting documents</h2>
+
+<form method="get" action="{{ ppv }}/documents/compare" novalidate id="documents-compare">
+  <div class="govuk-form-group {%- if documentCompareError %} govuk-form-group--error{% endif %}">
+    <p class="govuk-body dlp-ppv-muted" id="documents-compare-hint">Select two versions of a document to compare side by side.</p>
+    {% if documentCompareError %}
+    <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ documentCompareError }}</p>
+    {% endif %}
+
+    <div class="dlp-ppv-table-wrap">
+      <table class="govuk-table dlp-ppv-table">
+        <caption class="govuk-visually-hidden">Supporting documents and their versions, oldest first</caption>
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">Version title</th>
+            <th scope="col" class="govuk-table__header">Version date and time</th>
+            <th scope="col" class="govuk-table__header">Published date and time</th>
+            <th scope="col" class="govuk-table__header">Exported by</th>
+            <th scope="col" class="govuk-table__header">Layers</th>
+            <th scope="col" class="govuk-table__header">Action</th>
+            <th scope="col" class="govuk-table__header">Compare</th>
+          </tr>
+        </thead>
+        {% for document in documents %}
+        <tbody class="govuk-table__body dlp-ppv-table__group">
+          <tr class="govuk-table__row">
+            <th scope="colgroup" colspan="7" class="govuk-table__header dlp-ppv-table__group-heading">{{ document.title }}</th>
+          </tr>
+          {% for version in document.versions %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">Version {{ version.version }}{% if version.latest and document.versions.length > 1 %} <span class="dlp-ppv-muted">(latest)</span>{% endif %}</td>
+            <td class="govuk-table__cell">{{ version.versionDate }}</td>
+            <td class="govuk-table__cell">
+              {% if version.published %}{{ version.published }}{% else %}Not published<br><span class="dlp-ppv-muted">{% if not version.latest %}Earlier draft{% elif document.status %}{{ document.status.text }}{% else %}Draft{% endif %}</span>{% endif %}
+            </td>
+            <td class="govuk-table__cell">{{ version.exportedBy }}</td>
+            <td class="govuk-table__cell">
+              {% if version.layers.length %}
+              <a class="govuk-link" href="{{ ppv }}/documents/{{ document.id }}/versions/{{ version.version }}#layers">View layers<span class="govuk-visually-hidden"> for {{ version.title }}</span></a>
+              {% else %}
+              No layers
+              {% endif %}
+            </td>
+            <td class="govuk-table__cell">
+              <a class="govuk-link" href="{{ ppv }}/documents/{{ document.id }}/versions/{{ version.version }}">View version<span class="govuk-visually-hidden">: {{ version.title }}</span></a>
+            </td>
+            <td class="govuk-table__cell">
+              {% if document.versions.length > 1 %}
+              <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">
+                <div class="govuk-checkboxes__item">
+                  <input class="govuk-checkboxes__input" id="compare-{{ document.id }}-{{ loop.index }}" name="_dv" type="checkbox" value="{{ version.key }}" aria-describedby="documents-compare-hint">
+                  <label class="govuk-label govuk-checkboxes__label" for="compare-{{ document.id }}-{{ loop.index }}">
+                    <span class="govuk-visually-hidden">Compare {{ version.title }}</span>
+                  </label>
+                </div>
+              </div>
+              {% else %}
+              <span class="dlp-ppv-muted">Only one version</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% endfor %}
       </table>
     </div>
   </div>

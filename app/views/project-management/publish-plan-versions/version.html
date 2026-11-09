@@ -11,6 +11,8 @@
   <p class="govuk-body">
     {% if version.status == "published" %}
     <strong class="govuk-tag govuk-tag--grey">Published</strong>
+    {% elif version.status == "awaiting-approval" %}
+    <strong class="govuk-tag govuk-tag--blue">Awaiting approval</strong>
     {% else %}
     <strong class="govuk-tag govuk-tag--yellow">Shared internally</strong>
     {% endif %}
@@ -32,8 +34,39 @@
     </div>
     <div class="govuk-summary-list__row">
       <dt class="govuk-summary-list__key">Included</dt>
-      <dd class="govuk-summary-list__value">{{ version.included }}</dd>
+      <dd class="govuk-summary-list__value">
+        {% if version.schedule %}
+        <ul class="govuk-list">
+          {% for item in version.schedule %}
+          <li>{{ item.title }} <span class="dlp-ppv-muted">· {% if item.when == "milestone" %}Publish at: {{ item.milestone }}{% else %}Now{% endif %}</span></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {{ version.included }}
+        {% endif %}
+      </dd>
     </div>
+    {% if version.approver %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Sent for approval to</dt>
+      <dd class="govuk-summary-list__value">{{ version.approver }}{% if version.message %}<br><span class="dlp-ppv-muted">“{{ version.message }}”</span>{% endif %}</dd>
+    </div>
+    {% endif %}
+    {% if version.method == "invite" %}
+    <div class="govuk-summary-list__row">
+      <dt class="govuk-summary-list__key">Shared with</dt>
+      <dd class="govuk-summary-list__value">
+        {% if version.people.length or (version.links and version.links.length) %}
+        <ul class="govuk-list">
+          {% for access in version.links %}<li>Anyone with the link to {{ access }}</li>{% endfor %}
+          {% for person in version.people %}<li>{{ person.email }} <span class="dlp-ppv-muted">({{ person.role }})</span></li>{% endfor %}
+        </ul>
+        {% else %}
+        Anyone with the link
+        {% endif %}
+      </dd>
+    </div>
+    {% endif %}
   </dl>
 
   <div class="dlp-ppv-heading-row">
@@ -42,9 +75,13 @@
   </div>
   <div class="dlp-ppv-box">
     <p class="govuk-body-s dlp-ppv-muted">
-      {% if version.published %}Published plan content · {{ version.publishedLong }}{% else %}Shared for internal review · {{ version.sharedAt }}{% endif %}
+      {% if version.published %}Published plan content · {{ version.publishedLong }}{% elif version.status == "awaiting-approval" %}Sent for publishing approval · {{ version.sharedAt }}{% else %}Shared for internal review · {{ version.sharedAt }}{% endif %}
     </p>
+    {% if version.content.chapters.length %}
     {{ planContent(version.content) }}
+    {% else %}
+    <p class="govuk-body">No plan text in this version. It shares plan documents only.</p>
+    {% endif %}
   </div>
 
   <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">

@@ -5738,16 +5738,21 @@ router.post(PM + '/notice/publish', (req, res) => {
 //   /project-management/publish-plan-versions               - landing page, with a reset
 //   /project-management/publish-plan-versions/history       - step 1: version history and compare
 //   /project-management/publish-plan-versions/versions/:id  - one version, read-only, with its layers
+//   /project-management/publish-plan-versions/documents/:id - a supporting document's latest version
+//     .../documents/:id/versions/:version                    - one earlier version of it
+//     .../documents/compare                                  - two versions of one document (?_dv=a&_dv=b)
 //   /project-management/publish-plan-versions/compare       - two versions side by side (?_v=a&_v=b)
-//   /project-management/publish-plan-versions/share         - step 2: what to include, and why
-//   /project-management/publish-plan-versions/preview       - step 3: preview, then download or share
+//   /project-management/publish-plan-versions/share         - Share or publish, step 1: what
+//   /project-management/publish-plan-versions/share/how     - step 2: copy a link, invite people, or
+//                                                             send for approval (with when to publish)
+//   /project-management/publish-plan-versions/share/check   - check, then send for approval
 //
 // Everything is one object, req.session.data.planVersions, read only through getPlanVersions.
 // A new version is a snapshot (its content and, when published, the shared GIS layers as they
 // were), so viewing or comparing it later shows what went out, not the current draft.
 
 const PPV = '/project-management/publish-plan-versions'
-const PLAN_VERSIONS_SCHEMA_VERSION = 4
+const PLAN_VERSIONS_SCHEMA_VERSION = 6
 const PV = require('./data/plan-versions.js')
 
 function getPlanVersions (req) {
@@ -5808,15 +5813,46 @@ function ppvSnapshotLayers (req) {
   })
 }
 
-// What a share or publish includes, in words: "Full local plan", or the chosen chapters.
-function ppvIncluded (pending) {
-  if (pending.scope === 'full') return 'Full local plan'
-  const names = pending.chapters.map(id => {
-    const chapter = PV.getChapter(id)
-    return chapter.short || chapter.title
+// What a share or publish includes, as items: the whole plan or single chapters, then any other
+// plan documents ("Other" by the name the user gave it). Each id is used in step 2's field names.
+function ppvItems (pending) {
+  const chapters = pending.allChapters
+    ? [{ id: 'all-chapters', title: 'Full local plan (all chapters)', short: 'Full local plan' }]
+    : pending.chapters.map(id => {
+      const chapter = PV.getChapter(id)
+      return { id: 'chapter-' + id, title: chapter.title, short: chapter.short || chapter.title }
+    })
+  const documents = pending.documents.map(id => {
+    const document = PV.PLAN_DOCUMENTS.find(d => d.id === id)
+    const title = id === 'other' ? pending.otherName : document.title
+    return { id: 'doc-' + id, title, short: title }
   })
+  return chapters.concat(documents)
+}
+
+// The items in words: "Full local plan, Timetable and SEA", or "Housing, Transport and 3 more items".
+function ppvIncluded (pending) {
+  // The usual case, everything, is said as such rather than as a list.
+  const listed = PV.PLAN_DOCUMENTS.filter(d => d.id !== 'other').map(d => d.id)
+  if (pending.allChapters && listed.every(id => pending.documents.includes(id))) {
+    return 'Full local plan and all supporting documents' + (pending.documents.includes('other') ? ', and ' + pending.otherName : '')
+  }
+  const names = ppvItems(pending).map(item => item.short)
   if (names.length <= 3) return names.length === 1 ? names[0] : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]
-  return names.slice(0, 2).join(', ') + ' and ' + (names.length - 2) + ' more chapters'
+  return names.slice(0, 2).join(', ') + ' and ' + (names.length - 2) + ' more items'
+}
+
+// Each item with when it goes out: now, or automatically at a milestone.
+function ppvSchedule (pending) {
+  return ppvItems(pending).map(item => {
+    const when = (pending.when || {})[item.id] || {}
+    return {
+      id: item.id,
+      title: item.title,
+      when: when.when === 'milestone' ? 'milestone' : 'now',
+      milestone: when.when === 'milestone' ? when.milestone : ''
+    }
+  })
 }
 
 // Compares two versions' content. Chapters are matched by id and paragraphs by their position in
@@ -5852,13 +5888,13 @@ function ppvDiff (earlier, later) {
   return { left, right, changes }
 }
 
-// Preview and export has no item of its own: it can only be reached from Share or publish, so
-// that item stays current while previewing.
+// Share or publish's steps and check page have no items of their own, so it stays current on all
+// of them.
 function ppvSteps (current) {
   return [{
     items: [
-      { text: 'View and compare version history', href: PPV + '/history', active: current === 'history' },
-      { text: 'Share or publish', href: PPV + '/share', active: current === 'share' || current === 'preview' }
+      { text: 'View and compare local plan versions', href: PPV + '/history', active: current === 'history' },
+      { text: 'Share or publish local plan or supporting information', href: PPV + '/share?_new=1', active: current === 'share' }
     ]
   }]
 }
@@ -5888,8 +5924,10 @@ router.get(PPV + '/history', (req, res) => {
   state.flash = null
   renderPpv(req, res, 'history', 'history', {
     versions: state.versions,
+    documents: PV.SUPPORTING_DOCUMENTS.map(document => ppvDocumentView(req, document)),
     flash,
-    compareError: req.query._error === 'compare'
+    compareError: req.query._error === 'compare',
+    documentCompareError: { documents: 'Select two versions of a document to compare', 'documents-mismatch': 'Select two versions of the same document' }[req.query._error] || ''
   })
 })
 
@@ -5897,6 +5935,45 @@ router.get(PPV + '/versions/:id', (req, res) => {
   const version = getPlanVersions(req).versions.find(v => v.id === req.params.id)
   if (!version) return res.redirect(PPV + '/history')
   renderPpv(req, res, 'version', 'history', {
+    version,
+    layers: version.layers.map(ppvLayerView)
+  })
+})
+
+// A supporting document with the status of its latest version: Draft, Complete, or Pending
+// approval once something sent for approval in this session includes it.
+function ppvDocumentView (req, document) {
+  return Object.assign({}, document, { status: ppvItemStatus(req, 'doc-' + document.id, document.status) })
+}
+
+// Two versions of one supporting document, side by side, with the same diff as plan versions.
+// Registered before /documents/:id so "compare" isn't taken for a document id.
+router.get(PPV + '/documents/compare', (req, res) => {
+  const picked = ppvAsArray(req.query._dv).map(PV.getDocumentVersion).filter(Boolean)
+  if (picked.length !== 2) return res.redirect(PPV + '/history?_error=documents#documents-compare')
+  if (picked[0].documentId !== picked[1].documentId) return res.redirect(PPV + '/history?_error=documents-mismatch#documents-compare')
+  const document = PV.SUPPORTING_DOCUMENTS.find(d => d.id === picked[0].documentId)
+  // Versions are oldest first, so the one earlier in the list is the earlier version.
+  const [earlier, later] = picked.sort((a, b) => document.versions.indexOf(a) - document.versions.indexOf(b))
+  renderPpv(req, res, 'compare', 'history', {
+    earlier,
+    later,
+    diff: ppvDiff(earlier, later),
+    compareTitle: 'Compare versions of the ' + document.title.charAt(0).toLowerCase() + document.title.slice(1),
+    backHref: PPV + '/history#supporting-documents'
+  })
+})
+
+router.get([PPV + '/documents/:id', PPV + '/documents/:id/versions/:version'], (req, res) => {
+  const source = PV.SUPPORTING_DOCUMENTS.find(d => d.id === req.params.id)
+  if (!source) return res.redirect(PPV + '/history')
+  const document = ppvDocumentView(req, source)
+  const version = req.params.version
+    ? document.versions.find(v => v.version === req.params.version)
+    : document.versions[document.versions.length - 1]
+  if (!version) return res.redirect(PPV + '/documents/' + document.id)
+  renderPpv(req, res, 'document', 'history', {
+    document,
     version,
     layers: version.layers.map(ppvLayerView)
   })
@@ -5916,105 +5993,304 @@ router.get(PPV + '/compare', (req, res) => {
   })
 })
 
+function ppvErrorList (errors) {
+  // Each error links to its field's first input, which is where the macros put the id.
+  return Object.keys(errors).map(key => ({ text: errors[key], href: '#' + key }))
+}
+
+// Every later step needs something chosen in step 1; without it, start again there.
+function ppvPending (req, res) {
+  const pending = getPlanVersions(req).pending
+  if (!pending || !ppvItems(pending).length) {
+    res.redirect(PPV + '/share')
+    return null
+  }
+  return pending
+}
+
+// --- Step 1: what ---
+
+// Each item's status for step 1: the seeded one, unless something sent for approval in this
+// session includes it (sending all chapters counts for every chapter).
+function ppvItemStatus (req, itemId, seeded) {
+  const pending = getPlanVersions(req).versions.some(version =>
+    version.status === 'awaiting-approval' && (version.schedule || []).some(item =>
+      item.id === itemId || (item.id === 'all-chapters' && itemId.startsWith('chapter-'))))
+  return PV.ITEM_STATUSES[pending ? 'pending' : seeded] || null
+}
+
 function ppvShareView (req, res, values, errors) {
   renderPpv(req, res, 'share', 'share', {
     values,
     errors,
-    // Each error links to its field's first input, which is where the macros put the id.
-    errorList: Object.keys(errors).map(key => ({ text: errors[key], href: '#' + key })),
-    chapterItems: PV.CHAPTERS.map(chapter => ({
-      value: chapter.id,
-      text: chapter.title,
-      checked: values.chapters.includes(chapter.id)
+    errorList: ppvErrorList(errors),
+    chapters: PV.CHAPTERS.map(chapter => ({
+      id: chapter.id,
+      title: chapter.title,
+      status: ppvItemStatus(req, 'chapter-' + chapter.id, PV.CHAPTER_STATUSES[chapter.id])
     })),
-    milestoneItems: PV.MILESTONES.map(milestone => ({
-      value: milestone,
-      text: milestone,
-      selected: milestone === values.milestone
+    documents: PV.PLAN_DOCUMENTS.map(document => Object.assign({}, document, {
+      status: document.status ? ppvItemStatus(req, 'doc-' + document.id, document.status) : null
     }))
   })
 }
 
+// Everything starts ticked: sharing the whole plan and every supporting document is the usual
+// case. The sidebar link (?_new=1) starts a new share, so it's everything again; the journey's
+// own Back and Change links keep what was chosen. Each table's "Clear all" (?_clear=chapters or
+// documents) unticks that table: in the page with JavaScript, through this without.
 router.get(PPV + '/share', (req, res) => {
   const state = getPlanVersions(req)
-  ppvShareView(req, res, state.pending || {
-    scope: '',
-    chapters: PV.CHAPTERS.map(c => c.id),
-    purpose: '',
-    milestone: PV.MILESTONES[0]
-  }, {})
+  if (req.query._new) state.pending = null
+  const values = Object.assign({
+    allChapters: true,
+    chapters: [],
+    documents: PV.PLAN_DOCUMENTS.filter(d => d.id !== 'other').map(d => d.id),
+    otherName: ''
+  }, state.pending ? {
+    allChapters: state.pending.allChapters,
+    chapters: state.pending.chapters,
+    documents: state.pending.documents,
+    otherName: state.pending.otherName
+  } : {})
+  if (req.query._clear === 'chapters') Object.assign(values, { allChapters: false, chapters: [] })
+  if (req.query._clear === 'documents') Object.assign(values, { documents: values.documents.filter(id => id === 'other') })
+  ppvShareView(req, res, values, {})
 })
 
 router.post(PPV + '/share', (req, res) => {
+  // Every chapter ticked is the full plan.
+  const chapters = PV.CHAPTERS.map(c => c.id).filter(id => ppvAsArray(req.body._chapters).includes(id))
+  const allChapters = chapters.length === PV.CHAPTERS.length
+  // "Other" is never a checkbox: naming another document under "Add another document" adds it.
+  const otherName = (req.body._otherName || '').trim()
+  const documents = ppvAsArray(req.body._documents).filter(id => id !== 'other' && PV.PLAN_DOCUMENTS.some(d => d.id === id))
+  if (otherName) documents.push('other')
   const values = {
-    scope: ['full', 'selected'].includes(req.body._scope) ? req.body._scope : '',
-    chapters: ppvAsArray(req.body._chapters).filter(id => PV.getChapter(id)),
-    purpose: ['publish', 'share'].includes(req.body._purpose) ? req.body._purpose : '',
-    milestone: PV.MILESTONES.includes(req.body._milestone) ? req.body._milestone : ''
+    allChapters,
+    chapters: allChapters ? [] : chapters,
+    documents,
+    otherName
   }
   const errors = {}
-  if (!values.scope) errors.scope = 'Select what to share'
-  else if (values.scope === 'selected' && !values.chapters.length) errors.chapters = 'Select at least one chapter'
-  if (!values.purpose) errors.purpose = 'Select whether to publish the draft or share it internally'
-  else if (values.purpose === 'publish' && !values.milestone) errors.milestone = 'Select a milestone'
+  if (!values.allChapters && !values.chapters.length && !values.documents.length) {
+    errors.chapters = 'Select at least one chapter or document to share or publish'
+  }
   if (Object.keys(errors).length) return ppvShareView(req, res, values, errors)
 
-  getPlanVersions(req).pending = values
-  res.redirect(PPV + '/preview')
+  // Keep later choices where they still apply, so changing what's included from the check page
+  // doesn't throw away when and how.
+  const state = getPlanVersions(req)
+  // Links and invites already sent were for the old selection, so they start again.
+  state.pending = Object.assign({ when: {}, approver: '', message: '' }, state.pending, values, { people: [], sharedId: null })
+  res.redirect(PPV + '/share/how')
 })
 
-function ppvPreviewLocals (pending) {
-  return {
-    pending,
-    included: ppvIncluded(pending),
-    content: PV.draftContent(pending.scope === 'full' ? [] : pending.chapters)
-  }
+// --- Step 2: how ---
+//
+// One page with every way to share set out, each with its own action rather than a choice of
+// method: copy a link to view or edit, invite people by email (each gets their own link), or
+// send for publishing approval (with when each item publishes) and go on to the check page.
+// Copying a link or inviting someone adds a "shared" entry to the version history the first
+// time, and later copies and invites from the same share update that entry.
+
+const PPV_ROLES = {
+  edit: { label: 'Can edit', hint: 'Can make changes and comment' },
+  view: { label: 'Can view', hint: 'Can read and comment' }
 }
 
-router.get(PPV + '/preview', (req, res) => {
-  const pending = getPlanVersions(req).pending
-  if (!pending) return res.redirect(PPV + '/share')
-  renderPpv(req, res, 'preview', 'preview', ppvPreviewLocals(pending))
+// The old step 2's address, for anyone with it open or bookmarked: "when" now sits inside the
+// approval section.
+router.get(PPV + '/share/when', (req, res) => {
+  res.redirect(PPV + '/share/how#approval')
 })
 
-router.get(PPV + '/preview/document', (req, res) => {
-  const pending = getPlanVersions(req).pending
-  if (!pending) return res.redirect(PPV + '/share')
-  renderPpv(req, res, 'document', 'preview', ppvPreviewLocals(pending))
+// The version a share's links open: the one already logged for this share, or the next one.
+function ppvShareBase (req, state, pending) {
+  return req.protocol + '://' + req.get('host') + PPV + '/versions/' + (pending.sharedId || 'v' + state.nextId)
+}
+
+function ppvHowView (req, res, pending, values, errors) {
+  const state = getPlanVersions(req)
+  const base = ppvShareBase(req, state, pending)
+  renderPpv(req, res, 'share-how', 'share', {
+    pending,
+    values,
+    errors,
+    errorList: ppvErrorList(errors),
+    included: ppvIncluded(pending),
+    schedule: ppvSchedule(pending),
+    milestones: PV.PUBLISH_MILESTONES,
+    roles: PPV_ROLES,
+    approvers: PV.APPROVERS,
+    links: {
+      view: base + '?access=view',
+      edit: base + '?access=edit'
+    },
+    people: pending.people.map(person => Object.assign({}, person, { url: base + '?invite=' + person.token }))
+  })
+}
+
+// The plan content as it is now, for the chapters chosen; documents only have none.
+function ppvContent (pending) {
+  return pending.allChapters
+    ? PV.draftContent([])
+    : (pending.chapters.length ? PV.draftContent(pending.chapters) : { chapters: [] })
+}
+
+// This share's entry in the version history, added the first time a link is copied or someone
+// is invited, then kept up to date with who it's shared with.
+function ppvLogShare (state, pending) {
+  let version = pending.sharedId && state.versions.find(v => v.id === pending.sharedId)
+  if (!version) {
+    const included = ppvIncluded(pending)
+    version = {
+      id: 'v' + state.nextId++,
+      title: 'Internal review: ' + included,
+      versionDate: PV.DRAFT.versionDate,
+      published: null,
+      publishedLong: null,
+      sharedAt: ppvNow().short,
+      exportedBy: PV.OFFICER,
+      status: 'shared',
+      method: 'invite',
+      included,
+      // A share goes out now; only publishing waits for a milestone.
+      schedule: ppvSchedule({ ...pending, when: {} }),
+      links: [],
+      people: [],
+      approver: null,
+      message: '',
+      content: ppvContent(pending),
+      layers: []
+    }
+    state.versions.push(version)
+    pending.sharedId = version.id
+  }
+  version.people = pending.people.map(person => ({ email: person.email, role: PPV_ROLES[person.role].label }))
+  state.flash = {
+    title: 'Shared: ' + version.included,
+    text: (version.people.length ? 'The people you invited would get an email with a link to it. ' : 'Anyone you send the link to can open it. ') +
+      'It has been added to the version history.',
+    id: version.id
+  }
+  return version
+}
+
+router.get(PPV + '/share/how', (req, res) => {
+  const pending = ppvPending(req, res)
+  if (pending) ppvHowView(req, res, pending, { email: '', role: '' }, {})
 })
 
-router.post(PPV + '/preview', (req, res) => {
+// Called by the copy-link buttons (fetch, no page load) when a view or edit link is copied.
+router.post(PPV + '/share/how/copied', (req, res) => {
   const state = getPlanVersions(req)
   const pending = state.pending
-  if (!pending) return res.redirect(PPV + '/share')
-  const method = req.body._action === 'share' ? 'share' : 'download'
-  const publish = pending.purpose === 'publish'
-  const now = ppvNow()
+  if (!pending || !ppvItems(pending).length) return res.status(204).end()
+  const version = ppvLogShare(state, pending)
+  const access = req.body._access
+  if (['view', 'edit'].includes(access) && !version.links.includes(access)) version.links.push(access)
+  res.status(204).end()
+})
+
+router.post(PPV + '/share/how', (req, res) => {
+  const pending = ppvPending(req, res)
+  if (!pending) return
+  const state = getPlanVersions(req)
+  const action = req.body._action || 'approval'
+
+  if (action === 'add') {
+    const values = { email: (req.body._email || '').trim(), role: PPV_ROLES[req.body._role] ? req.body._role : '' }
+    const errors = {}
+    if (!values.email) errors.email = 'Enter an email address'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) errors.email = 'Enter an email address in the correct format, like name@example.com'
+    else if (pending.people.some(p => p.email.toLowerCase() === values.email.toLowerCase())) errors.email = values.email + ' has already been invited'
+    if (!values.role) errors.role = 'Select whether they can edit or only view'
+    if (Object.keys(errors).length) return ppvHowView(req, res, pending, values, errors)
+    values.token = Math.random().toString(36).slice(2, 8)
+    pending.people.push(values)
+    ppvLogShare(state, pending)
+    return res.redirect(PPV + '/share/how#people')
+  }
+
+  if (action.startsWith('remove:')) {
+    pending.people.splice(Number(action.slice('remove:'.length)), 1)
+    if (pending.sharedId) ppvLogShare(state, pending)
+    return res.redirect(PPV + '/share/how#people')
+  }
+
+  // Send for publishing approval: one "when" for everything selected, then the manager and a
+  // message. It's stored against each item, so the schedule keeps its per-item shape.
+  const errors = {}
+  const choice = req.body._when === 'milestone' ? 'milestone' : 'now'
+  const milestone = choice === 'milestone' && PV.PUBLISH_MILESTONES.includes(req.body._milestone) ? req.body._milestone : ''
+  if (choice === 'milestone' && !milestone) errors.milestone = 'Select a milestone'
+  pending.when = {}
+  ppvItems(pending).forEach(item => { pending.when[item.id] = { when: choice, milestone } })
+  pending.approver = PV.APPROVERS.some(a => a.id === req.body._approver) ? req.body._approver : ''
+  pending.message = (req.body._message || '').trim()
+  if (!pending.approver) errors.approver = 'Select a manager'
+  if (Object.keys(errors).length) return ppvHowView(req, res, pending, { email: '', role: '' }, errors)
+  res.redirect(PPV + '/share/check')
+})
+
+// --- Check, then send for approval ---
+
+function ppvApprovalReady (pending) {
+  return PV.APPROVERS.some(a => a.id === pending.approver)
+}
+
+router.get(PPV + '/share/check', (req, res) => {
+  const pending = ppvPending(req, res)
+  if (!pending) return
+  if (!ppvApprovalReady(pending)) return res.redirect(PPV + '/share/how#approval')
+  renderPpv(req, res, 'share-check', 'share', {
+    pending,
+    schedule: ppvSchedule(pending),
+    approver: PV.APPROVERS.find(a => a.id === pending.approver)
+  })
+})
+
+router.post(PPV + '/share/check', (req, res) => {
+  const pending = ppvPending(req, res)
+  if (!pending) return
+  if (!ppvApprovalReady(pending)) return res.redirect(PPV + '/share/how#approval')
+  const state = getPlanVersions(req)
+  const approver = PV.APPROVERS.find(a => a.id === pending.approver)
   const included = ppvIncluded(pending)
+  // Nothing is published from here: publishing needs a manager's approval, so it has no layers.
   const version = {
     id: 'v' + state.nextId++,
-    title: publish ? pending.milestone : 'Internal review: ' + included,
+    title: 'Publishing approval: ' + included,
     versionDate: PV.DRAFT.versionDate,
-    published: publish ? now.short : null,
-    publishedLong: publish ? now.long : null,
-    sharedAt: now.short,
+    published: null,
+    publishedLong: null,
+    sharedAt: ppvNow().short,
     exportedBy: PV.OFFICER,
-    status: publish ? 'published' : 'shared',
-    method,
+    status: 'awaiting-approval',
+    method: 'approval',
     included,
-    content: PV.draftContent(pending.scope === 'full' ? [] : pending.chapters),
-    layers: publish ? ppvSnapshotLayers(req) : []
+    schedule: ppvSchedule(pending),
+    links: [],
+    people: [],
+    approver: approver.name + ', ' + approver.role,
+    message: pending.message,
+    content: ppvContent(pending),
+    layers: []
   }
   state.versions.push(version)
   state.pending = null
   state.flash = {
-    title: publish ? 'Published: ' + version.title : 'Shared for internal review: ' + included,
-    text: method === 'share'
-      ? 'The internal team would get an email with a link to view it. It has been added to the version history.'
-      : 'The file pack of PDFs and images would download now (the prototype doesn’t produce a file). It has been added to the version history.',
+    title: 'Sent for publishing approval: ' + included,
+    text: approver.name + ' would get an email asking them to approve publishing. It has been added to the version history.',
     id: version.id
   }
   res.redirect(PPV + '/history')
+})
+
+// The old preview step's addresses, for anyone with them open or bookmarked.
+router.get([PPV + '/preview', PPV + '/preview/document'], (req, res) => {
+  res.redirect(PPV + '/share')
 })
 
 // --- Examination library (Publish plan versions) ---

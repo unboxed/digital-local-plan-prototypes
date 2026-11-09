@@ -65,7 +65,102 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
   }
 }
 
+// Share or publish, step 1: an item's status on the same line as its label, the tags lined up
+// on the right of the column. A long title wraps beside its tag rather than pushing it down.
+// Share or publish, step 1: chapters and documents as tables to tick, with status in its own
+// column. Narrower than the version history's tables, so it fits the page measure.
+.dlp-ppv-select {
+  margin-bottom: govuk-spacing(7);
+
+  .dlp-ppv-heading-row {
+    margin-bottom: govuk-spacing(3);
+  }
+}
+
+.dlp-ppv-table.dlp-ppv-select__table {
+  min-width: 0;
+  margin-bottom: 0;
+
+  .govuk-table__cell {
+    vertical-align: middle;
+  }
+}
+
+.dlp-ppv-select__tick {
+  width: 2.5rem;
+
+  .govuk-checkboxes__item {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-ppv-select__status {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+// Share or publish, step 2: one fieldset per item, ruled off from the next.
+.dlp-ppv-when {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(5);
+
+  .govuk-form-group {
+    margin-bottom: govuk-spacing(4);
+  }
+}
+
+// Share or publish, step 3: people invited so far.
+.dlp-ppv-people {
+  border-top: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(5);
+}
+
+.dlp-ppv-people__row {
+  align-items: center;
+  border-bottom: 1px solid $dlp-border-grey;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2) govuk-spacing(4);
+  margin-bottom: 0;
+  padding: govuk-spacing(2) 0;
+}
+
+// Choose how to share: each way to share is its own section, ruled off from the next.
+.dlp-ppv-share-option {
+  border-top: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+  padding-top: govuk-spacing(5);
+}
+
+// An invited person: their row, then their own link beneath.
+.dlp-ppv-invite {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: 0;
+  padding-bottom: govuk-spacing(3);
+
+  .dlp-ppv-people__row {
+    border-bottom: 0;
+  }
+
+  .dlp-share-link {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-ppv-people__email {
+  flex: 1 1 12em;
+  overflow-wrap: anywhere;
+}
+
 // The entry just published or shared, so it can be found in the table.
+// Supporting documents: each document's name heads its own group of version rows.
+.dlp-ppv-table .dlp-ppv-table__group-heading {
+  background-color: transparent;
+  padding-top: govuk-spacing(4);
+  @include govuk-font-size($size: 19);
+}
+
 .dlp-ppv-table__row--new .govuk-table__cell {
   background-color: $dlp-ppv-added-fill;
 }

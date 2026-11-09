@@ -2368,7 +2368,10 @@ function initSelectAll (root) {
   function update () {
     const selected = items.filter(item => item.checked).length
     if (count) {
-      count.textContent = selected ? selected + ' selected' : 'None selected'
+      // data-dlp-select-all-of on the count says "3 of 16 selected" rather than "3 selected".
+      count.textContent = count.hasAttribute('data-dlp-select-all-of')
+        ? selected + ' of ' + items.length + ' selected'
+        : (selected ? selected + ' selected' : 'None selected')
     }
     if (submit) submit.disabled = selected === 0
     if (toggle) {
@@ -2383,6 +2386,17 @@ function initSelectAll (root) {
     toggle.addEventListener('change', () => {
       items.forEach(item => { item.checked = toggle.checked })
       update()
+    })
+  }
+
+  // Optional "Clear all" link: unticks everything here. Its href is the no-JavaScript fallback.
+  const clear = root.querySelector('[data-dlp-select-all-clear]')
+  if (clear) {
+    clear.addEventListener('click', event => {
+      event.preventDefault()
+      items.forEach(item => { item.checked = false })
+      update()
+      if (toggle) toggle.focus()
     })
   }
 
@@ -3111,7 +3125,8 @@ function initPublicPolicyMap (root) {
   }
 }
 
-// Statement of compliance: "Copy link" next to the share link's read-only field. The field
+// "Copy link" next to a share link's read-only field (Statement of compliance, and Publish plan
+// versions' Share or publish). The field
 // itself is the no-JavaScript fallback — the URL can still be selected and copied by hand.
 function initCopyLink (container) {
   const input = container.querySelector('[data-dlp-copy-link-input]')
@@ -3119,12 +3134,28 @@ function initCopyLink (container) {
   const status = container.querySelector('[data-dlp-copy-link-status]')
   if (!input || !button) return
 
+  // The server builds the link from the host it was asked for, which locally is the kit's
+  // internal port behind its dev proxy rather than the one in the address bar. Swap the origin
+  // for the page's own.
+  try {
+    const url = new URL(input.value, window.location.href)
+    input.value = window.location.origin + url.pathname + url.search + url.hash
+  } catch (error) {
+    // Leave the server's link as it is.
+  }
+
   button.hidden = false
   input.addEventListener('focus', () => input.select())
 
   button.addEventListener('click', () => {
     copyToClipboard(input.value).then(() => {
       if (status) status.textContent = 'Link copied'
+      // Optional: tell the server the link was copied (Publish plan versions records the share).
+      const log = container.getAttribute('data-dlp-copy-link-log')
+      if (log && window.fetch) {
+        const body = new URLSearchParams({ _access: container.getAttribute('data-dlp-copy-link-access') || '' })
+        window.fetch(log, { method: 'POST', body, credentials: 'same-origin' }).catch(() => {})
+      }
     }, () => {
       input.select()
       if (status) status.textContent = 'Could not copy — select the link and copy it yourself'

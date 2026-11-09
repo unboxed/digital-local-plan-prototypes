@@ -1,0 +1,69 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+
+{% set pageName = "Check before you send for approval" %}
+{% set backLink = { href: ppv + "/share/how#approval", text: "Choose how to share" } %}
+
+{% block main %}
+<div class="dlp-ppv-measure">
+<span class="govuk-caption-m">Share or publish local plan or supporting information</span>
+<h1 class="govuk-heading-xl">Check before you send for approval</h1>
+
+<h2 class="govuk-heading-m">What and when</h2>
+{% set first = schedule[0] %}
+<dl class="govuk-summary-list">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">What</dt>
+    <dd class="govuk-summary-list__value">
+      {% if schedule.length > 1 %}
+      <ul class="govuk-list govuk-list--bullet govuk-!-margin-bottom-0">
+        {% for item in schedule %}<li>{{ item.title }}</li>{% endfor %}
+      </ul>
+      {% else %}
+      {{ first.title }}
+      {% endif %}
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <a class="govuk-link" href="{{ ppv }}/share">Change<span class="govuk-visually-hidden"> what to publish</span></a>
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">When</dt>
+    <dd class="govuk-summary-list__value">
+      {% if first.when == "milestone" %}Publish at: {{ first.milestone }}{% else %}Publish when approved{% endif %}
+    </dd>
+    <dd class="govuk-summary-list__actions">
+      <a class="govuk-link" href="{{ ppv }}/share/how#approval">Change<span class="govuk-visually-hidden"> when to publish</span></a>
+    </dd>
+  </div>
+</dl>
+
+<h2 class="govuk-heading-m govuk-!-margin-top-6">Approval</h2>
+<dl class="govuk-summary-list">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Manager</dt>
+    <dd class="govuk-summary-list__value">{{ approver.name }}, {{ approver.role }}</dd>
+    <dd class="govuk-summary-list__actions">
+      <a class="govuk-link" href="{{ ppv }}/share/how#approver">Change<span class="govuk-visually-hidden"> manager</span></a>
+    </dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Message</dt>
+    <dd class="govuk-summary-list__value">{{ pending.message or "None" }}</dd>
+    <dd class="govuk-summary-list__actions">
+      <a class="govuk-link" href="{{ ppv }}/share/how#message">Change<span class="govuk-visually-hidden"> message</span></a>
+    </dd>
+  </div>
+</dl>
+
+<p class="govuk-body govuk-!-margin-top-6">
+  {{ approver.name }} will be asked to approve publishing. Nothing is published until they do.
+</p>
+
+<form method="post" action="{{ ppv }}/share/check" novalidate>
+  <div class="govuk-button-group">
+    <button type="submit" class="govuk-button" data-module="govuk-button">Send for approval</button>
+    <a class="govuk-link" href="{{ ppv }}/history">Cancel</a>
+  </div>
+</form>
+</div>
+{% endblock %}
