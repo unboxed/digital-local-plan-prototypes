@@ -1,11 +1,71 @@
 {% extends "project-management/publish-plan-versions/partials/layout.html" %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
-{% from "govuk/components/radios/macro.njk" import govukRadios %}
-{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
-{% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
 
-{% set pageName = ("Error: " if errorList.length else "") + "Share or publish" %}
+{% set pageName = ("Error: " if errorList.length else "") + "Choose what to share or publish" %}
 {% set backLink = { href: ppv + "/history", text: "View version history" } %}
+
+{#
+  One table of things to tick, each row with its status tag in a column of its own. The header
+  checkbox and the "N of M selected" count come from initSelectAll (data-dlp-select-all); without
+  JavaScript the header checkbox stays hidden and "Clear all" starts from nothing instead.
+#}
+{% macro selectTable(id, heading, column, name, rows, errorMessage) %}
+<div class="govuk-form-group dlp-ppv-select {%- if errorMessage %} govuk-form-group--error{% endif %}" data-dlp-select-all>
+  <div class="dlp-ppv-heading-row">
+    <h2 class="govuk-heading-m govuk-!-margin-bottom-0" id="{{ id }}-heading">{{ heading }}</h2>
+    <p class="govuk-body govuk-!-margin-bottom-0">
+      <span class="dlp-ppv-muted" id="{{ id }}-count" role="status" aria-live="polite" data-dlp-select-all-count data-dlp-select-all-of>{{ rows | selectattr("checked") | length }} of {{ rows | length }} selected</span>
+      <a class="govuk-link govuk-!-margin-left-3" href="{{ ppv }}/share?_clear={{ id }}" data-dlp-select-all-clear>Clear all<span class="govuk-visually-hidden"> {{ column | lower }}s</span></a>
+    </p>
+  </div>
+  {% if errorMessage %}
+  <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ errorMessage }}</p>
+  {% endif %}
+  <table class="govuk-table dlp-ppv-table dlp-ppv-select__table" aria-labelledby="{{ id }}-heading">
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header dlp-ppv-select__tick">
+          <div class="govuk-checkboxes govuk-checkboxes--small" hidden data-dlp-select-all-control>
+            <div class="govuk-checkboxes__item">
+              <input class="govuk-checkboxes__input" id="{{ id }}-all" type="checkbox" data-dlp-select-all-toggle>
+              <label class="govuk-label govuk-checkboxes__label" for="{{ id }}-all">
+                <span class="govuk-visually-hidden">Select all {{ column | lower }}s</span>
+              </label>
+            </div>
+          </div>
+          <span class="govuk-visually-hidden" data-dlp-select-all-fallback>Select</span>
+        </th>
+        <th scope="col" class="govuk-table__header">{{ column }}</th>
+        <th scope="col" class="govuk-table__header dlp-ppv-select__status">Status</th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for row in rows %}
+      {# The first box takes the table's own id, so the error summary's link lands on it. #}
+      {% set boxId = id if loop.first else id + "-" + row.value %}
+      <tr class="govuk-table__row">
+        <td class="govuk-table__cell dlp-ppv-select__tick">
+          <div class="govuk-checkboxes govuk-checkboxes--small">
+            <div class="govuk-checkboxes__item">
+              <input class="govuk-checkboxes__input" id="{{ boxId }}" name="{{ name }}" type="checkbox" value="{{ row.value }}" {%- if row.checked %} checked{% endif %} aria-describedby="{{ id }}-count" data-dlp-select-all-item>
+              <label class="govuk-label govuk-checkboxes__label" for="{{ boxId }}">
+                <span class="govuk-visually-hidden">{{ row.title }}</span>
+              </label>
+            </div>
+          </div>
+        </td>
+        <td class="govuk-table__cell">{{ row.title }}</td>
+        <td class="govuk-table__cell dlp-ppv-select__status">
+          {% if row.status %}<strong class="govuk-tag {{ row.status.classes }}">{{ row.status.text }}</strong>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
 
 {% block main %}
 <div class="dlp-ppv-measure">
@@ -13,62 +73,42 @@
   {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
 {% endif %}
 
-<span class="govuk-caption-m">Plan versions · Step 2 of 3</span>
-<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">Share or publish</h1>
-<p class="govuk-body-l dlp-ppv-muted">Choose the content to include in your export, then select why you want to share this version.</p>
+<span class="govuk-caption-m">Share or publish local plan or supporting information · Step 1 of 2</span>
+<h1 class="govuk-heading-xl">Choose what to share or publish</h1>
 
-<h2 class="govuk-heading-m govuk-!-margin-bottom-1">{{ planTitle }}</h2>
-<p class="govuk-body-s dlp-ppv-muted">{{ draft.label }} · Saved {{ draft.saved }}</p>
+<p class="govuk-body">Select the information you want to share or publish. You can choose how to share it or send it for publishing approval in the next step. If you want to share an older version, go to <a class="govuk-link" href="{{ ppv }}/history">View and compare local plan versions</a>.</p>
+</div>
 
 <form method="post" action="{{ ppv }}/share" novalidate>
+  <div class="dlp-ppv-measure">
+    {% set chapterRows = [] %}
+    {% for chapter in chapters %}
+      {% set chapterRows = (chapterRows.push({ value: chapter.id, title: chapter.title, status: chapter.status, checked: values.allChapters or chapter.id in values.chapters }), chapterRows) %}
+    {% endfor %}
+    {{ selectTable("chapters", planTitle, "Chapter", "_chapters", chapterRows, errors.chapters) }}
 
-  {% set chaptersHtml %}
-  {{ govukCheckboxes({
-    idPrefix: "chapters",
-    name: "_chapters",
-    classes: "govuk-checkboxes--small dlp-ppv-chapter-columns",
-    fieldset: { legend: { text: "Chapters to include", classes: "govuk-visually-hidden" } },
-    errorMessage: { text: errors.chapters } if errors.chapters,
-    items: chapterItems
-  }) }}
-  {% endset %}
+    {% set documentRows = [] %}
+    {% for document in documents %}{% if document.id != "other" %}
+      {% set documentRows = (documentRows.push({ value: document.id, title: document.title, status: document.status, checked: document.id in values.documents }), documentRows) %}
+    {% endif %}{% endfor %}
+    {{ selectTable("documents", "Supporting documents", "Document", "_documents", documentRows) }}
 
-  {{ govukRadios({
-    idPrefix: "scope",
-    name: "_scope",
-    fieldset: { legend: { text: "Choose what to share", isPageHeading: false, classes: "govuk-fieldset__legend--m" } },
-    errorMessage: { text: errors.scope } if errors.scope,
-    items: [
-      { value: "full", text: "Full local plan (all chapters)", checked: values.scope == "full" },
-      { value: "selected", text: "Selected chapters", checked: values.scope == "selected", conditional: { html: chaptersHtml } }
-    ]
-  }) }}
+    {{ govukDetails({
+      summaryText: "Add another document",
+      open: values.otherName | length > 0,
+      html: govukInput({
+        id: "otherName",
+        name: "_otherName",
+        label: { text: "Name of the document" },
+        hint: { text: "For a document that isn't listed. Leave it blank if you don't need one." },
+        value: values.otherName
+      })
+    }) }}
 
-  {% set milestoneHtml %}
-  {{ govukSelect({
-    id: "milestone",
-    name: "_milestone",
-    label: { text: "Select a milestone to link to the version you are publishing." },
-    errorMessage: { text: errors.milestone } if errors.milestone,
-    items: milestoneItems
-  }) }}
-  {% endset %}
-
-  {{ govukRadios({
-    idPrefix: "purpose",
-    name: "_purpose",
-    fieldset: { legend: { text: "Why are you sharing this version?", classes: "govuk-fieldset__legend--m" } },
-    errorMessage: { text: errors.purpose } if errors.purpose,
-    items: [
-      { value: "publish", text: "Publish draft", hint: { text: "Published with its plan layers, and linked to a milestone." }, checked: values.purpose == "publish", conditional: { html: milestoneHtml } },
-      { value: "share", text: "Share internally", hint: { text: "For non-public review. Not published." }, checked: values.purpose == "share" }
-    ]
-  }) }}
-
-  <div class="govuk-button-group">
-    <button type="submit" class="govuk-button" data-module="govuk-button">Preview and share</button>
-    <a class="govuk-link" href="{{ ppv }}/history">Cancel</a>
+    <div class="govuk-button-group">
+      <button type="submit" class="govuk-button" data-module="govuk-button">Continue</button>
+      <a class="govuk-link" href="{{ ppv }}/history">Cancel</a>
+    </div>
   </div>
 </form>
-</div>
 {% endblock %}

@@ -1,0 +1,177 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+
+{% set pageName = ("Error: " if errorList.length else "") + "Choose how to share" %}
+{% set backLink = { href: ppv + "/share", text: "Choose what to share or publish" } %}
+
+{# A read-only link with a Copy link button, reusing the statement of compliance's copy-link
+   component (initCopyLink). `log` is posted to when it's copied, so the share is recorded. #}
+{% macro copyLink(id, label, hint, url, access) %}
+<div class="govuk-form-group dlp-share-link" data-dlp-copy-link {%- if access %} data-dlp-copy-link-log="{{ ppv }}/share/how/copied" data-dlp-copy-link-access="{{ access }}"{% endif %}>
+  <label class="govuk-label govuk-label--s" for="{{ id }}">{{ label }}</label>
+  {% if hint %}<div class="govuk-hint" id="{{ id }}-hint">{{ hint }}</div>{% endif %}
+  <div class="dlp-share-link__row">
+    <input class="govuk-input dlp-share-link__input" id="{{ id }}" type="text" value="{{ url }}" readonly {%- if hint %} aria-describedby="{{ id }}-hint"{% endif %} data-dlp-copy-link-input>
+    <button type="button" class="govuk-button govuk-button--secondary dlp-share-link__button" data-module="govuk-button" data-dlp-copy-link-button hidden>
+      Copy link<span class="govuk-visually-hidden"> {{ label | lower }}</span>
+    </button>
+  </div>
+  <p class="govuk-body govuk-!-margin-bottom-0" role="status" aria-live="polite" data-dlp-copy-link-status></p>
+</div>
+{% endmacro %}
+
+{% block main %}
+<div class="dlp-ppv-measure">
+{% if errorList.length %}
+  {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+{% endif %}
+
+<span class="govuk-caption-m">Share or publish local plan or supporting information · Step 2 of 2</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">Choose how to share</h1>
+<p class="govuk-body-l dlp-ppv-muted">{{ included }}</p>
+
+{# ---------- Share a link ---------- #}
+<section class="dlp-ppv-share-option" aria-labelledby="link-heading">
+  <h2 class="govuk-heading-m" id="link-heading">Share a link</h2>
+  <p class="govuk-body">Anyone you send a link to can open it. Copying a link adds it to the version history.</p>
+  {{ copyLink("link-view", "Link to view", "Can read and comment", links.view, "view") }}
+  {{ copyLink("link-edit", "Link to edit", "Can make changes and comment", links.edit, "edit") }}
+</section>
+
+{# ---------- Invite people ---------- #}
+<section class="dlp-ppv-share-option" aria-labelledby="people">
+  <h2 class="govuk-heading-m" id="people">Invite people</h2>
+  <p class="govuk-body">They'll get an email with their own link. You can copy it to send them yourself.</p>
+
+  <form method="post" action="{{ ppv }}/share/how" novalidate>
+    {{ govukInput({
+      id: "email",
+      name: "_email",
+      type: "email",
+      autocomplete: "email",
+      spellcheck: false,
+      label: { text: "Email address", classes: "govuk-label--s" },
+      value: values.email,
+      errorMessage: { text: errors.email } if errors.email
+    }) }}
+
+    {% set roleItems = [] %}
+    {% for key, role in roles %}
+      {% set roleItems = (roleItems.push({ value: key, text: role.label, hint: { text: role.hint }, checked: values.role == key }), roleItems) %}
+    {% endfor %}
+    {{ govukRadios({
+      idPrefix: "role",
+      name: "_role",
+      classes: "govuk-radios--small govuk-radios--inline",
+      fieldset: { legend: { text: "What can they do?", classes: "govuk-fieldset__legend--s" } },
+      errorMessage: { text: errors.role } if errors.role,
+      items: roleItems
+    }) }}
+
+    <button type="submit" name="_action" value="add" class="govuk-button govuk-button--secondary" data-module="govuk-button">Invite</button>
+  </form>
+
+  {% if people.length %}
+  <h3 class="govuk-heading-s">Invited</h3>
+  <form method="post" action="{{ ppv }}/share/how" novalidate>
+    <ul class="govuk-list dlp-ppv-people">
+      {% for person in people %}
+      <li class="dlp-ppv-invite">
+        <div class="dlp-ppv-people__row">
+          <span class="dlp-ppv-people__email">{{ person.email }}</span>
+          <span class="dlp-ppv-muted">{{ roles[person.role].label }}</span>
+          <button type="submit" name="_action" value="remove:{{ loop.index0 }}" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">
+            Remove<span class="govuk-visually-hidden"> {{ person.email }}</span>
+          </button>
+        </div>
+        {{ copyLink("invite-" + loop.index0, "Link for " + person.email, "", person.url) }}
+      </li>
+      {% endfor %}
+    </ul>
+  </form>
+  {% endif %}
+</section>
+
+{# ---------- Send for publishing approval ---------- #}
+<section class="dlp-ppv-share-option" aria-labelledby="approval">
+  <h2 class="govuk-heading-m" id="approval">Send for publishing approval</h2>
+  <p class="govuk-body">A manager checks it before anything is published. You can check everything before it's sent.</p>
+
+  <form method="post" action="{{ ppv }}/share/how" novalidate>
+    {#
+      One choice for everything selected in step 1, listed here so it's clear what it applies
+      to. The server stores it against each item, so the check page and history read as before.
+    #}
+    {% set first = schedule[0] %}
+    <h3 class="govuk-heading-s govuk-!-margin-bottom-1">What you're sending</h3>
+    <p class="govuk-body govuk-!-margin-bottom-2">{{ included }}</p>
+    {# The summary names up to three items; past that, the full list is a click away. #}
+    {% if schedule.length > 3 %}
+    {% set itemsHtml %}
+      <ul class="govuk-list govuk-list--bullet govuk-!-margin-bottom-0">
+        {% for item in schedule %}<li>{{ item.title }}</li>{% endfor %}
+      </ul>
+    {% endset %}
+    {{ govukDetails({ summaryText: "Show all " + schedule.length + " items", html: itemsHtml }) }}
+    {% endif %}
+
+    {% set milestoneItems = [{ value: "", text: "Choose a milestone" }] %}
+    {% for milestone in milestones %}
+      {% set milestoneItems = (milestoneItems.push({ value: milestone, text: milestone, selected: milestone == first.milestone }), milestoneItems) %}
+    {% endfor %}
+    {% set milestoneHtml %}
+    {{ govukSelect({
+      id: "milestone",
+      name: "_milestone",
+      label: { text: "Milestone" },
+      hint: { text: "It will be published automatically when this milestone is confirmed." },
+      errorMessage: { text: errors.milestone } if errors.milestone,
+      items: milestoneItems
+    }) }}
+    {% endset %}
+
+    {{ govukRadios({
+      idPrefix: "when",
+      name: "_when",
+      classes: "govuk-radios--small",
+      fieldset: { legend: { text: "When should it be published?", classes: "govuk-fieldset__legend--s" } },
+      hint: { text: "This applies to everything you're sending." },
+      items: [
+        { value: "now", text: "When approved", checked: first.when == "now" },
+        { value: "milestone", text: "At a plan milestone", checked: first.when == "milestone", conditional: { html: milestoneHtml } }
+      ]
+    }) }}
+
+    {% set approverItems = [{ value: "", text: "Choose a manager" }] %}
+    {% for approver in approvers %}
+      {% set approverItems = (approverItems.push({ value: approver.id, text: approver.name + " (" + approver.role + ")", selected: approver.id == pending.approver }), approverItems) %}
+    {% endfor %}
+    {{ govukSelect({
+      id: "approver",
+      name: "_approver",
+      label: { text: "Manager", classes: "govuk-label--s" },
+      errorMessage: { text: errors.approver } if errors.approver,
+      items: approverItems
+    }) }}
+    {{ govukTextarea({
+      id: "message",
+      name: "_message",
+      rows: 3,
+      value: pending.message,
+      label: { text: "Message (optional)", classes: "govuk-label--s" }
+    }) }}
+
+    <button type="submit" name="_action" value="approval" class="govuk-button" data-module="govuk-button">Continue</button>
+  </form>
+</section>
+
+<p class="govuk-body">
+  <a class="govuk-link" href="{{ ppv }}/history">{{ "Done – go to version history" if pending.sharedId else "Cancel" }}</a>
+</p>
+</div>
+{% endblock %}
