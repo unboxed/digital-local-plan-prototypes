@@ -785,6 +785,11 @@ internally for non-public review. The research question is where that sharing fi
   host), so `initCopyLink` swaps in the page's own origin. Seeded versions are still
   `published`. **Changing `pending` or the version shape means bumping
   `PLAN_VERSIONS_SCHEMA_VERSION`.**
+- **Every version page has "Share a link to this version"**, plan versions and supporting
+  document versions alike: one view-only link (`ppvVersionLink`, `?access=view`) with Copy link.
+  It's the `copyLink` macro in `partials/macros.html`, shared with Choose how to share, but with
+  no log URL, so copying it records nothing in the history. A document version's link is always
+  its numbered address, so it keeps opening that version after a newer one.
 - **Seeded versions are excerpts** of three chapters (Introduction, Spatial strategy, Housing),
   as in frames 2 and 3. Their layers carry only `{id, type, version, created}`, and name, shape
   and feature count come from the GIS catalogue (`GIS.getCatalogueLayer`). The map thumbnails

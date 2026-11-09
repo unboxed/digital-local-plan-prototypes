@@ -1,5 +1,5 @@
 {% extends "project-management/publish-plan-versions/partials/layout.html" %}
-{% from "project-management/publish-plan-versions/partials/macros.html" import planContent, layerRow %}
+{% from "project-management/publish-plan-versions/partials/macros.html" import planContent, layerRow, copyLink %}
 
 {% set pageName = version.title %}
 {% set backLink = { href: ppv + "/history", text: "Back to version history" } %}
@@ -68,6 +68,9 @@
     </div>
     {% endif %}
   </dl>
+
+  <h2 class="govuk-heading-m govuk-!-margin-top-6">Share a link to this version</h2>
+  {{ copyLink("version-link", "Link to view this version", "Anyone with the link can view this version and version details.", shareUrl, hideLabel = true) }}
 
   <div class="dlp-ppv-heading-row">
     <h2 class="govuk-heading-m govuk-!-margin-bottom-0">Plan contents</h2>

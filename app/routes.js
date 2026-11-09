@@ -5931,12 +5931,19 @@ router.get(PPV + '/history', (req, res) => {
   })
 })
 
+// A view-only link to one version, as "Share a link to this version" offers on its page.
+// initCopyLink swaps in the page's own origin (see Choose how to share).
+function ppvVersionLink (req, path) {
+  return req.protocol + '://' + req.get('host') + PPV + path + '?access=view'
+}
+
 router.get(PPV + '/versions/:id', (req, res) => {
   const version = getPlanVersions(req).versions.find(v => v.id === req.params.id)
   if (!version) return res.redirect(PPV + '/history')
   renderPpv(req, res, 'version', 'history', {
     version,
-    layers: version.layers.map(ppvLayerView)
+    layers: version.layers.map(ppvLayerView),
+    shareUrl: ppvVersionLink(req, '/versions/' + version.id)
   })
 })
 
@@ -5975,7 +5982,9 @@ router.get([PPV + '/documents/:id', PPV + '/documents/:id/versions/:version'], (
   renderPpv(req, res, 'document', 'history', {
     document,
     version,
-    layers: version.layers.map(ppvLayerView)
+    layers: version.layers.map(ppvLayerView),
+    // Always the numbered address, so the link keeps opening this version after a newer one.
+    shareUrl: ppvVersionLink(req, '/documents/' + document.id + '/versions/' + version.version)
   })
 })
 
