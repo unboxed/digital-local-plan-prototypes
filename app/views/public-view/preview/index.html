@@ -1,0 +1,143 @@
+{#
+  The public plan site's homepage for a version, after the adopted plan's search-led homepage
+  (public-view/adopted-plan/index.html) but for the City of London: City Plan 2040, its chapters
+  (only those in the version) and supporting documents. Search is shown but not available in the
+  preview. Search in your area (postcode, or draw on a map of the City) works on screen, but both
+  only come back to this homepage.
+#}
+{% extends "public-view/preview/layout.html" %}
+
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+{% from "public-view/adopted-plan/partials/macros.html" import pubChapterGrid, pubPostcodeForm, pubDrawMap %}
+
+{% set pageName = plan.title %}
+
+{% block hero %}
+<div class="dlp-pub-hero">
+  <div class="govuk-width-container">
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-two-thirds">
+        <h1 class="dlp-pub-hero__title">{{ plan.title }}</h1>
+        <p class="dlp-pub-hero__lead">
+          The City of London’s plan for development and land use in the Square Mile, up to 2040.
+        </p>
+        <p class="dlp-pub-hero__meta">{% if isDraft %}Draft version {{ version.versionDate }} – not published{% else %}Published {{ version.publishedLong }}{% endif %}</p>
+        <div class="dlp-pub-search dlp-pub-search--large">
+          <label class="govuk-label govuk-label--m" for="pub-search">Search the local plan</label>
+          <div class="govuk-hint" id="pub-search-hint">Search is not available in this preview.</div>
+          <div class="dlp-pub-search__row">
+            <div class="dlp-pub-search__field">
+              <input class="govuk-input" id="pub-search" type="search" disabled aria-describedby="pub-search-hint">
+            </div>
+            <button class="govuk-button dlp-pub-search__button" data-module="govuk-button" disabled aria-disabled="true">Search</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2 class="govuk-heading-l">Search in your area</h2>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">
+      The local plan helps the City Corporation decide what gets built or developed in the Square
+      Mile. Find out how the plan might affect your area.
+    </p>
+  </div>
+</div>
+<div class="govuk-grid-row dlp-pub-place">
+  <div class="govuk-grid-column-one-half">
+    <div class="dlp-pub-card">
+      <h3 class="govuk-heading-m">Search by postcode</h3>
+      <p class="govuk-body">See which parts of the plan apply to a street or neighbourhood.</p>
+      {{ pubPostcodeForm({ action: previewHome, example: "EC2V 7HH" }) }}
+    </div>
+  </div>
+  <div class="govuk-grid-column-one-half">
+    <div class="dlp-pub-card">
+      <h3 class="govuk-heading-m">Draw an area on a map</h3>
+      <p class="govuk-body">Select the area you're interested in and choose which information you want to see.</p>
+      {% set drawMap %}{{ pubDrawMap({ action: previewHome, mapJson: mapJson }) }}{% endset %}
+      {{ govukDetails({ summaryText: "Open the map", html: drawMap, classes: "govuk-!-margin-bottom-0", attributes: { "data-dlp-pub-map-details": "" } }) }}
+    </div>
+  </div>
+</div>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<h2 class="govuk-heading-l">Chapters</h2>
+{% if chapters.length %}
+  {{ pubChapterGrid(chapters) }}
+{% else %}
+  <p class="govuk-body">This version doesn’t include any chapters of the plan.</p>
+{% endif %}
+
+{% if documents.length %}
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+<h2 class="govuk-heading-l">Supporting documents</h2>
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">The evidence and documents that support the plan.</p>
+    <ul class="govuk-list">
+      {% for item in documents %}<li><a class="govuk-link" href="#">{{ item.title }}</a></li>{% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<div class="govuk-grid-row dlp-pub-features">
+  <div class="govuk-grid-column-one-third dlp-pub-feature">
+    <h2 class="govuk-heading-m">What is a local plan?</h2>
+    <p class="govuk-body">
+      A local plan sets out how land can be used and developed over the next 15 to 20 years. It
+      says how much new office space and how many homes are needed, where they should go, and
+      which places should be protected.
+    </p>
+    <p class="govuk-body">
+      It is written by the City of London Corporation, checked by an independent inspector, and
+      shaped by what people tell us.
+    </p>
+  </div>
+  <div class="govuk-grid-column-one-third dlp-pub-feature">
+    <h2 class="govuk-heading-m">How does a local plan affect me?</h2>
+    <p class="govuk-body">
+      The City Corporation uses the local plan to decide planning applications, from new towers
+      to changes to shopfronts and homes.
+    </p>
+    <p class="govuk-body">
+      It can affect what gets built near you, how tall new buildings can be, which open spaces
+      are protected, and how streets are used.
+    </p>
+  </div>
+  <div class="govuk-grid-column-one-third dlp-pub-feature">
+    <h2 class="govuk-heading-m">What isn’t covered by the local plan?</h2>
+    <p class="govuk-body">The local plan doesn’t cover:</p>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>decisions on individual planning applications</li>
+      <li>building regulations and safety</li>
+      <li>things the government sets nationally, such as permitted development rights</li>
+      <li>day-to-day services like waste collection and street cleaning</li>
+    </ul>
+  </div>
+</div>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l">
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h2 class="govuk-heading-m">About this plan</h2>
+    <p class="govuk-body">
+      {{ plan.title }} will replace the City of London Local Plan 2015 once it is adopted.
+    </p>
+    <ul class="govuk-list">
+      <li><a class="govuk-link" href="#">Download the full plan (PDF)</a></li>
+      <li><a class="govuk-link" href="#">View evidence and consultation information</a></li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block pageScripts %}{% include "partials/gis/map-assets.html" %}{% endblock %}

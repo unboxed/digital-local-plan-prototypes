@@ -1,0 +1,146 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/details/macro.njk" import govukDetails %}
+{% from "project-management/publish-plan-versions/partials/macros.html" import planContent %}
+
+{% set pageName = ("Error: " if errorList.length else "") + "Publishing approval: " + version.included %}
+{% set backLink = { href: ppv + "/approvals", text: "Back to publishing approvals" } %}
+
+{#
+  The manager's screen for one request: what it is, a preview of it on the public plan site,
+  what it contains, then the decision. Once decided, the decision replaces the form.
+#}
+{% block main %}
+<div class="dlp-ppv-measure">
+{% if errorList.length %}
+  {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+{% endif %}
+{% if flash %}
+  {{ govukNotificationBanner({ type: "success", text: flash }) }}
+{% endif %}
+
+<span class="govuk-caption-m">Publishing approval</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-3">{{ version.included }}</h1>
+<p class="govuk-body-s dlp-ppv-muted govuk-!-margin-bottom-3">Logged in as {{ viewer }}</p>
+<p class="govuk-body"><strong class="govuk-tag {{ status.classes }}">{{ status.text }}</strong></p>
+
+<h2 class="govuk-heading-m">Version information</h2>
+<dl class="govuk-summary-list">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Plan</dt>
+    <dd class="govuk-summary-list__value">{{ planTitle }}</dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Version date</dt>
+    <dd class="govuk-summary-list__value">{{ version.versionDate }}</dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Sent by</dt>
+    <dd class="govuk-summary-list__value">{{ version.exportedBy }} on {{ version.sharedAt }}</dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Sent to</dt>
+    <dd class="govuk-summary-list__value">{{ version.approver }}</dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Milestone</dt>
+    <dd class="govuk-summary-list__value">{{ version.forMilestone or (milestone.milestone if milestone) or "Not set" }}</dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Where it will be published</dt>
+    <dd class="govuk-summary-list__value">{{ publicSite }}</dd>
+  </div>
+</dl>
+
+<h2 class="govuk-heading-m govuk-!-margin-top-6">Preview as it will be published</h2>
+<p class="govuk-body">See exactly how this will look to the public once it is published. The preview is marked as a draft and can only be opened by people in the council.</p>
+<div class="dlp-ppv-preview-link">
+  <p class="govuk-body-s govuk-!-margin-bottom-1 dlp-ppv-muted" id="preview-address-label">Preview address</p>
+  <p class="dlp-ppv-preview-link__address" aria-labelledby="preview-address-label">{{ preview.display }}</p>
+  <a class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button" href="{{ preview.href }}" target="_blank" rel="noopener">
+    Open the preview<span class="govuk-visually-hidden"> (opens in new tab)</span>
+  </a>
+</div>
+
+<h2 class="govuk-heading-m govuk-!-margin-top-7">Contents</h2>
+{% if chapters.length %}
+<h3 class="govuk-heading-s govuk-!-margin-bottom-2">{{ planTitle }}</h3>
+<ol class="govuk-list govuk-list--number">
+  {% for chapter in chapters %}<li>{{ chapter.heading | replace(r/^Chapter \d+: /, "") }}</li>{% endfor %}
+</ol>
+{% endif %}
+{% if documents.length %}
+<h3 class="govuk-heading-s govuk-!-margin-bottom-2">Supporting documents</h3>
+<ul class="govuk-list govuk-list--bullet">
+  {% for item in documents %}<li>{{ item.title }}</li>{% endfor %}
+</ul>
+{% endif %}
+{% if chapters.length %}
+  {% set textHtml %}<div class="dlp-ppv-box govuk-!-margin-bottom-0">{{ planContent(version.content) }}</div>{% endset %}
+  {{ govukDetails({ summaryText: "Read the plan text here", html: textHtml }) }}
+{% endif %}
+
+{% if version.status == "awaiting-approval" %}
+<form method="post" action="{{ ppv }}/approvals/{{ version.id }}" novalidate class="govuk-!-margin-top-7">
+  {% set commentHtml %}
+  {{ govukTextarea({
+    id: "comment",
+    name: "_comment",
+    rows: 4,
+    value: values.comment,
+    label: { text: "What needs to change?" },
+    hint: { text: version.exportedBy + " will see this with the version." },
+    errorMessage: { text: errors.comment } if errors.comment
+  }) }}
+  {% endset %}
+  {{ govukRadios({
+    idPrefix: "decision",
+    name: "_decision",
+    fieldset: { legend: { text: "Your decision", classes: "govuk-fieldset__legend--m" } },
+    errorMessage: { text: errors.decision } if errors.decision,
+    items: [
+      {
+        value: "approve",
+        text: "Approve and publish",
+        hint: { text: ("It will be published automatically at " + milestone.milestone + ".") if milestone else ("The selected information will be published to " + publicSite + " immediately.") },
+        checked: values.decision == "approve"
+      },
+      {
+        value: "changes",
+        text: "Request changes",
+        hint: { text: "You can add a comment before sending back to " + version.exportedBy + " for review. It will not be published." },
+        checked: values.decision == "changes",
+        conditional: { html: commentHtml }
+      }
+    ]
+  }) }}
+  <div class="govuk-button-group">
+    <button type="submit" class="govuk-button" data-module="govuk-button">Confirm decision</button>
+    <a class="govuk-link" href="{{ ppv }}/approvals">Cancel</a>
+  </div>
+</form>
+{% else %}
+<h2 class="govuk-heading-m govuk-!-margin-top-7">Decision</h2>
+<dl class="govuk-summary-list">
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Decision</dt>
+    <dd class="govuk-summary-list__value">{{ status.text }}{% if version.status == "scheduled" %}: publishes at {{ version.scheduledFor }}{% endif %}</dd>
+  </div>
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">Decided on</dt>
+    <dd class="govuk-summary-list__value">{{ version.decidedAt }}</dd>
+  </div>
+  {% if version.decisionComment %}
+  <div class="govuk-summary-list__row">
+    <dt class="govuk-summary-list__key">What needs to change</dt>
+    <dd class="govuk-summary-list__value">{{ version.decisionComment }}</dd>
+  </div>
+  {% endif %}
+</dl>
+<p class="govuk-body"><a class="govuk-link" href="{{ ppv }}/history">Go to version history</a></p>
+{% endif %}
+</div>
+{% endblock %}

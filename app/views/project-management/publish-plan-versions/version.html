@@ -11,8 +11,6 @@
   <p class="govuk-body">
     {% if version.status == "published" %}
     <strong class="govuk-tag govuk-tag--grey">Published</strong>
-    {% elif version.status == "awaiting-approval" %}
-    <strong class="govuk-tag govuk-tag--blue">Awaiting approval</strong>
     {% else %}
     <strong class="govuk-tag govuk-tag--yellow">Shared internally</strong>
     {% endif %}
@@ -46,12 +44,6 @@
         {% endif %}
       </dd>
     </div>
-    {% if version.approver %}
-    <div class="govuk-summary-list__row">
-      <dt class="govuk-summary-list__key">Sent for approval to</dt>
-      <dd class="govuk-summary-list__value">{{ version.approver }}{% if version.message %}<br><span class="dlp-ppv-muted">“{{ version.message }}”</span>{% endif %}</dd>
-    </div>
-    {% endif %}
     {% if version.method == "invite" %}
     <div class="govuk-summary-list__row">
       <dt class="govuk-summary-list__key">Shared with</dt>
@@ -78,7 +70,7 @@
   </div>
   <div class="dlp-ppv-box">
     <p class="govuk-body-s dlp-ppv-muted">
-      {% if version.published %}Published plan content · {{ version.publishedLong }}{% elif version.status == "awaiting-approval" %}Sent for publishing approval · {{ version.sharedAt }}{% else %}Shared for internal review · {{ version.sharedAt }}{% endif %}
+      {% if version.published %}Published plan content · {{ version.publishedLong }}{% else %}Shared for internal review · {{ version.sharedAt }}{% endif %}
     </p>
     {% if version.content.chapters.length %}
     {{ planContent(version.content) }}

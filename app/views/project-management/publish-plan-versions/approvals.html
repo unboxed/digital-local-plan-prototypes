@@ -1,0 +1,59 @@
+{% extends "project-management/publish-plan-versions/partials/layout.html" %}
+
+{% set pageName = "Publishing approvals" %}
+{% set breadcrumbs = [
+  { text: "Home", href: "/project-management" },
+  { text: "Publishing approvals" }
+] %}
+
+{#
+  The manager's list: requests waiting for a decision first, then those already decided.
+#}
+{% macro approvalTable(id, caption, rows, statuses) %}
+<div class="dlp-ppv-table-wrap">
+  <table class="govuk-table dlp-ppv-table" id="{{ id }}">
+    <caption class="govuk-table__caption govuk-table__caption--m">{{ caption }}</caption>
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header">What</th>
+        <th scope="col" class="govuk-table__header">Sent by</th>
+        <th scope="col" class="govuk-table__header">Sent on</th>
+        <th scope="col" class="govuk-table__header">Status</th>
+        <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Action</span></th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for version in rows %}
+      {% set status = statuses[version.status] %}
+      <tr class="govuk-table__row">
+        <td class="govuk-table__cell">{{ version.included }}</td>
+        <td class="govuk-table__cell">{{ version.exportedBy }}</td>
+        <td class="govuk-table__cell">{{ version.sharedAt }}</td>
+        <td class="govuk-table__cell"><strong class="govuk-tag {{ status.classes }}">{{ status.text }}</strong></td>
+        <td class="govuk-table__cell">
+          <a class="govuk-link" href="{{ ppv }}/approvals/{{ version.id }}">{{ "Review" if version.status == "awaiting-approval" else "View" }}<span class="govuk-visually-hidden">: {{ version.included }}</span></a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% block main %}
+<span class="govuk-caption-m">Plan versions</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-2">Publishing approvals</h1>
+<p class="govuk-body-s dlp-ppv-muted">Logged in as {{ viewer }}</p>
+<p class="govuk-body-l dlp-ppv-muted">Check what officers have sent for publishing, preview it as it will be published, then approve it or ask for changes.</p>
+
+{% if awaiting.length %}
+  {{ approvalTable("awaiting", "Waiting for your decision", awaiting, statuses) }}
+{% else %}
+  <h2 class="govuk-heading-m">Waiting for your decision</h2>
+  <p class="govuk-body">Nothing is waiting for approval.</p>
+{% endif %}
+
+{% if decided.length %}
+  {{ approvalTable("decided", "Decided", decided, statuses) }}
+{% endif %}
+{% endblock %}
