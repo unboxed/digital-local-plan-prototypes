@@ -6030,19 +6030,29 @@ function ppvItemStatus (req, itemId, seeded) {
   return PV.ITEM_STATUSES[pending ? 'pending' : seeded] || null
 }
 
+// The latest plan version with this chapter in it. The seeded versions are the full plan; one
+// made in this session has the chapter if its schedule includes it or all chapters.
+function ppvChapterLatest (versions, chapterId) {
+  return versions.slice().reverse().find(version => !version.schedule || version.schedule.some(item =>
+    item.id === 'all-chapters' || item.id === 'chapter-' + chapterId)) || null
+}
+
 function ppvShareView (req, res, values, errors) {
   renderPpv(req, res, 'share', 'share', {
     values,
     errors,
     errorList: ppvErrorList(errors),
+    // Each table shows only the latest version, in the version history's columns: for a chapter,
+    // the latest plan version that includes it; for a supporting document, its own latest.
     chapters: PV.CHAPTERS.map(chapter => ({
       id: chapter.id,
       title: chapter.title,
-      status: ppvItemStatus(req, 'chapter-' + chapter.id, PV.CHAPTER_STATUSES[chapter.id])
+      latest: ppvChapterLatest(getPlanVersions(req).versions, chapter.id)
     })),
-    documents: PV.PLAN_DOCUMENTS.map(document => Object.assign({}, document, {
-      status: document.status ? ppvItemStatus(req, 'doc-' + document.id, document.status) : null
-    }))
+    documents: PV.PLAN_DOCUMENTS.filter(d => d.id !== 'other').map(document => {
+      const source = PV.SUPPORTING_DOCUMENTS.find(d => d.id === document.id)
+      return { id: document.id, title: document.title, latest: source ? source.versions.slice(-1)[0] : null }
+    })
   })
 }
 

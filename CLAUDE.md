@@ -748,7 +748,13 @@ internally for non-public review. The research question is where that sharing fi
   build up in `pending` (`{allChapters, chapters, documents, otherName, when, people, sharedId,
   approver, message}`); every later step redirects to `/share` if nothing has been chosen.
   1. **What:** two tables to tick, headed with the plan title (chapters) and "Supporting
-     documents" (a `selectTable` macro in `share.html`), each row's status tag in its own column.
+     documents" (a `selectTable` macro in `share.html`). By request, rows have no status tags:
+     each shows only its **latest version's** details: Version date, Published date ("Not
+     published" if not) and Exported by, dates without times and no version name column. The title links to that
+     version's page. A
+     chapter's latest is the latest plan version that includes it (`ppvChapterLatest`: seeded
+     versions are the full plan; a session version counts if its `schedule` has the chapter or
+     `all-chapters`); a document's is the last of its `SUPPORTING_DOCUMENTS` versions.
      **Everything starts ticked**, because sharing the whole plan and every document is the usual
      case, so it's just Continue. The sidebar link is `/share?_new=1`, which clears `pending` so
      a new share starts from everything; Back and Change links use plain `/share` and keep what
@@ -758,10 +764,8 @@ internally for non-public review. The research question is where that sharing fi
      being the no-JavaScript fallback). Every chapter
      ticked is the full plan (`allChapters`). "Other" isn't a row: naming a document under "Add
      another document" adds it. `ppvItems` turns the choices into items, and `ppvIncluded` names
-     them ("Full local plan and all supporting documents" for everything). Statuses (Draft,
-     Pending approval, Complete; `PV.ITEM_STATUSES`) are seeded in `CHAPTER_STATUSES` and on each
-     document. Anything sent for approval in the session shows as Pending approval
-     (`ppvItemStatus`). Submitting it starts a new share: `people` and `sharedId` are cleared.
+     them ("Full local plan and all supporting documents" for everything). Submitting it starts a
+     new share: `people` and `sharedId` are cleared.
   2. **How:** no choice of method, by request. Every way to share is set out as its own section
      with its own form and action:
      - **Share a link:** "Link to view" and "Link to edit", each with "Copy link" (`initCopyLink`
