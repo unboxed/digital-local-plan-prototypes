@@ -481,6 +481,9 @@ the repo. Ask the user for them if you need to compare against the design.
   icons and the chapter's status on the chapters list. The sidebar nests the current chapter's
   steps under it using the side navigation macro's `children` (one level deep), added for this
   prototype.
+  A step may carry its own `href`: "Share and publish" goes to Publish plan versions' Share or
+  publish (`/project-management/publish-plan-versions/share?_new=1`), by request. The chapter's
+  own export page is still reached from the draft's "View and export chapter".
 - **Free-text fields are named `_…`** (`_brief`, `_policyDetail` …), so the kit doesn't copy
   them into the top level of session data as well. The sources search's `pd*` query fields are
   deliberately not underscored: they are the sticky filter.
@@ -615,6 +618,25 @@ comments, adds notes and accepts it into the library.
 - **Inert placeholders from the design:** both rich-text toolbars, "Edit metadata" and
   "Download PDF". File uploads keep only the file name (the form isn't multipart and nothing is
   stored).
+
+## Review evidence (`/evidence/review`)
+
+- **Full width** (`containerClasses = "dlp-width-container--full"`), so the left panel, the
+  document and the tag panel fit. In "View and tag document" the viewer and "Tag the selected
+  text" sit side by side (`.dlp-review-split`, 3fr/2fr from desktop, stacked below); the panel is
+  sticky. Tagged evidence stays full width underneath.
+- **Left panel:** "Evidence details" (Title, Date, Author, Policy area), then **Linked policies** ( `getLinkedPolicies`): only the evidence base's links, never
+  references tagged in the session. That's policies citing the document (`getPolicyRefsForSource`)
+  plus those its excerpts support (`evidence-excerpts.js`), in plan order, each linked to its
+  policy summary where `getPolicy` has one.
+- **Policy references are City Plan 2040's** (`POLICY_REFERENCES` from `policies.js`, shown as
+  "HS1 – Location of New Housing"). The old placeholders (H1, T2, EMP1…) are remapped by
+  `LEGACY_POLICY_REFERENCES` in `getEvidenceItems`, so existing sessions still name real policies.
+- **Tags follow GOV.UK tag styling** across the evidence pages: tags shown on highlights (drawn by
+  `createRemovableTagChip`, colours from the viewer's `data-dlp-tag-colours`; policy areas grey),
+  AI suggestions and evidence cards are `govuk-tag`s; pickers (`.dlp-lozenge`) are tag-shaped
+  buttons, bordered until chosen, then tinted with a tick. `TAG_COLOURS` uses only supported
+  colours (turquoise and pink are deprecated).
 
 ## Viewing and structuring evidence
 
@@ -793,7 +815,13 @@ internally for non-public review. The research question is where that sharing fi
   build up in `pending` (`{allChapters, chapters, documents, otherName, when, people, sharedId,
   approver, message}`); every later step redirects to `/share` if nothing has been chosen.
   1. **What:** two tables to tick, headed with the plan title (chapters) and "Supporting
-     documents" (a `selectTable` macro in `share.html`), each row's status tag in its own column.
+     documents" (a `selectTable` macro in `share.html`). By request, rows have no status tags:
+     each shows only its **latest version's** details: Version date, Published date ("Not
+     published" if not) and Exported by, dates without times and no version name column. The title links to that
+     version's page. A
+     chapter's latest is the latest plan version that includes it (`ppvChapterLatest`: seeded
+     versions are the full plan; a session version counts if its `schedule` has the chapter or
+     `all-chapters`); a document's is the last of its `SUPPORTING_DOCUMENTS` versions.
      **Everything starts ticked**, because sharing the whole plan and every document is the usual
      case, so it's just Continue. The sidebar link is `/share?_new=1`, which clears `pending` so
      a new share starts from everything; Back and Change links use plain `/share` and keep what
@@ -803,10 +831,8 @@ internally for non-public review. The research question is where that sharing fi
      being the no-JavaScript fallback). Every chapter
      ticked is the full plan (`allChapters`). "Other" isn't a row: naming a document under "Add
      another document" adds it. `ppvItems` turns the choices into items, and `ppvIncluded` names
-     them ("Full local plan and all supporting documents" for everything). Statuses (Draft,
-     Pending approval, Complete; `PV.ITEM_STATUSES`) are seeded in `CHAPTER_STATUSES` and on each
-     document. Anything sent for approval in the session shows as Pending approval
-     (`ppvItemStatus`). Submitting it starts a new share: `people` and `sharedId` are cleared.
+     them ("Full local plan and all supporting documents" for everything). Submitting it starts a
+     new share: `people` and `sharedId` are cleared.
   2. **How:** no choice of method, by request. Every way to share is set out as its own section
      with its own form and action:
      - **Share a link:** "Link to view" and "Link to edit", each with "Copy link" (`initCopyLink`
@@ -833,6 +859,11 @@ internally for non-public review. The research question is where that sharing fi
   host), so `initCopyLink` swaps in the page's own origin. Seeded versions are still
   `published`. **Changing `pending` or the version shape means bumping
   `PLAN_VERSIONS_SCHEMA_VERSION`.**
+- **Every version page has "Share a link to this version"**, plan versions and supporting
+  document versions alike: one view-only link (`ppvVersionLink`, `?access=view`) with Copy link.
+  It's the `copyLink` macro in `partials/macros.html`, shared with Choose how to share, but with
+  no log URL, so copying it records nothing in the history. A document version's link is always
+  its numbered address, so it keeps opening that version after a newer one.
 - **Seeded versions are excerpts** of three chapters (Introduction, Spatial strategy, Housing),
   as in frames 2 and 3. Their layers carry only `{id, type, version, created}`, and name, shape
   and feature count come from the GIS catalogue (`GIS.getCatalogueLayer`). The map thumbnails

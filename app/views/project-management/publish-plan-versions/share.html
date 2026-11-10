@@ -7,7 +7,9 @@
 {% set backLink = { href: ppv + "/history", text: "View version history" } %}
 
 {#
-  One table of things to tick, each row with its status tag in a column of its own. The header
+  One table of things to tick, each row with its latest version's details: version date,
+  published date and who exported it (nothing older: sharing an earlier version starts from the
+  version history). The header
   checkbox and the "N of M selected" count come from initSelectAll (data-dlp-select-all); without
   JavaScript the header checkbox stays hidden and "Clear all" starts from nothing instead.
 #}
@@ -23,6 +25,7 @@
   {% if errorMessage %}
   <p class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ errorMessage }}</p>
   {% endif %}
+  <div class="dlp-ppv-table-wrap">
   <table class="govuk-table dlp-ppv-table dlp-ppv-select__table" aria-labelledby="{{ id }}-heading">
     <thead class="govuk-table__head">
       <tr class="govuk-table__row">
@@ -38,7 +41,9 @@
           <span class="govuk-visually-hidden" data-dlp-select-all-fallback>Select</span>
         </th>
         <th scope="col" class="govuk-table__header">{{ column }}</th>
-        <th scope="col" class="govuk-table__header dlp-ppv-select__status">Status</th>
+        <th scope="col" class="govuk-table__header">Version date</th>
+        <th scope="col" class="govuk-table__header">Published date</th>
+        <th scope="col" class="govuk-table__header">Exported by</th>
       </tr>
     </thead>
     <tbody class="govuk-table__body">
@@ -56,14 +61,21 @@
             </div>
           </div>
         </td>
-        <td class="govuk-table__cell">{{ row.title }}</td>
-        <td class="govuk-table__cell dlp-ppv-select__status">
-          {% if row.status %}<strong class="govuk-tag {{ row.status.classes }}">{{ row.status.text }}</strong>{% endif %}
+        <td class="govuk-table__cell">{% if row.version %}<a class="govuk-link" href="{{ row.version.href }}">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}</td>
+        {% if row.version %}
+        <td class="govuk-table__cell">{{ row.version.date }}</td>
+        <td class="govuk-table__cell">
+          {{ row.version.published or "Not published" }}
         </td>
+        <td class="govuk-table__cell">{{ row.version.exportedBy }}</td>
+        {% else %}
+        <td class="govuk-table__cell dlp-ppv-muted" colspan="3">No versions yet</td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 {% endmacro %}
 
@@ -80,19 +92,41 @@
 </div>
 
 <form method="post" action="{{ ppv }}/share" novalidate>
+  {% set chapterRows = [] %}
+  {% for chapter in chapters %}
+    {% set latest = chapter.latest %}
+    {% set chapterRows = (chapterRows.push({
+      value: chapter.id,
+      title: chapter.title,
+      version: {
+        href: ppv + "/versions/" + latest.id,
+        date: latest.versionDate,
+        published: latest.published,
+        exportedBy: latest.exportedBy
+      } if latest,
+      checked: values.allChapters or chapter.id in values.chapters
+    }), chapterRows) %}
+  {% endfor %}
+  {{ selectTable("chapters", planTitle, "Chapter", "_chapters", chapterRows, errors.chapters) }}
+
+  {% set documentRows = [] %}
+  {% for document in documents %}
+    {% set latest = document.latest %}
+    {% set documentRows = (documentRows.push({
+      value: document.id,
+      title: document.title,
+      version: {
+        href: ppv + "/documents/" + document.id,
+        date: latest.versionDate,
+        published: latest.published,
+        exportedBy: latest.exportedBy
+      } if latest,
+      checked: document.id in values.documents
+    }), documentRows) %}
+  {% endfor %}
+  {{ selectTable("documents", "Supporting documents", "Document", "_documents", documentRows) }}
+
   <div class="dlp-ppv-measure">
-    {% set chapterRows = [] %}
-    {% for chapter in chapters %}
-      {% set chapterRows = (chapterRows.push({ value: chapter.id, title: chapter.title, status: chapter.status, checked: values.allChapters or chapter.id in values.chapters }), chapterRows) %}
-    {% endfor %}
-    {{ selectTable("chapters", planTitle, "Chapter", "_chapters", chapterRows, errors.chapters) }}
-
-    {% set documentRows = [] %}
-    {% for document in documents %}{% if document.id != "other" %}
-      {% set documentRows = (documentRows.push({ value: document.id, title: document.title, status: document.status, checked: document.id in values.documents }), documentRows) %}
-    {% endif %}{% endfor %}
-    {{ selectTable("documents", "Supporting documents", "Document", "_documents", documentRows) }}
-
     {{ govukDetails({
       summaryText: "Add another document",
       open: values.otherName | length > 0,

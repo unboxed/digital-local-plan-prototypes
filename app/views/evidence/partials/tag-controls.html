@@ -36,7 +36,7 @@
   <select class="dlp-select" id="{{ idPrefix }}-policy-reference" name="policyReference">
     <option value="">Choose a reference</option>
     {% for reference in policyReferences %}
-    <option value="{{ reference }}">{{ reference }}</option>
+    <option value="{{ reference.value }}">{{ reference.text }}</option>
     {% endfor %}
   </select>
 </div>

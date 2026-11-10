@@ -516,8 +516,12 @@ function initSavedHighlights (viewer) {
 
   const options = {
     action: viewer.dataset.dlpRemoveAction || '/evidence/document-tagging/remove-tag',
-    returnTo: viewer.dataset.dlpReturn || ''
+    returnTo: viewer.dataset.dlpReturn || '',
+    tagColours: {}
   }
+  try {
+    options.tagColours = JSON.parse(viewer.dataset.dlpTagColours || '{}')
+  } catch (error) {}
 
   let savedPassages = []
   try {
@@ -616,9 +620,10 @@ function addTagsBelowParagraph (paragraph, item, options) {
   row.appendChild(group)
 }
 
-// Each tag chip is a real form that posts back to remove just that tag (or
-// policy area) from the saved item — clicking it removes it, no extra JS
-// wiring needed.
+// Each tag is a GOV.UK tag inside a real form that posts back to remove just that tag (or
+// policy area) from the saved item, so clicking it removes it with no extra JS wiring. Tags take
+// their colour from the viewer's data-dlp-tag-colours (as on the evidence cards); policy areas
+// are grey. The × and the "Remove tag" label say what clicking does.
 function createRemovableTagChip (itemId, tag, kind, options) {
   options = options || {}
 
@@ -631,9 +636,10 @@ function createRemovableTagChip (itemId, tag, kind, options) {
   form.appendChild(hiddenField('tag', tag))
   if (options.returnTo) form.appendChild(hiddenField('_returnTo', options.returnTo))
 
+  const colour = kind === 'policy' ? 'grey' : (options.tagColours || {})[tag]
   const button = document.createElement('button')
   button.type = 'submit'
-  button.className = 'dlp-chip dlp-chip--removable' + (kind === 'policy' ? ' dlp-chip--policy' : '')
+  button.className = 'govuk-tag dlp-tag dlp-tag-remove' + (colour ? ' govuk-tag--' + colour : '')
   button.setAttribute('aria-label', 'Remove tag ' + tag)
 
   const label = document.createElement('span')
@@ -641,7 +647,7 @@ function createRemovableTagChip (itemId, tag, kind, options) {
   button.appendChild(label)
 
   const removeIcon = document.createElement('span')
-  removeIcon.className = 'dlp-chip__remove'
+  removeIcon.className = 'dlp-tag-remove__icon'
   removeIcon.setAttribute('aria-hidden', 'true')
   removeIcon.textContent = '×'
   button.appendChild(removeIcon)

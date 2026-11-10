@@ -1,10 +1,10 @@
 
 <div class="dlp-side-panel">
-  <h2 class="dlp-side-panel__heading">Document details</h2>
+  <h2 class="dlp-side-panel__heading">Evidence details</h2>
 
   <dl class="dlp-doc-meta">
     <div class="dlp-doc-meta__row">
-      <dt>Document title</dt>
+      <dt>Title</dt>
       <dd>{{ doc.source }}</dd>
     </div>
     <div class="dlp-doc-meta__row">
@@ -27,6 +27,23 @@
     </a>
   </p>
 </div>
+
+<section class="dlp-side-panel govuk-!-margin-top-6" aria-labelledby="linked-policies-heading">
+  <h2 class="dlp-side-panel__heading" id="linked-policies-heading">Linked policies</h2>
+  {% if linkedPolicies.length %}
+  <p class="dlp-review-linked__hint">The following policies in the City Plan 2040 are currently linked to this evidence.</p>
+  <ul class="govuk-list dlp-review-linked">
+    {% for policy in linkedPolicies %}
+    <li>
+      <span class="dlp-review-linked__ref">{{ policy.ref }}</span>
+      <span class="dlp-review-linked__title">{% if policy.href %}<a class="govuk-link" href="{{ policy.href }}">{{ policy.title }}</a>{% else %}{{ policy.title }}{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="govuk-body-s govuk-!-margin-bottom-0">Not linked to any policies yet.</p>
+  {% endif %}
+</section>
 
 <section class="dlp-side-panel govuk-!-margin-top-6" data-dlp-tagger data-dlp-mode="note">
   <h2 class="dlp-side-panel__heading">Add and tag a note</h2>

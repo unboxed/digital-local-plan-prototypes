@@ -1,5 +1,7 @@
-{% extends "layouts/main.html" %} {% set pageName = "Review evidence" %} {%
-block content %}
+{% extends "layouts/main.html" %} {% set pageName = "Review evidence" %}
+{# Full width, so the details panel, the document and the tag panel fit side by side. #}
+{% set containerClasses = "dlp-width-container--full" %}
+{% block content %}
 {% from "govuk/components/tabs/macro.njk" import govukTabs %}
 
 {% include "evidence/partials/nav.html" %}
@@ -23,7 +25,7 @@ block content %}
       classes: "dlp-review-tabs",
       items: [
         {
-          label: "View and tag document",
+          label: "View and tag evidence",
           id: "view-and-tag",
           panel: { html: viewAndTagHtml }
         },
