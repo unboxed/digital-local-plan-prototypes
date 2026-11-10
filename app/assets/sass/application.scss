@@ -131,35 +131,32 @@ $dlp-highlight-background: #fff7bf;
   padding: 1px govuk-spacing(2);
 }
 
-.dlp-chip--removable {
+// GOV.UK tags in a row (highlight tags, suggestions): not capped at govuk-tag's max-width, as
+// they sit in rows that wrap.
+.dlp-tag {
+  max-width: none;
+}
+
+// A highlight's tag is a button that removes it: a GOV.UK tag with a ×, underlined on hover.
+.dlp-tag-remove {
+  border: 0;
   cursor: pointer;
+  margin-top: 0;
+  margin-bottom: 0;
 
-  &:hover,
-  &:focus {
-    background: govuk-colour("red");
-    border-color: govuk-colour("red");
-    color: govuk-colour("white");
+  &:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
   }
 
   &:focus {
-    @include govuk-focused-box;
-  }
-}
-
-.dlp-chip--policy {
-  border-color: $dlp-policy-accent;
-  color: $dlp-policy-accent;
-
-  &:hover,
-  &:focus {
-    background: govuk-colour("red");
-    border-color: govuk-colour("red");
-    color: govuk-colour("white");
+    @include govuk-focused-text;
   }
 }
 
-.dlp-chip__remove {
+.dlp-tag-remove__icon {
   font-weight: bold;
+  margin-left: govuk-spacing(1);
 }
 
 // Tag evidence panel
@@ -290,33 +287,41 @@ $dlp-highlight-background: #fff7bf;
 }
 
 .dlp-lozenge {
-  @include govuk-font($size: 16);
-  background: govuk-colour("white");
-  border: 2px solid $dlp-tag-accent;
-  border-radius: 20px;
-  color: $dlp-tag-accent;
+  // Tags to choose from, in the shape and type of a GOV.UK tag: grey with a border until
+  // chosen, then the tag's blue (policy areas: dark grey) with a tick, so what's chosen doesn't
+  // rest on colour alone.
+  @include govuk-font($size: 19);
+  background-color: govuk-colour("white");
+  border: 1px solid $govuk-border-colour;
+  border-radius: 1px;
+  color: govuk-colour("black");
   cursor: pointer;
-  padding: govuk-spacing(1) govuk-spacing(3);
+  padding: 1px 7px 2px;
+
+  &:hover {
+    background-color: govuk-colour("black", $variant: "tint-95");
+  }
 
   &:focus {
-    @include govuk-focused-box;
+    @include govuk-focused-text;
   }
 
   &[aria-pressed="true"] {
-    background: $dlp-tag-accent;
-    color: govuk-colour("white");
-    font-weight: bold;
+    background-color: govuk-colour("blue", $variant: "tint-80");
+    border-color: govuk-colour("blue", $variant: "tint-80");
+    color: govuk-colour("blue", $variant: "shade-50");
+
+    &::before {
+      content: "\2713\00a0";
+      font-weight: bold;
+    }
   }
 }
 
-.dlp-lozenge--policy {
-  border-color: $dlp-policy-accent;
-  color: $dlp-policy-accent;
-
-  &[aria-pressed="true"] {
-    background: $dlp-policy-accent;
-    color: govuk-colour("white");
-  }
+.dlp-lozenge--policy[aria-pressed="true"] {
+  background-color: govuk-colour("black", $variant: "tint-80");
+  border-color: govuk-colour("black", $variant: "tint-80");
+  color: govuk-colour("black");
 }
 
 .dlp-custom-tag__row {
@@ -602,8 +607,64 @@ $dlp-confidence-low: govuk-colour("orange");
   }
 }
 
-.dlp-tag-panel--inline {
-  position: static;
+// Review evidence: the page goes full width (containerClasses), so the details panel, the
+// document and the tag panel fit side by side.
+.govuk-width-container.dlp-width-container--full {
+  max-width: none;
+
+  @include govuk-media-query($from: tablet) {
+    margin-left: govuk-spacing(6);
+    margin-right: govuk-spacing(6);
+  }
+}
+
+// The document on the left and the tag panel on the right; the panel stays in view while the
+// document scrolls (.dlp-tag-panel is sticky from desktop). Stacked below desktop.
+.dlp-review-split {
+  display: grid;
+  gap: govuk-spacing(4);
+  grid-template-columns: minmax(0, 1fr);
+
+  @include govuk-media-query($from: desktop) {
+    align-items: start;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+.dlp-review-split .dlp-document-viewer {
+  @include govuk-media-query($from: desktop) {
+    max-height: 75vh;
+  }
+}
+
+// Linked policies, in the left panel: the same size as the evidence details above it
+// (.dlp-doc-meta__row), the reference in bold before each title.
+.dlp-review-linked__hint {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(3);
+}
+
+.dlp-review-linked {
+  @include govuk-font($size: 16);
+  margin-bottom: 0;
+
+  // Two columns: the reference in one wide enough for the longest (S10, VT1), the title left
+  // aligned in the other, wrapping under itself rather than under the reference.
+  li {
+    display: grid;
+    gap: govuk-spacing(2);
+    grid-template-columns: 3em minmax(0, 1fr);
+    margin-bottom: govuk-spacing(2);
+  }
+}
+
+.dlp-review-linked__ref {
+  font-weight: bold;
+}
+
+.dlp-review-linked__title {
+  text-align: left;
 }
 
 // AI summary
@@ -665,26 +726,6 @@ $dlp-confidence-low: govuk-colour("orange");
   margin: 0;
 }
 
-.dlp-summary__confidence {
-  @include govuk-font($size: 16);
-  border: 1px solid currentcolor;
-  border-radius: 12px;
-  padding: 0 govuk-spacing(2);
-  text-transform: capitalize;
-}
-
-.dlp-summary__confidence--high {
-  color: govuk-colour("green");
-}
-
-.dlp-summary__confidence--medium {
-  color: $dlp-muted-text;
-}
-
-.dlp-summary__confidence--low {
-  color: $dlp-confidence-low;
-}
-
 // Echoes .dlp-highlight so the quote reads as the passage it came from.
 .dlp-summary__quote {
   background: $dlp-highlight-background;
@@ -705,11 +746,6 @@ $dlp-confidence-low: govuk-colour("orange");
   @include govuk-font($size: 16);
   color: $dlp-muted-text;
   margin-right: govuk-spacing(1);
-}
-
-// Dashed, so a suggestion reads as proposed rather than already applied.
-.dlp-chip--suggested {
-  border-style: dashed;
 }
 
 .dlp-summary__actions {
@@ -817,14 +853,10 @@ $dlp-confidence-low: govuk-colour("orange");
   }
 }
 
-.dlp-lozenge--reference {
-  border-color: govuk-colour("black");
+.dlp-lozenge--reference[aria-pressed="true"] {
+  background-color: govuk-colour("black", $variant: "tint-80");
+  border-color: govuk-colour("black", $variant: "tint-80");
   color: govuk-colour("black");
-
-  &[aria-pressed="true"] {
-    background: govuk-colour("black");
-    color: govuk-colour("white");
-  }
 }
 
 // "Add as new tag" sits at the end of the search results, distinguished

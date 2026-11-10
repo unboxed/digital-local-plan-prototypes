@@ -111,18 +111,21 @@ const SUGGESTED_TAGS = [
 ]
 
 // Maps each suggested tag to a govuk-tag colour modifier (blank = default blue)
+// GOV.UK tag colours (govuk-tag--<colour>; '' is the default blue). Only the supported ones:
+// turquoise and pink are deprecated in GOV.UK Frontend, so Conservation shares Heritage's purple
+// and Office is grey. The text, not the colour, says which tag it is.
 const TAG_COLOURS = {
   'Need': '',
   'Capacity': 'grey',
   'Heritage': 'purple',
-  'Conservation': 'turquoise',
+  'Conservation': 'purple',
   'Green Belt': 'green',
   'AONB': 'teal',
   'SSSI': 'magenta',
   'Article 4': 'orange',
   'Flood Risk': 'red',
   'Site Allocations': 'yellow',
-  'Office': 'pink'
+  'Office': 'grey'
 }
 
 const POLICY_AREAS = [
@@ -166,10 +169,29 @@ const PLAN_PARAGRAPHS = POLICY_AREAS.flatMap(area =>
   )
 )
 
-const POLICY_REFERENCES = [
-  'H1', 'H2', 'H3', 'T1', 'T2', 'EN1', 'EN2',
-  'HE1', 'HE2', 'GB1', 'SA1', 'SA2', 'EMP1', 'OFF1'
-]
+// Policy references are the City Plan 2040's own (policies.js), so a tagged item's reference
+// names a real policy. POLICY_TITLES labels them in the select ("HS1 – Location of New Housing").
+const POLICY_REFERENCES = POLICIES.map(policy => policy.ref)
+const POLICY_TITLES = Object.fromEntries(POLICIES.map(policy => [policy.ref, policy.title]))
+
+// The placeholder references used before (H1, T2, EMP1 and so on), mapped to the City Plan 2040
+// policy nearest in meaning, so items saved in an existing session still name a real policy.
+const LEGACY_POLICY_REFERENCES = {
+  H1: 'S3',
+  H2: 'HS1',
+  H3: 'HS4',
+  T1: 'VT1',
+  T2: 'VT1',
+  EN1: 'S15',
+  EN2: 'CR2',
+  HE1: 'HE1',
+  HE2: 'HE2',
+  GB1: 'OS1',
+  SA1: 'HS1',
+  SA2: 'HS1',
+  EMP1: 'OF1',
+  OFF1: 'OF2'
+}
 
 // An evidence item's sourceType decides its display header:
 //   document                     -> "<source> / <chapter>"
@@ -192,6 +214,9 @@ function getEvidenceItems (req) {
     req.session.data.evidenceItems = JSON.parse(JSON.stringify(req.session.data.evidenceItems || []))
     req.session.data.evidenceItemsOwned = true
   }
+  req.session.data.evidenceItems.forEach(item => {
+    if (LEGACY_POLICY_REFERENCES[item.policyReference]) item.policyReference = LEGACY_POLICY_REFERENCES[item.policyReference]
+  })
   return req.session.data.evidenceItems
 }
 
@@ -320,7 +345,8 @@ const evidenceViewData = {
   tagColours: TAG_COLOURS,
   policyAreas: POLICY_AREAS,
   policyAreaLinks: POLICY_AREA_LINKS,
-  policyReferences: POLICY_REFERENCES,
+  // For the reference selects: each City Plan 2040 policy as { value, text }.
+  policyReferences: POLICY_REFERENCES.map(ref => ({ value: ref, text: ref + ' – ' + POLICY_TITLES[ref] })),
   noteSourceTypes: NOTE_SOURCE_TYPES
 }
 
@@ -372,6 +398,20 @@ function getReviewReturn (source, fragment) {
   return '/evidence/review?source=' + encodeURIComponent(source) + (fragment || '')
 }
 
+// The policies the evidence base links a document to: those that cite it as a source
+// (policies.js) and those its excerpts support (evidence-excerpts.js), in plan order. Not the
+// references tagged in the session. Each links to its policy summary where there is one.
+function getLinkedPolicies (source) {
+  const refs = new Set(getPolicyRefsForSource(source))
+  EVIDENCE_EXCERPTS.filter(excerpt => excerpt.source === source)
+    .forEach(excerpt => excerpt.policyRefs.forEach(ref => refs.add(ref)))
+  return POLICIES.filter(policy => refs.has(policy.ref)).map(policy => ({
+    ref: policy.ref,
+    title: policy.title,
+    href: getPolicy(policy.ref) ? '/policy-writing/policy-summary?ref=' + encodeURIComponent(policy.ref) : null
+  }))
+}
+
 router.get('/evidence/review', (req, res) => {
   const items = getEvidenceItems(req)
   const source = req.query.source || DOCUMENT_SOURCE
@@ -392,6 +432,7 @@ router.get('/evidence/review', (req, res) => {
   res.render('evidence/review/index', Object.assign({}, evidenceViewData, {
     doc,
     sourceEncoded: encodeURIComponent(source),
+    linkedPolicies: getLinkedPolicies(source),
     returnTo: getReviewReturn(source),
     summaryGenerated,
     summarySections,

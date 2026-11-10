@@ -15,7 +15,7 @@ module.exports = {
       tags: ['Need', 'Capacity'],
       customTags: [],
       policyAreas: ['Housing'],
-      policyReference: 'H1'
+      policyReference: 'S3'
     },
     {
       id: 'evidence-seed-2',
@@ -27,7 +27,7 @@ module.exports = {
       tags: ['Capacity'],
       customTags: ['Public transport'],
       policyAreas: ['Transport'],
-      policyReference: 'T2'
+      policyReference: 'VT1'
     },
     {
       id: 'evidence-seed-3',
@@ -39,7 +39,7 @@ module.exports = {
       tags: ['Need'],
       customTags: ['Community engagement'],
       policyAreas: ['Housing'],
-      policyReference: 'H1'
+      policyReference: 'S3'
     },
     {
       id: 'evidence-seed-4',
@@ -51,7 +51,7 @@ module.exports = {
       tags: ['Site Allocations'],
       customTags: [],
       policyAreas: ['Housing'],
-      policyReference: 'H2'
+      policyReference: 'HS1'
     },
     {
       id: 'evidence-seed-5',
@@ -75,7 +75,7 @@ module.exports = {
       tags: ['Green Belt'],
       customTags: [],
       policyAreas: ['Open Spaces and Green Infrastructure'],
-      policyReference: 'GB1'
+      policyReference: 'OS1'
     },
     {
       id: 'evidence-seed-7',
@@ -87,7 +87,7 @@ module.exports = {
       tags: ['Need'],
       customTags: ['Office space'],
       policyAreas: ['Offices'],
-      policyReference: 'EMP1'
+      policyReference: 'OF1'
     }
   ],
 

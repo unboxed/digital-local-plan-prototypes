@@ -53,7 +53,7 @@ const HOUSING_NEEDS_SUMMARY = {
       quote: 'Local population growth has increased demand for homes in the borough over the last decade.',
       suggestedTags: ['Need'],
       suggestedPolicyAreas: ['Housing'],
-      suggestedPolicyReference: 'H1',
+      suggestedPolicyReference: 'S3',
       confidence: 'high'
     },
     {
@@ -63,7 +63,7 @@ const HOUSING_NEEDS_SUMMARY = {
       quote: 'The council has a strategic objective to provide enough homes for future residents',
       suggestedTags: ['Need', 'Capacity'],
       suggestedPolicyAreas: ['Housing', 'Infrastructure'],
-      suggestedPolicyReference: 'H2',
+      suggestedPolicyReference: 'S3',
       confidence: 'medium'
     },
     {
@@ -73,7 +73,7 @@ const HOUSING_NEEDS_SUMMARY = {
       quote: 'Existing housing supply is heavily constrained by the availability of brownfield land, infrastructure delivery constraints and limited capacity in some strategic growth areas.',
       suggestedTags: ['Capacity', 'Site Allocations'],
       suggestedPolicyAreas: ['Housing'],
-      suggestedPolicyReference: 'SA1',
+      suggestedPolicyReference: 'HS1',
       confidence: 'high'
     },
     {
@@ -83,7 +83,7 @@ const HOUSING_NEEDS_SUMMARY = {
       quote: 'This means that future growth may need to be planned carefully to maintain the balance between housing provision and local amenity.',
       suggestedTags: ['Capacity'],
       suggestedPolicyAreas: ['Transport', 'Infrastructure'],
-      suggestedPolicyReference: 'T1',
+      suggestedPolicyReference: 'VT1',
       confidence: 'low'
     }
   ]

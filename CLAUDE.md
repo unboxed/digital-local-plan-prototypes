@@ -571,6 +571,25 @@ comments, adds notes and accepts it into the library.
   "Download PDF". File uploads keep only the file name (the form isn't multipart and nothing is
   stored).
 
+## Review evidence (`/evidence/review`)
+
+- **Full width** (`containerClasses = "dlp-width-container--full"`), so the left panel, the
+  document and the tag panel fit. In "View and tag document" the viewer and "Tag the selected
+  text" sit side by side (`.dlp-review-split`, 3fr/2fr from desktop, stacked below); the panel is
+  sticky. Tagged evidence stays full width underneath.
+- **Left panel:** "Evidence details" (Title, Date, Author, Policy area), then **Linked policies** ( `getLinkedPolicies`): only the evidence base's links, never
+  references tagged in the session. That's policies citing the document (`getPolicyRefsForSource`)
+  plus those its excerpts support (`evidence-excerpts.js`), in plan order, each linked to its
+  policy summary where `getPolicy` has one.
+- **Policy references are City Plan 2040's** (`POLICY_REFERENCES` from `policies.js`, shown as
+  "HS1 – Location of New Housing"). The old placeholders (H1, T2, EMP1…) are remapped by
+  `LEGACY_POLICY_REFERENCES` in `getEvidenceItems`, so existing sessions still name real policies.
+- **Tags follow GOV.UK tag styling** across the evidence pages: tags shown on highlights (drawn by
+  `createRemovableTagChip`, colours from the viewer's `data-dlp-tag-colours`; policy areas grey),
+  AI suggestions and evidence cards are `govuk-tag`s; pickers (`.dlp-lozenge`) are tag-shaped
+  buttons, bordered until chosen, then tinted with a tick. `TAG_COLOURS` uses only supported
+  colours (turquoise and pink are deprecated).
+
 ## Viewing and structuring evidence
 
 `/evidence/viewing-structuring` (`app/views/evidence/viewing-structuring/`) is built from the

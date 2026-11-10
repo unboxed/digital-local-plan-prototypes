@@ -3,13 +3,15 @@
 
 {% if doc.paragraphs.length %}
 <p class="dlp-document-hint govuk-body-s">
-  Highlight any text in the document below, then apply tags to it.
+  Highlight any text in the document, then apply tags to it.
 </p>
 
+{# The document on the left, the tag panel beside it on the right (stacked on a small screen). #}
+<div class="dlp-review-split">
 <div class="dlp-document-viewer"
      id="review-document-viewer"
      data-dlp-highlights="#review-passages-data"
-     data-dlp-remove-action="/evidence/review/remove-tag"
+     data-dlp-remove-action="/evidence/review/remove-tag" data-dlp-tag-colours="{{ tagColours | dump }}"
      data-dlp-return="{{ returnTo }}#view-and-tag">
   {% if doc.chapter %}<p class="dlp-document-viewer__chapter">{{ doc.chapter }}</p>{% endif %}
   {% for paragraph in doc.paragraphs %}
@@ -17,7 +19,7 @@
   {% endfor %}
 </div>
 
-<div class="dlp-tag-panel dlp-tag-panel--inline govuk-!-margin-top-4"
+<div class="dlp-tag-panel dlp-review-split__panel"
      data-dlp-tagger
      data-dlp-mode="passage"
      data-dlp-viewer="#review-document-viewer">
@@ -42,6 +44,7 @@
 
     <button type="submit" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Save tags</button>
   </form>
+</div>
 </div>
 {% else %}
 <p class="govuk-body">
