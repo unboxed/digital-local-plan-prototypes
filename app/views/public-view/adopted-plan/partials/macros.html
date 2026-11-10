@@ -37,11 +37,11 @@
 
 {# Find a place by postcode, with the GOV.UK error pattern. #}
 {% macro pubPostcodeForm(params) %}
-<form method="get" action="/public-view/adopted-plan/results" novalidate>
-  <input type="hidden" name="_from" value="{{ params.variant }}">
+<form method="get" action="{{ params.action or '/public-view/adopted-plan/results' }}" novalidate>
+  {% if params.variant %}<input type="hidden" name="_from" value="{{ params.variant }}">{% endif %}
   <div class="govuk-form-group{% if params.error %} govuk-form-group--error{% endif %} govuk-!-margin-bottom-4">
     <label class="govuk-label govuk-label--s" for="pub-postcode">Postcode</label>
-    <div class="govuk-hint" id="pub-postcode-hint">For example, SO14 7DU</div>
+    <div class="govuk-hint" id="pub-postcode-hint">For example, {{ params.example or "SO14 7DU" }}</div>
     {% if params.error %}
       <p id="pub-postcode-error" class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ params.error }}</p>
     {% endif %}
@@ -101,8 +101,8 @@
       again, or choose &lsquo;Finish shape&rsquo;, to close it.
     </p>
     <p class="govuk-visually-hidden" role="status" aria-live="polite" data-dlp-pub-map-status></p>
-    <form method="get" action="/public-view/adopted-plan/results" class="dlp-pub-map__actions">
-      <input type="hidden" name="_from" value="{{ params.variant }}">
+    <form method="get" action="{{ params.action or '/public-view/adopted-plan/results' }}" class="dlp-pub-map__actions">
+      {% if params.variant %}<input type="hidden" name="_from" value="{{ params.variant }}">{% endif %}
       <input type="hidden" name="_area" value="" data-dlp-pub-map-area>
       <div class="govuk-button-group">
         <button type="button" class="govuk-button govuk-button--secondary" data-dlp-pub-map-finish disabled>Finish shape</button>

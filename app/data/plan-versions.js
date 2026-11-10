@@ -543,9 +543,74 @@ const APPROVERS = [
   { id: 'claire-whitfield', name: 'Claire Whitfield', role: 'Director of Planning' }
 ]
 
+// The public plan site a version is published to, and the plan's name there. The preview of a
+// version awaiting approval shows as if at this address (it's really /public-view/preview/:id).
+const PUBLIC_SITE = 'plan.cityoflondon.gov.uk'
+const PUBLIC_PLAN_TITLE = 'City Plan 2040'
+
+// One line per chapter for the public site's chapter list. Invented, in plain English.
+const CHAPTER_SUMMARIES = {
+  'strategic-priorities': 'What the plan aims to achieve for the City’s economy, communities and environment by 2040.',
+  'spatial-strategy': 'Where growth will go across the Square Mile, and how much of it.',
+  health: 'Making the City healthy, safe and welcoming for everyone who lives, works and visits here.',
+  housing: 'Where new homes can go, protecting existing homes, and the standards they must meet.',
+  offices: 'Making sure there is enough high quality office space for the City’s businesses.',
+  retail: 'Shopping centres, active ground floors and markets.',
+  culture: 'Arts, culture, hotels and the evening economy.',
+  infrastructure: 'Utilities, digital connections and the capacity to support growth.',
+  design: 'How new buildings, streets and public spaces should look and work.',
+  transport: 'Getting around, servicing and deliveries, and parking.',
+  heritage: 'Protecting the City’s historic buildings, and where tall buildings can go.',
+  'open-spaces': 'Protecting and adding open spaces, greening and biodiversity.',
+  climate: 'Adapting to a changing climate, including overheating and flood risk.',
+  'temple-thames': 'The Temple, the riverside and the areas expected to change most.',
+  implementation: 'How the plan will be delivered, paid for and monitored.',
+  appendices: 'Supporting information and the meaning of words used in the plan.'
+}
+
+// The policies.js policy area for each chapter that has policies, for "Policies in this chapter".
+const CHAPTER_POLICY_AREAS = {
+  health: 'Health, inclusion and safety',
+  housing: 'Housing',
+  offices: 'Offices',
+  retail: 'Retail',
+  culture: 'Culture and visitors',
+  infrastructure: 'Infrastructure',
+  design: 'Design',
+  transport: 'Transport',
+  heritage: 'Heritage and Tall Buildings',
+  'open-spaces': 'Open Spaces and Green Infrastructure',
+  climate: 'Climate Resilience'
+}
+
+// A request already waiting for a decision, so the publishing approval screen can be shown
+// without first running Share or publish. Same shape as one sent from the check page.
+const SEED_APPROVAL = {
+  id: 'approval-1',
+  title: 'Publishing approval: Full local plan and all supporting documents',
+  versionDate: DRAFT.versionDate,
+  published: null,
+  publishedLong: null,
+  sharedAt: '14 Oct 2025',
+  exportedBy: 'Leila Hassan',
+  status: 'awaiting-approval',
+  method: 'approval',
+  included: 'Full local plan and all supporting documents',
+  schedule: [{ id: 'all-chapters', title: 'Full local plan (all chapters)', when: 'now', milestone: '' }]
+    .concat(PLAN_DOCUMENTS.filter(d => d.id !== 'other').map(d => ({ id: 'doc-' + d.id, title: d.title, when: 'now', milestone: '' }))),
+  links: [],
+  people: [],
+  approver: 'Helen Marsh, Policy Team Leader',
+  // The plan-making milestone this version is for (shown on the approval page).
+  forMilestone: 'Consultation on the proposed local plan',
+  message: 'This is the version for the consultation on the proposed local plan. Chapters 4 and 10 have changed since you last saw them.',
+  content: draftContent([]),
+  layers: []
+}
+
 function startingState () {
   return {
-    versions: JSON.parse(JSON.stringify(SEED_VERSIONS)),
+    versions: JSON.parse(JSON.stringify(SEED_VERSIONS.concat(SEED_APPROVAL))),
     pending: null,
     flash: null,
     nextId: 1
@@ -574,6 +639,10 @@ module.exports = {
   ITEM_STATUSES,
   CHAPTER_STATUSES,
   PUBLISH_MILESTONES,
+  PUBLIC_SITE,
+  PUBLIC_PLAN_TITLE,
+  CHAPTER_SUMMARIES,
+  CHAPTER_POLICY_AREAS,
   APPROVERS,
   draftContent,
   startingState,

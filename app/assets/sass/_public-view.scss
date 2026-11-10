@@ -799,3 +799,66 @@ $dlp-pub-muted: govuk-colour("black", $variant: "tint-25");
     margin-bottom: govuk-spacing(1);
   }
 }
+
+// --- Preview of a version awaiting approval (public-view/preview) -------------------------------
+
+// Under the header on every page of the preview, until the version is published: yellow, like a
+// warning, so it can't be missed or mistaken for the published plan.
+.dlp-pub-draft-banner {
+  background: govuk-colour("yellow");
+  border-bottom: 1px solid govuk-colour("black");
+  color: govuk-colour("black");
+}
+
+.dlp-pub-draft-banner__inner {
+  padding: govuk-spacing(3) 0;
+}
+
+.dlp-pub-draft-banner__title {
+  @include govuk-font($size: 24, $weight: bold);
+  margin: 0 0 govuk-spacing(1);
+}
+
+.dlp-pub-draft-banner__text {
+  @include govuk-font($size: 16);
+  margin: 0 0 govuk-spacing(1);
+}
+
+.dlp-pub-draft-banner__link:link,
+.dlp-pub-draft-banner__link:visited {
+  color: govuk-colour("black");
+}
+
+// A faint "DRAFT" across the page, fixed so it shows wherever you scroll. It doesn't take clicks,
+// and it's decoration only: the banner says the same in words.
+.dlp-pub-draft::before {
+  @include govuk-font($size: 80, $weight: bold);
+  color: govuk-colour("black");
+  content: "DRAFT";
+  font-size: 10rem;
+  left: 50%;
+  letter-spacing: 0.2em;
+  opacity: 0.06;
+  pointer-events: none;
+  position: fixed;
+  top: 55%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  white-space: nowrap;
+  z-index: 1000;
+
+  @media print {
+    position: absolute;
+  }
+}
+
+// A chapter's paragraphs, with the plan's paragraph numbers in the margin.
+.dlp-pub-paragraph {
+  display: grid;
+  gap: govuk-spacing(3);
+  grid-template-columns: 2.5em minmax(0, 1fr);
+}
+
+.dlp-pub-paragraph__number {
+  color: $govuk-secondary-text-colour;
+  font-weight: bold;
+}

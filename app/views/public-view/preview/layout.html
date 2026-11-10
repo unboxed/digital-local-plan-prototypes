@@ -1,0 +1,36 @@
+{#
+  The public plan site, as a version awaiting approval will look once published (City Plan 2040,
+  at plan.cityoflondon.gov.uk). Like public-view/partials/layout.html it shows the public's header
+  rather than the internal nav, overriding `header` without super(). Until the version is
+  published every page carries a draft banner under the header and a "DRAFT" watermark across
+  the content (`isDraft`), so a screenshot can't pass for the published plan.
+#}
+{% extends "layouts/main.html" %}
+
+{% from "partials/external-header/macro.njk" import appExternalHeader %}
+{% from "govuk/components/phase-banner/macro.njk" import govukPhaseBanner %}
+
+{% if isDraft %}{% set containerClasses = "dlp-pub-draft" %}{% endif %}
+
+{% block header %}
+  {{ appExternalHeader({ organisationName: authority, title: plan.title }) }}
+  {{ govukPhaseBanner({
+    tag: { text: "Prototype" },
+    text: "This is a prototype – it is not a live service. Do not enter live data or use it to support a live service"
+  }) }}
+  {% if isDraft %}
+  <div class="dlp-pub-draft-banner" role="region" aria-label="Draft preview">
+    <div class="govuk-width-container dlp-pub-draft-banner__inner">
+      <p class="dlp-pub-draft-banner__title">{{ draftTitle }}</p>
+      <p class="dlp-pub-draft-banner__text">
+        This is a preview of how {{ plan.title }} will appear at {{ publicSite }}. It has not been
+        published. Do not share this link outside the council.
+      </p>
+      <p class="dlp-pub-draft-banner__text govuk-!-margin-bottom-0">
+        <a class="govuk-link dlp-pub-draft-banner__link" href="{{ approvalHref }}">Back to publishing approval</a>
+      </p>
+    </div>
+  </div>
+  {% endif %}
+  {% block hero %}{% endblock %}
+{% endblock %}

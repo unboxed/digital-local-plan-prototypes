@@ -857,8 +857,35 @@ internally for non-public review. The research question is where that sharing fi
   links point at the logged version, or the one the share will create (`versions/v<nextId>`).
   Locally the server builds them with the kit's internal port (the dev proxy hides the real
   host), so `initCopyLink` swaps in the page's own origin. Seeded versions are still
-  `published`. **Changing `pending` or the version shape means bumping
-  `PLAN_VERSIONS_SCHEMA_VERSION`.**
+  `published`, apart from `SEED_APPROVAL` (`approval-1`, awaiting approval), seeded so the
+  approval screen can be shown without running the flow. **Changing `pending` or the version
+  shape means bumping `PLAN_VERSIONS_SCHEMA_VERSION`.**
+- **Publishing approvals** (`/approvals`, sidebar item; the manager's side). The list splits
+  requests waiting for a decision from decided ones. Both pages say "Logged in as Helen Marsh,
+  Policy Team Leader" (`PPV_APPROVAL_VIEWER`, the first of `PV.APPROVERS`). `/approvals/:id`
+  shows version information (the sender's message is stored but not shown; "Milestone" is
+  `forMilestone`, else the milestone it was set to publish at, else "Not set"), a **preview** of the public plan site, the contents (chapters,
+  supporting documents, the plan text in a details), and the decision: "Approve and publish" or
+  "Request changes" (a comment is required). Approving publishes now (`published`, title becomes
+  "Published: …") or, if it was set to wait for a milestone, `scheduled` (`scheduledFor`);
+  requesting changes is `changes-requested`. `decidedAt` and `decisionComment` are kept, the
+  history's "Not published" line names the status. A request has no version page: its history
+  row says "View approval", `/versions/:id` redirects to `/approvals/:id`, and the banner after
+  "Send for approval" links to "View in publishing approvals".
+- **The preview** (`/public-view/preview/:id`, `.../chapters/:chapterId`; `public-view/preview/`)
+  is the public plan site as the version will be published: shown to the manager as
+  `https://plan.cityoflondon.gov.uk/preview/<id>` (`PV.PUBLIC_SITE`), titled City Plan 2040
+  (`PV.PUBLIC_PLAN_TITLE`), with the City of London Corporation as the organisation. It follows
+  the adopted plan homepage (Public view) but lists only the version's chapters
+  (`CHAPTER_SUMMARIES`) and supporting documents; search is shown but disabled. "Search in your
+  area" (postcode, and draw on a map centred on the City, via the adopted plan's
+  `pubPostcodeForm`/`pubDrawMap` with an `action`) works on screen but only returns to the
+  preview homepage. A chapter page
+  shows the version's numbered paragraphs and its City Plan 2040 policies (`CHAPTER_POLICY_AREAS`
+  to `policies.js`). Until the version is published, every page has a yellow draft banner
+  (status, "not published", "do not share", back to the approval) and a fixed, faint "DRAFT"
+  watermark (`.dlp-pub-draft` on the container). It reads the session, unlike the rest of
+  Public view.
 - **Every version page has "Share a link to this version"**, plan versions and supporting
   document versions alike: one view-only link (`ppvVersionLink`, `?access=view`) with Copy link.
   It's the `copyLink` macro in `partials/macros.html`, shared with Choose how to share, but with

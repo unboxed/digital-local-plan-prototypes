@@ -1,0 +1,32 @@
+{#
+  A chapter of the public plan site for a version: its summary, the version's wording with
+  paragraph numbers, and the City Plan 2040 policies in it (from policies.js, by chapter).
+#}
+{% extends "public-view/preview/layout.html" %}
+
+{% set pageName = chapter.title + " – " + plan.title %}
+
+{% block content %}
+<a class="govuk-back-link" href="{{ previewHome }}">Back to {{ plan.title }}</a>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">{{ plan.title }} – Chapter {{ chapter.number }}</span>
+    <h1 class="govuk-heading-xl">{{ chapter.title }}</h1>
+    <p class="govuk-body-l">{{ chapter.summary }}</p>
+
+    {% for paragraph in content.paragraphs %}
+    <p class="govuk-body dlp-pub-paragraph"><span class="dlp-pub-paragraph__number">{{ paragraph.number }}</span> {{ paragraph.text }}</p>
+    {% endfor %}
+
+    {% if policies.length %}
+    <h2 class="govuk-heading-m govuk-!-margin-top-7">Policies in this chapter</h2>
+    <ul class="govuk-list">
+      {% for policy in policies %}
+      <li><a class="govuk-link" href="#">Policy {{ policy.ref }}: {{ policy.title }}</a></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

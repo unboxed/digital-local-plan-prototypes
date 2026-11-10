@@ -5982,7 +5982,7 @@ router.post(PM + '/notice/publish', (req, res) => {
 // were), so viewing or comparing it later shows what went out, not the current draft.
 
 const PPV = '/project-management/publish-plan-versions'
-const PLAN_VERSIONS_SCHEMA_VERSION = 6
+const PLAN_VERSIONS_SCHEMA_VERSION = 8
 const PV = require('./data/plan-versions.js')
 
 function getPlanVersions (req) {
@@ -6124,7 +6124,8 @@ function ppvSteps (current) {
   return [{
     items: [
       { text: 'View and compare local plan versions', href: PPV + '/history', active: current === 'history' },
-      { text: 'Share or publish local plan or supporting information', href: PPV + '/share?_new=1', active: current === 'share' }
+      { text: 'Share or publish local plan or supporting information', href: PPV + '/share?_new=1', active: current === 'share' },
+      { text: 'Publishing approvals', href: PPV + '/approvals', active: current === 'approvals' }
     ]
   }]
 }
@@ -6167,9 +6168,174 @@ function ppvVersionLink (req, path) {
   return req.protocol + '://' + req.get('host') + PPV + path + '?access=view'
 }
 
+// --- Publishing approval (the manager's side) ---
+//
+// A version sent for approval ('awaiting-approval') is decided here: the manager sees its version
+// information and contents, opens a preview of the public plan site as it will look once
+// published, and approves or requests changes. Approving publishes it now, or marks it
+// 'scheduled' when it was set to publish at a milestone; requesting changes ('changes-requested')
+// needs a comment. The decision is recorded on the version, so the history shows it.
+
+const PPV_APPROVAL_STATUSES = {
+  'awaiting-approval': { text: 'Awaiting approval', classes: 'govuk-tag--blue' },
+  'changes-requested': { text: 'Changes requested', classes: 'govuk-tag--orange' },
+  scheduled: { text: 'Approved – scheduled', classes: 'govuk-tag--green' },
+  published: { text: 'Approved and published', classes: 'govuk-tag--green' }
+}
+
+// Prototype only: the publishing approval screens are seen as the manager the seeded request
+// is sent to.
+const PPV_APPROVAL_VIEWER = PV.APPROVERS[0].name + ', ' + PV.APPROVERS[0].role
+
+function ppvApprovals (req) {
+  return getPlanVersions(req).versions.filter(version => version.method === 'approval' || version.approver)
+}
+
+function ppvPreviewView (req, version) {
+  return {
+    // What the manager is shown and can copy: the address it will have once published.
+    display: 'https://' + PV.PUBLIC_SITE + '/preview/' + version.id,
+    href: '/public-view/preview/' + version.id
+  }
+}
+
+router.get(PPV + '/approvals', (req, res) => {
+  const approvals = ppvApprovals(req).slice().reverse()
+  renderPpv(req, res, 'approvals', 'approvals', {
+    awaiting: approvals.filter(version => version.status === 'awaiting-approval'),
+    decided: approvals.filter(version => version.status !== 'awaiting-approval'),
+    statuses: PPV_APPROVAL_STATUSES,
+    viewer: PPV_APPROVAL_VIEWER
+  })
+})
+
+function ppvApprovalView (req, res, version, values, errors) {
+  const state = getPlanVersions(req)
+  const flash = state.approvalFlash
+  state.approvalFlash = null
+  renderPpv(req, res, 'approval', 'approvals', {
+    version,
+    status: PPV_APPROVAL_STATUSES[version.status] || PPV_APPROVAL_STATUSES['awaiting-approval'],
+    preview: ppvPreviewView(req, version),
+    publicSite: PV.PUBLIC_SITE,
+    // The milestone it publishes at, if it was set to wait for one (one choice covers everything).
+    milestone: (version.schedule || []).find(item => item.when === 'milestone') || null,
+    chapters: version.content.chapters,
+    documents: (version.schedule || []).filter(item => item.id.startsWith('doc-')),
+    values,
+    errors,
+    errorList: ppvErrorList(errors),
+    flash,
+    viewer: PPV_APPROVAL_VIEWER
+  })
+}
+
+router.get(PPV + '/approvals/:id', (req, res) => {
+  const version = ppvApprovals(req).find(v => v.id === req.params.id)
+  if (!version) return res.redirect(PPV + '/approvals')
+  ppvApprovalView(req, res, version, {}, {})
+})
+
+router.post(PPV + '/approvals/:id', (req, res) => {
+  const version = ppvApprovals(req).find(v => v.id === req.params.id)
+  if (!version) return res.redirect(PPV + '/approvals')
+  if (version.status !== 'awaiting-approval') return res.redirect(PPV + '/approvals/' + version.id)
+  const values = { decision: req.body._decision || '', comment: (req.body._comment || '').trim() }
+  const errors = {}
+  if (!['approve', 'changes'].includes(values.decision)) errors.decision = 'Select whether to approve publishing or request changes'
+  if (values.decision === 'changes' && !values.comment) errors.comment = 'Enter what needs to change'
+  if (Object.keys(errors).length) return ppvApprovalView(req, res, version, values, errors)
+
+  const now = ppvNow()
+  const milestone = (version.schedule || []).find(item => item.when === 'milestone')
+  version.decidedAt = now.short
+  version.decisionComment = values.comment
+  if (values.decision === 'changes') {
+    version.status = 'changes-requested'
+  } else if (milestone) {
+    version.status = 'scheduled'
+    version.scheduledFor = milestone.milestone
+  } else {
+    version.status = 'published'
+    version.published = now.short
+    version.publishedLong = now.long
+    version.title = version.title.replace(/^Publishing approval: /, 'Published: ')
+  }
+  getPlanVersions(req).approvalFlash = {
+    changes: 'Changes requested. ' + version.exportedBy + ' has been told what needs to change.',
+    scheduled: 'Approved. It will be published automatically at ' + version.scheduledFor + '.',
+    published: 'Approved and published to ' + PV.PUBLIC_SITE + '.'
+  }[version.status === 'changes-requested' ? 'changes' : version.status]
+  res.redirect(PPV + '/approvals/' + version.id)
+})
+
+// --- The preview: the public plan site as it will look once published ---
+//
+// Under /public-view so it has the public's header, not the internal nav. It reads the version
+// from the session, as a real preview link would be tied to the version. Marked as a draft (a
+// banner and a watermark) until it is published.
+
+function pubPreviewLocals (req, res) {
+  const version = getPlanVersions(req).versions.find(v => v.id === req.params.id)
+  if (!version) {
+    res.redirect(PPV + '/approvals')
+    return null
+  }
+  const chapters = PV.CHAPTERS.map((chapter, index) => ({ chapter, number: index + 1 }))
+    .filter(({ chapter }) => version.content.chapters.some(c => c.id === chapter.id))
+    .map(({ chapter, number }) => ({
+      id: chapter.id,
+      number,
+      title: chapter.title,
+      summary: PV.CHAPTER_SUMMARIES[chapter.id] || '',
+      href: '/public-view/preview/' + version.id + '/chapters/' + chapter.id
+    }))
+  return {
+    authority: 'City of London Corporation',
+    version,
+    plan: { title: PV.PUBLIC_PLAN_TITLE },
+    publicSite: PV.PUBLIC_SITE,
+    // The milestone it publishes at, if it was set to wait for one (one choice covers everything).
+    milestone: (version.schedule || []).find(item => item.when === 'milestone') || null,
+    previewHome: '/public-view/preview/' + version.id,
+    // The draw-on-a-map search, centred on the City. It has no plan areas, and drawing only comes
+    // back to the preview homepage.
+    mapJson: JSON.stringify({ centre: { lat: 51.5155, lng: -0.0918, zoom: 15 }, areas: [], chapters: [] }),
+    approvalHref: PPV + '/approvals/' + version.id,
+    isDraft: version.status !== 'published',
+    draftTitle: {
+      'awaiting-approval': 'Draft – awaiting approval',
+      'changes-requested': 'Draft – changes requested',
+      scheduled: 'Approved – publishes at ' + version.scheduledFor
+    }[version.status] || 'Draft – not published',
+    chapters,
+    documents: (version.schedule || []).filter(item => item.id.startsWith('doc-'))
+  }
+}
+
+router.get('/public-view/preview/:id', (req, res) => {
+  const locals = pubPreviewLocals(req, res)
+  if (locals) res.render('public-view/preview/index', locals)
+})
+
+router.get('/public-view/preview/:id/chapters/:chapterId', (req, res) => {
+  const locals = pubPreviewLocals(req, res)
+  if (!locals) return
+  const chapter = locals.chapters.find(c => c.id === req.params.chapterId)
+  if (!chapter) return res.redirect(locals.previewHome)
+  const area = PV.CHAPTER_POLICY_AREAS[chapter.id]
+  res.render('public-view/preview/chapter', Object.assign(locals, {
+    chapter,
+    content: locals.version.content.chapters.find(c => c.id === chapter.id),
+    policies: area ? POLICIES.filter(policy => policy.policyArea === area) : []
+  }))
+})
+
 router.get(PPV + '/versions/:id', (req, res) => {
   const version = getPlanVersions(req).versions.find(v => v.id === req.params.id)
   if (!version) return res.redirect(PPV + '/history')
+  // Requests for publishing approval are viewed on their publishing approval page instead.
+  if (ppvApprovals(req).includes(version)) return res.redirect(PPV + '/approvals/' + version.id)
   renderPpv(req, res, 'version', 'history', {
     version,
     layers: version.layers.map(ppvLayerView),
@@ -6532,7 +6698,10 @@ router.post(PPV + '/share/check', (req, res) => {
   state.flash = {
     title: 'Sent for publishing approval: ' + included,
     text: approver.name + ' would get an email asking them to approve publishing. It has been added to the version history.',
-    id: version.id
+    id: version.id,
+    // A request for approval has no version page of its own: the publishing approval replaces it.
+    href: PPV + '/approvals/' + version.id,
+    linkText: 'View in publishing approvals'
   }
   res.redirect(PPV + '/history')
 })

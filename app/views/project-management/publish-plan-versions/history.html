@@ -18,7 +18,7 @@
 {% if flash %}
   {% set flashHtml %}
     <h3 class="govuk-notification-banner__heading">{{ flash.title }}</h3>
-    <p class="govuk-body">{{ flash.text }} <a class="govuk-notification-banner__link" href="{{ ppv }}/versions/{{ flash.id }}">View this version</a></p>
+    <p class="govuk-body">{{ flash.text }} <a class="govuk-notification-banner__link" href="{{ flash.href or (ppv + '/versions/' + flash.id) }}">{{ flash.linkText or "View this version" }}</a></p>
   {% endset %}
   {{ govukNotificationBanner({ type: "success", html: flashHtml }) }}
 {% endif %}
@@ -56,7 +56,7 @@
             <td class="govuk-table__cell">{{ version.title }}</td>
             <td class="govuk-table__cell">{{ version.versionDate }}</td>
             <td class="govuk-table__cell">
-              {% if version.published %}{{ version.published }}{% else %}Not published<br><span class="dlp-ppv-muted">{{ "Awaiting approval" if version.status == "awaiting-approval" else "Shared internally" }} {{ version.sharedAt }}</span>{% endif %}
+              {% if version.published %}{{ version.published }}{% else %}Not published<br><span class="dlp-ppv-muted">{{ {"awaiting-approval": "Awaiting approval", "changes-requested": "Changes requested", "scheduled": "Approved, publishes at " + version.scheduledFor}[version.status] or "Shared internally" }} {{ version.decidedAt or version.sharedAt }}</span>{% endif %}
             </td>
             <td class="govuk-table__cell">{{ version.exportedBy }}</td>
             <td class="govuk-table__cell">
@@ -67,7 +67,11 @@
               {% endif %}
             </td>
             <td class="govuk-table__cell">
+              {% if version.method == "approval" or version.approver %}
+              <a class="govuk-link" href="{{ ppv }}/approvals/{{ version.id }}">View approval<span class="govuk-visually-hidden">: {{ version.title }}</span></a>
+              {% else %}
               <a class="govuk-link" href="{{ ppv }}/versions/{{ version.id }}">View version<span class="govuk-visually-hidden">: {{ version.title }}</span></a>
+              {% endif %}
             </td>
             <td class="govuk-table__cell">
               <div class="govuk-checkboxes govuk-checkboxes--small" data-module="govuk-checkboxes">

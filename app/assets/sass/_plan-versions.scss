@@ -512,3 +512,17 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
   padding-left: govuk-spacing(3);
 }
 
+
+// Publishing approval: the preview's public address, shown as it will be, above its button.
+.dlp-ppv-preview-link {
+  border-left: 5px solid $govuk-brand-colour;
+  padding: govuk-spacing(3) govuk-spacing(4);
+  background: govuk-colour("black", $variant: "tint-95");
+}
+
+.dlp-ppv-preview-link__address {
+  @include govuk-font($size: 19);
+  font-family: monospace;
+  margin: 0 0 govuk-spacing(3);
+  overflow-wrap: anywhere;
+}
