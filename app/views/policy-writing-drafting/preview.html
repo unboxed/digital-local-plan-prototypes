@@ -1,5 +1,7 @@
 {% extends "layouts/main.html" %}
 
+{% from "partials/rich-text/macro.njk" import richText %}
+
 {% set pageName = "Draft plan preview" %}
 
 {% block content %}
@@ -41,7 +43,7 @@
           {% endif %}
           {% if area.draft %}
             {% if area.draft.context %}<p class="govuk-body govuk-!-font-weight-bold dlp-pd-prewrap">{{ area.draft.context }}</p>{% endif %}
-            {% if area.draft.detail %}<p class="govuk-body dlp-pd-prewrap">{{ area.draft.detail }}</p>{% endif %}
+            {% if area.draft.detail | length %}<div class="dlp-rich-text__content">{{ richText(area.draft.detail) }}</div>{% endif %}
             <p class="govuk-body-s dlp-pd-muted">Last saved {{ area.draft.savedAt }}</p>
           {% else %}
             <p class="govuk-body dlp-pd-muted">Not drafted yet.</p>

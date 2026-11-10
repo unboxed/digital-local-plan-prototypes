@@ -338,6 +338,129 @@
   min-width: 1.75rem;
 }
 
+// --- Rich text (partials/rich-text/macro.njk, initRichText) ---------------------------------
+
+// The toolbar works once JavaScript runs (it stays hidden without), so its buttons look and
+// behave like controls rather than the decorative ones elsewhere.
+.dlp-rich-text__toolbar {
+  position: relative;
+
+  .dlp-editor-toolbar__button {
+    cursor: pointer;
+
+    &:hover {
+      background: $dlp-border-grey;
+    }
+
+    &[aria-pressed="true"] {
+      background: govuk-colour("black", $variant: "tint-50");
+      color: govuk-colour("white");
+    }
+
+    &:focus {
+      @include govuk-focused-box;
+    }
+  }
+}
+
+.dlp-rich-text__more {
+  position: relative;
+}
+
+.dlp-rich-text__menu {
+  background: govuk-colour("white");
+  border: 1px solid $dlp-border-grey;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: govuk-spacing(1) 0;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 10;
+}
+
+.dlp-rich-text__menu-item {
+  @include govuk-font($size: 16);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: govuk-spacing(2) govuk-spacing(3);
+  text-align: left;
+
+  &:hover {
+    background: $dlp-panel-background;
+  }
+
+  &:focus {
+    @include govuk-focused-box;
+  }
+}
+
+// Sized like the textarea it replaces (14 rows), and grows with its content.
+.dlp-rich-text__editor {
+  @include govuk-font($size: 19);
+  min-height: 21em;
+  overflow-wrap: break-word;
+  resize: none;
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-rich-text__figure {
+  margin: 0 0 govuk-spacing(4);
+  max-width: 100%;
+}
+
+.dlp-rich-text__image {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.dlp-rich-text__caption {
+  @include govuk-font($size: 16);
+  color: $dlp-muted-text;
+  margin-top: govuk-spacing(1);
+}
+
+// Only in the editor, where an image can be selected but not typed into.
+.dlp-rich-text__editor .dlp-rich-text__figure {
+  border: 1px dashed $dlp-border-grey;
+  padding: govuk-spacing(2);
+  user-select: none;
+}
+
+.dlp-rich-text__remove {
+  @include govuk-font($size: 16);
+  background: none;
+  border: 0;
+  color: $govuk-error-colour;
+  cursor: pointer;
+  margin-top: govuk-spacing(1);
+  padding: 0;
+  text-decoration: underline;
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+.dlp-rich-text__preview {
+  border: 1px solid $dlp-border-grey;
+  display: block;
+  margin-bottom: govuk-spacing(4);
+  max-height: 12rem;
+  max-width: 100%;
+}
+
+.dlp-rich-text__dialog {
+  max-width: 36em;
+}
+
 // --- View and export -----------------------------------------------------------------------
 
 .dlp-pd-radio-with-select {

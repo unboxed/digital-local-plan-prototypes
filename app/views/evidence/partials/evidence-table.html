@@ -1,0 +1,48 @@
+{#
+  evidenceTable(table): a table of figures in the document viewer, as printed, ready to be
+  highlighted (initEvidenceTables).
+
+  table is resolveTable's result (app/data/evidence-tables.js). Every cell carries what clicking
+  it selects, as body row and column indexes (empty is all) and the reference that selection
+  has, so the browser doesn't work out headers itself. Data cells also carry their own row and
+  column, which is how saved selections are marked.
+#}
+{% macro evidenceTable(table) %}
+<div class="dlp-evidence-table" data-dlp-evidence-table="{{ table.id }}" data-dlp-table-reference="{{ table.title }}">
+  <div class="dlp-evidence-table__bar">
+    <button type="button" class="govuk-button govuk-button--secondary dlp-evidence-table__toggle"
+            data-module="govuk-button" aria-pressed="false" data-dlp-table-toggle>
+      Highlight table<span class="govuk-visually-hidden">: {{ table.title }}</span>
+    </button>
+    <p class="govuk-body-s dlp-evidence-table__hint" data-dlp-table-hint hidden>
+      Choose a figure, a row heading or a column heading to reference it.
+      <button type="button" class="dlp-link-button" data-dlp-table-whole>Select the whole table</button>
+    </p>
+  </div>
+  <div class="dlp-evidence-table__scroll">
+    <table class="govuk-table dlp-evidence-table__table">
+      <caption class="govuk-table__caption govuk-table__caption--s">{{ table.title }}</caption>
+      {% for row in table.layout %}
+        {% if loop.first and table.headerRows %}<thead class="govuk-table__head">{% endif %}
+        {% if loop.index0 == table.headerRows %}<tbody class="govuk-table__body">{% endif %}
+        <tr class="govuk-table__row">
+          {% for cell in row %}
+            {% set tag = "th" if cell.header else "td" %}
+            <{{ tag }} class="{{ ('govuk-table__header' + (' govuk-table__header--numeric' if cell.numeric else '')) if cell.header else 'govuk-table__cell govuk-table__cell--numeric' }}"
+              {%- if cell.colspan > 1 %} colspan="{{ cell.colspan }}"{% endif %}
+              {%- if cell.rowspan > 1 %} rowspan="{{ cell.rowspan }}"{% endif %}
+              {%- if cell.scope %} scope="{{ cell.scope }}"{% endif %}
+              data-dlp-table-rows="{{ cell.target.rows | join(',') }}"
+              data-dlp-table-cols="{{ cell.target.cols | join(',') }}"
+              data-dlp-table-reference="{{ cell.reference }}"
+              {%- if not cell.header %} data-dlp-table-row="{{ cell.target.rows[0] }}" data-dlp-table-col="{{ cell.target.cols[0] }}"{% endif %}>{{ cell.text }}</{{ tag }}>
+          {% endfor %}
+        </tr>
+        {% if loop.index == table.headerRows %}</thead>{% endif %}
+        {% if loop.last %}</tbody>{% endif %}
+      {% endfor %}
+    </table>
+  </div>
+  {% if table.note %}<p class="govuk-body-s dlp-evidence-table__note">{{ table.note }}</p>{% endif %}
+</div>
+{% endmacro %}

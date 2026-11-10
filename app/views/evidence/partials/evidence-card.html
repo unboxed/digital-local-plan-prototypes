@@ -12,7 +12,32 @@
     {% endif %}
   </p>
 
-  <p class="govuk-body dlp-evidence-card__text">{{ item.text }}</p>
+  {% if item.type == "table" %}
+    {# A table, or a cell, row or column of one: its reference, then the figures, flattened to
+       one header row and one header column when it was saved. #}
+    <p class="govuk-body dlp-evidence-card__text"><strong>{{ item.reference }}</strong></p>
+    <div class="dlp-evidence-card__table-scroll">
+      <table class="govuk-table dlp-evidence-card__table">
+        <caption class="govuk-visually-hidden">Figures from {{ item.reference }}</caption>
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th class="govuk-table__header" scope="col">{{ item.data.corner }}</th>
+            {% for column in item.data.columns %}<th class="govuk-table__header govuk-table__header--numeric" scope="col">{{ column }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for row in item.data.rows %}
+          <tr class="govuk-table__row">
+            <th class="govuk-table__header" scope="row">{{ row.header }}</th>
+            {% for value in row.values %}<td class="govuk-table__cell govuk-table__cell--numeric">{{ value }}</td>{% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="govuk-body dlp-evidence-card__text">{{ item.text }}</p>
+  {% endif %}
 
   <p class="dlp-evidence-card__tags">
     {% for tag in item.tags %}<strong class="govuk-tag{% if tagColours[tag] %} govuk-tag--{{ tagColours[tag] }}{% endif %} dlp-evidence-card__tag">{{ tag }}</strong>{% endfor %}

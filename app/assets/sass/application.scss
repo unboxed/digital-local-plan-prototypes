@@ -114,6 +114,122 @@ $dlp-highlight-background: #fff7bf;
   margin-right: govuk-spacing(2);
 }
 
+// --- Tables in the evidence review (evidence-table.html, initEvidenceTables) ---
+
+.dlp-evidence-table {
+  margin-bottom: govuk-spacing(4);
+
+  // The viewer sizes its paragraphs for reading; the table's own lines are smaller print.
+  p {
+    @include govuk-font($size: 16);
+    margin-bottom: govuk-spacing(2);
+  }
+}
+
+.dlp-evidence-table__bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2) govuk-spacing(3);
+  margin-bottom: govuk-spacing(2);
+
+  .dlp-evidence-table p.dlp-evidence-table__hint {
+    margin: 0;
+  }
+}
+
+.dlp-evidence-table__toggle {
+  margin-bottom: 0;
+}
+
+.dlp-evidence-table__scroll,
+.dlp-selected-table__scroll,
+.dlp-evidence-card__table-scroll {
+  overflow-x: auto;
+}
+
+.dlp-evidence-table__table {
+  @include govuk-font($size: 16);
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-evidence-table__note {
+  color: $dlp-muted-text;
+}
+
+// Highlighted: the table is ruled round like a highlight, and its cells are buttons.
+.dlp-evidence-table--highlighted .dlp-evidence-table__table {
+  background: $dlp-highlight-background;
+  outline: 2px solid govuk-colour("black", $variant: "tint-50");
+  outline-offset: 2px;
+}
+
+.dlp-table-pick {
+  background: none;
+  border: 0;
+  color: $govuk-link-colour;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  width: 100%;
+
+  &:hover {
+    color: $govuk-link-hover-colour;
+    text-decoration-thickness: 3px;
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+
+  &[aria-pressed="true"] {
+    font-weight: bold;
+  }
+}
+
+// The figures a selection covers: a solid inset rule as well as the tint, so the selection
+// doesn't rest on colour alone. Saved selections use a dashed rule instead.
+.dlp-table-cell--selected {
+  background: govuk-colour("blue", $variant: "tint-80");
+  box-shadow: inset 0 0 0 2px govuk-colour("blue");
+}
+
+.dlp-table-cell--saved {
+  background: $dlp-highlight-background;
+  border-bottom: 2px dashed govuk-colour("black", $variant: "tint-50");
+}
+
+.dlp-highlight-tags-row--table {
+  margin-top: 0;
+
+  .dlp-highlight-tags-group {
+    align-items: center;
+    margin-bottom: govuk-spacing(1);
+  }
+}
+
+.dlp-highlight-tags-group__reference {
+  @include govuk-font($size: 16, $weight: bold);
+  margin-right: govuk-spacing(1);
+}
+
+.dlp-selected-table {
+  margin-top: govuk-spacing(3);
+}
+
+.dlp-selected-table__table,
+.dlp-evidence-card__table {
+  @include govuk-font($size: 16);
+  margin-bottom: govuk-spacing(2);
+}
+
+.dlp-selected-table__copied {
+  color: $dlp-muted-text;
+}
+
 .dlp-chip-form {
   display: inline-block;
   margin: 0;

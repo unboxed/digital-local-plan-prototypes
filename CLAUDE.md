@@ -500,10 +500,26 @@ the repo. Ask the user for them if you need to compare against the design.
   PDF. Keep both on any new entry.
 - **Some controls are deliberately inert placeholders from the design**, awaiting
   functionality: "Save and add another" (explanatory text), "+ Add new source", "View in
-  consultation panel", "Invite collaborators" (draft policy), and the policy detail's
-  formatting toolbar. The field under the toolbar is
-  still a plain textarea. The toolbar buttons are `aria-hidden` and out of the tab order, as in
-  the other prototypes.
+  consultation panel" and "Invite collaborators" (draft policy).
+- **The policy detail is rich text** (`initRichText`, `data-dlp-rich-text`): bold, italic,
+  bulleted and numbered lists ("…" menu), links and images. It is **stored as blocks, never
+  HTML**: the editor reads itself back with `richTextBlocks` and posts JSON in
+  `_policyDetailRich`; `pdCleanRichText` keeps only `paragraph` / `list` / `image` blocks and
+  `{text, bold, italic, href}` runs (http(s), mailto or site-relative hrefs only); and
+  `partials/rich-text/macro.njk` renders them autoescaped, in the editor, the preview and export
+  snapshots. A plain-string `detail` (seeded snapshots, older drafts) still renders, through
+  `pdRichText`. The macro's markup is what the editor reads back, so change the two together.
+  Without JavaScript the textarea posts plain text (blank lines are paragraphs) and the toolbar
+  stays hidden. Saving that way drops images, which the textarea names in brackets. Pasting
+  inserts plain text, because pasted markup would be thrown away on save.
+- **Images are uploaded on their own**, not in the draft form, which is limited to 100kb and
+  isn't multipart. The image dialog (outside the draft form, so its fields aren't posted) asks
+  for a description, which is required, and an optional caption, then POSTs the file's bytes to
+  `/policy-writing-drafting/images`. The route checks the type from the file's first bytes
+  (PNG, JPG, GIF, WebP; never SVG) and the 5MB limit, writes it to the git-ignored
+  `.tmp/policy-drafting-images/`, and returns an id, which is all the draft stores. An image is a
+  block of its own: inserting one splits the paragraph at the caret. Dropping or pasting an image
+  file opens the dialog with it.
 - **Add sources search.** Three small generic components in application.js drive it, each opted
   into by attribute:
   - `initSuggestSearch` (`data-dlp-suggest`) is a combobox over `getLibrarySearchTerms()`.
@@ -531,6 +547,38 @@ the repo. Ask the user for them if you need to compare against the design.
   builder the live preview uses. So "View this version" (`/chapters/:id/export/:exportId`)
   shows what was exported, not the current draft. Housing is seeded with two earlier exports.
   **Changing the entry shape means bumping `POLICY_DRAFTING_SCHEMA_VERSION`.**
+
+## Evidence review: highlighting tables
+
+`/evidence/review` lets an officer highlight a table of figures as well as text, then reference
+the whole table, a figure, a row or a column. The Local Housing Needs Assessment has two
+invented tables (`DOCUMENT_TABLES` in `app/data/documents.js`, placed by `afterParagraph`):
+Table 3.1 has two header rows and Table 3.2 two header columns.
+
+- **References read "Table title, row header, column header"**, with only the parts that apply.
+  A two-level header is merged into one, joined with " – " ("Households – 2024",
+  "Affordable housing for rent – Social rent"), both in the reference and in the extracted data,
+  which always has one header row and one header column. Because the parts are separated by
+  commas, **keep commas out of table titles and headers** (use brackets, as "(2024 to 2039)").
+- **The merging is done once, on the server**, by `resolveTable` in
+  `app/data/evidence-tables.js`. The template (`evidence/partials/evidence-table.html`) puts on
+  every cell what clicking it selects (`data-dlp-table-rows` / `-cols`, body indexes, empty for
+  all) and that selection's reference; the browser gets the merged headers and figures as JSON
+  and only looks them up by index. Saving posts just `tableId`, `tableRows` and `tableCols`, and
+  `buildTableEvidenceItem` works the reference and data out again with `selectTable`, so the
+  preview and the saved item can't disagree. A heading over two rows or columns selects both,
+  named by the levels they share.
+- **Table items are evidence items of `type: 'table'`**, with `reference`, `scope`, `rows`,
+  `cols` and `data: {corner, columns, rows: [{header, values}]}`, plus a plain-text `text` for
+  the screens that show evidence as a line. `evidenceCard` renders their figures as a table.
+- **`initEvidenceTables`** (`data-dlp-evidence-tables` on the viewer) turns a highlighted table's
+  cells into buttons, and back into plain cells afterwards, so they are only described as
+  buttons while they act as them. It tells the tag panel through `dlp-table-selection` events
+  on the viewer; the panel sends `dlp-table-clear` back when text is selected instead. A click
+  inside a table is ignored by the text-selection handler and clears any leftover text
+  selection: without that, an old selection took the panel back to text on every cell click.
+  Text inside tables is never matched as a passage. The read-only document view does not show
+  the tables yet.
 
 ## Managing commissioned evidence
 

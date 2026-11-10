@@ -63,6 +63,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
 
   document.querySelectorAll('[data-dlp-tagger]').forEach(safeInit(initTagger))
   document.querySelectorAll('[data-dlp-highlights]').forEach(safeInit(initSavedHighlights))
+  document.querySelectorAll('[data-dlp-evidence-tables]').forEach(safeInit(initEvidenceTables))
   document.querySelectorAll('[data-dlp-search]').forEach(safeInit(initDocumentSearch))
   document.querySelectorAll('[data-dlp-evidence-search]').forEach(safeInit(initEvidenceSearchModal))
   document.querySelectorAll('[data-dlp-resource-panel]').forEach(safeInit(initResourcePanel))
@@ -84,6 +85,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-pub-layer-map]').forEach(safeInit(initPublicLayerMap))
   document.querySelectorAll('[data-dlp-pub-policy-map]').forEach(safeInit(initPublicPolicyMap))
   document.querySelectorAll('[data-dlp-copy-link]').forEach(safeInit(initCopyLink))
+  document.querySelectorAll('[data-dlp-rich-text]').forEach(safeInit(initRichText))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -167,6 +169,18 @@ function initTagger (root) {
 
   let mode = root.dataset.dlpMode || 'passage'
   let currentSelectionText = root.dataset.dlpText || ''
+  // A table, or a cell, row or column of one, from initEvidenceTables; null for none.
+  let tableSelection = null
+  const heading = part('tag-heading')
+  const selectedLabel = part('selected-label')
+  const selectedTable = part('selected-table')
+  const selectedTableData = part('selected-table-data')
+  const copyStatus = part('copy-table-status')
+  const defaults = {
+    heading: heading ? heading.textContent : '',
+    label: selectedLabel ? selectedLabel.textContent : '',
+    preview: selectedTextPreview ? selectedTextPreview.textContent : ''
+  }
   let selectedReference = ''
   const selectedTags = new Set()
   const selectedPolicyAreas = new Set()
@@ -197,15 +211,47 @@ function initTagger (root) {
     button.addEventListener('click', () => setMode(button.dataset.mode))
   })
 
-  function updateSelectionPreview () {
+  // Shows either what was selected in the text or the table selection, never both.
+  function showTableSelection (detail) {
+    tableSelection = detail
+    if (heading) heading.textContent = detail ? heading.dataset.dlpTableHeading : defaults.heading
+    if (selectedLabel) selectedLabel.textContent = detail ? selectedLabel.dataset.dlpTableLabel : defaults.label
+    if (copyStatus) copyStatus.textContent = ''
+    if (selectedTable) selectedTable.hidden = !detail
+    if (selectedTableData) {
+      selectedTableData.textContent = ''
+      if (detail) selectedTableData.appendChild(buildSelectionTable(detail.data, 'Figures from ' + detail.reference))
+    }
+    if (selectedTextPreview) {
+      selectedTextPreview.textContent = detail ? detail.reference : (currentSelectionText || defaults.preview)
+      selectedTextPreview.classList.toggle('dlp-selected-text--empty', !detail && !currentSelectionText)
+    }
+    mode = detail ? 'table' : 'passage'
+  }
+
+  function withinTable (node) {
+    const element = node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentNode)
+    return Boolean(element && element.closest('[data-dlp-evidence-table]'))
+  }
+
+  function updateSelectionPreview (event) {
+    // A click or key press on a table is about the table. A text selection left over from
+    // earlier is still live at that point, and would otherwise take the panel back to text.
+    if (event && withinTable(event.target)) return
     const selection = window.getSelection()
     if (!selection || selection.isCollapsed) return
     if (!viewer.contains(selection.anchorNode) || !viewer.contains(selection.focusNode)) return
+    // Figures are referenced through the table's own controls, not by selecting their text.
+    if (withinTable(selection.anchorNode) || withinTable(selection.focusNode)) return
 
     const text = selection.toString().trim()
     if (!text) return
 
     currentSelectionText = text
+    if (tableSelection) {
+      viewer.dispatchEvent(new CustomEvent('dlp-table-clear'))
+      showTableSelection(null)
+    }
     if (selectedTextPreview) {
       selectedTextPreview.textContent = text
       selectedTextPreview.classList.remove('dlp-selected-text--empty')
@@ -216,7 +262,29 @@ function initTagger (root) {
   if (viewer) {
     viewer.addEventListener('mouseup', updateSelectionPreview)
     viewer.addEventListener('keyup', updateSelectionPreview)
+    if (fields.tableId) {
+      viewer.addEventListener('dlp-table-selection', event => {
+        currentSelectionText = ''
+        const selection = window.getSelection()
+        if (event.detail && selection && selection.rangeCount && viewer.contains(selection.anchorNode)) selection.removeAllRanges()
+        showTableSelection(event.detail)
+      })
+    }
   }
+
+  const copyReference = part('copy-table-reference')
+  const copyData = part('copy-table-data')
+  function copyFromSelection (button, text, done) {
+    if (!button) return
+    button.addEventListener('click', () => {
+      if (!tableSelection) return
+      copyToClipboard(text())
+        .then(() => { if (copyStatus) copyStatus.textContent = done })
+        .catch(() => { if (copyStatus) copyStatus.textContent = 'Could not copy in this browser' })
+    })
+  }
+  copyFromSelection(copyReference, () => tableSelection.reference, 'Reference copied')
+  copyFromSelection(copyData, () => tableSelectionAsText(tableSelection.data), 'Data copied')
 
   function toggleLozenge (button, tagSet) {
     const isPressed = button.getAttribute('aria-pressed') === 'true'
@@ -405,6 +473,11 @@ function initTagger (root) {
 
     if (fields.entryType) fields.entryType.value = mode
     if (fields.selectedText) fields.selectedText.value = mode === 'passage' ? currentSelectionText : ''
+    if (fields.tableId) {
+      fields.tableId.value = mode === 'table' ? tableSelection.tableId : ''
+      fields.tableRows.value = mode === 'table' ? tableSelection.rows.join(',') : ''
+      fields.tableCols.value = mode === 'table' ? tableSelection.cols.join(',') : ''
+    }
     if (fields.noteText) fields.noteText.value = noteText
     if (fields.sourceType && noteSourceTypeSelect) {
       fields.sourceType.value = mode === 'note' ? noteSourceTypeSelect.value : ''
@@ -417,7 +490,7 @@ function initTagger (root) {
 
     if (mode === 'passage' && !currentSelectionText) {
       event.preventDefault()
-      window.alert('Highlight some text in the document before saving.')
+      window.alert('Highlight some text or a table in the document before saving.')
       return
     }
     if (mode === 'note' && !noteText) {
@@ -457,14 +530,52 @@ function initSavedHighlights (viewer) {
     savedPassages = []
   }
 
-  savedPassages.forEach(item => highlightPassage(viewer, item, options))
+  savedPassages.forEach(item => {
+    if (item.type === 'table') highlightTableItem(viewer, item, options)
+    else highlightPassage(viewer, item, options)
+  })
+}
+
+// A saved table selection: its figures are marked in the table, and its reference and tags sit
+// in a row under the table, as a passage's do under its paragraph.
+function highlightTableItem (viewer, item, options) {
+  const container = Array.from(viewer.querySelectorAll('[data-dlp-evidence-table]'))
+    .find(candidate => candidate.dataset.dlpEvidenceTable === item.tableId)
+  if (!container) return
+
+  const rows = item.rows || []
+  const cols = item.cols || []
+  container.querySelectorAll('td[data-dlp-table-row]').forEach(td => {
+    const inRow = !rows.length || rows.indexOf(Number(td.dataset.dlpTableRow)) !== -1
+    const inCol = !cols.length || cols.indexOf(Number(td.dataset.dlpTableCol)) !== -1
+    if (inRow && inCol) td.classList.add('dlp-table-cell--saved')
+  })
+
+  let row = container.nextElementSibling
+  if (!row || !row.classList.contains('dlp-highlight-tags-row')) {
+    row = document.createElement('div')
+    row.className = 'dlp-highlight-tags-row dlp-highlight-tags-row--table'
+    container.insertAdjacentElement('afterend', row)
+  }
+  const group = document.createElement('span')
+  group.className = 'dlp-highlight-tags-group'
+  const label = document.createElement('span')
+  label.className = 'dlp-highlight-tags-group__reference'
+  label.textContent = item.reference.replace(container.dataset.dlpTableReference, '').replace(/^, /, '') || 'Whole table'
+  group.appendChild(label)
+  item.tags.concat(item.customTags).forEach(tag => group.appendChild(createRemovableTagChip(item.id, tag, 'topic', options)))
+  item.policyAreas.forEach(area => group.appendChild(createRemovableTagChip(item.id, area, 'policy', options)))
+  row.appendChild(group)
 }
 
 function highlightPassage (viewer, item, options) {
   const text = item.text
   if (!text) return
 
-  const walker = document.createTreeWalker(viewer, NodeFilter.SHOW_TEXT)
+  // Tables are referenced through their own controls, so a passage is never looked for in one.
+  const walker = document.createTreeWalker(viewer, NodeFilter.SHOW_TEXT, {
+    acceptNode: node => node.parentNode.closest('[data-dlp-evidence-table]') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+  })
   let node
   while ((node = walker.nextNode())) {
     const index = node.nodeValue.indexOf(text)
@@ -3167,4 +3278,809 @@ function initCopyLink (container) {
       if (status) status.textContent = 'Could not copy — select the link and copy it yourself'
     })
   })
+}
+
+// --- Rich text editor (data-dlp-rich-text) ---
+//
+// Turns a plain textarea into a small rich text editor: bold, italic, bulleted and numbered
+// lists, links, and images placed between paragraphs. It is an enhancement: without JavaScript
+// the textarea is posted as plain text. With it, the textarea is disabled (so it isn't posted),
+// and on submit the editor's content is read back into blocks (richTextBlocks) and posted as
+// JSON in the [data-dlp-rich-text-value] field. The server keeps only the shapes it knows
+// (pdCleanRichText in app/routes.js) and renders them through partials/rich-text/macro.njk, so
+// whatever the browser puts into the editable area is never stored or shown as HTML.
+//
+// Like the draft check, this writes no HTML: new content is built with createElement and
+// textContent. Pasting inserts plain text, because pasted markup (from Word, say) would only be
+// thrown away on save and the drafter would see it vanish.
+function initRichText (root) {
+  const editor = root.querySelector('[data-dlp-rich-text-editor]')
+  const textarea = root.querySelector('[data-dlp-rich-text-fallback]')
+  const toolbar = root.querySelector('[data-dlp-rich-text-toolbar]')
+  const valueField = root.querySelector('[data-dlp-rich-text-value]')
+  const status = root.querySelector('[data-dlp-rich-text-status]')
+  const form = root.closest('form')
+  if (!editor || !textarea || !toolbar || !valueField || !form) return
+  if (typeof document.execCommand !== 'function' || !window.getSelection) return
+
+  const moreButton = toolbar.querySelector('[data-dlp-rich-text-more]')
+  const menu = toolbar.querySelector('[data-dlp-rich-text-menu]')
+  const linkDialog = querySelectorOrNull(root.dataset.dlpRichTextLinkDialog)
+  const imageDialog = querySelectorOrNull(root.dataset.dlpRichTextImageDialog)
+  const uploadUrl = root.dataset.dlpRichTextUpload
+
+  textarea.hidden = true
+  textarea.disabled = true
+  editor.hidden = false
+  toolbar.hidden = false
+  valueField.disabled = false
+  if (!linkDialog) hideCommand('link')
+  if (!imageDialog || !uploadUrl || !window.fetch) hideCommand('image')
+
+  // The label still points at the textarea, so clicking it focuses the editor instead.
+  const label = root.querySelector('label[for="' + textarea.id + '"]')
+  if (label) label.addEventListener('click', event => { event.preventDefault(); editor.focus() })
+
+  try { document.execCommand('defaultParagraphSeparator', false, 'p') } catch (error) {}
+  try { document.execCommand('styleWithCSS', false, false) } catch (error) {}
+  ensureParagraph()
+  editor.querySelectorAll('[data-dlp-rich-image]').forEach(addRemoveButton)
+
+  // Where the caret was in the editor, so a toolbar button or a dialog can act on it after
+  // focus has moved away.
+  // selectionchange is asynchronous, so a shortcut pressed straight after typing can arrive
+  // before it; every command captures the live selection first rather than trusting it.
+  let savedRange = null
+  function captureSelection () {
+    const selection = window.getSelection()
+    if (!selection.rangeCount || !editor.contains(selection.getRangeAt(0).commonAncestorContainer)) return false
+    savedRange = selection.getRangeAt(0).cloneRange()
+    return true
+  }
+  document.addEventListener('selectionchange', () => {
+    if (captureSelection()) updatePressed()
+  })
+
+  function hideCommand (command) {
+    toolbar.querySelectorAll('[data-dlp-rich-text-command="' + command + '"]').forEach(button => { button.hidden = true })
+  }
+
+  function announce (message) {
+    if (status) status.textContent = message
+  }
+
+  function restoreSelection () {
+    editor.focus()
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    if (savedRange && editor.contains(savedRange.commonAncestorContainer)) {
+      selection.addRange(savedRange)
+    } else {
+      const range = document.createRange()
+      range.selectNodeContents(editor)
+      range.collapse(false)
+      selection.addRange(range)
+    }
+    return selection
+  }
+
+  // An empty editor still needs a paragraph to type into, or the first line has no block.
+  function ensureParagraph () {
+    if (editor.querySelector('p, ul, ol, figure')) return
+    const paragraph = document.createElement('p')
+    paragraph.className = 'govuk-body'
+    paragraph.appendChild(document.createElement('br'))
+    editor.textContent = ''
+    editor.appendChild(paragraph)
+  }
+
+  function updatePressed () {
+    const states = { bold: 'bold', italic: 'italic', bullets: 'insertUnorderedList' }
+    Object.keys(states).forEach(command => {
+      const button = toolbar.querySelector('[data-dlp-rich-text-command="' + command + '"]')
+      if (!button) return
+      let pressed = false
+      try { pressed = document.queryCommandState(states[command]) } catch (error) {}
+      button.setAttribute('aria-pressed', String(Boolean(pressed)))
+    })
+  }
+
+  function closeMenu () {
+    if (!menu || menu.hidden) return
+    menu.hidden = true
+    if (moreButton) moreButton.setAttribute('aria-expanded', 'false')
+  }
+
+  function run (command) {
+    captureSelection()
+    closeMenu()
+    if (command === 'link') return openLinkDialog()
+    if (command === 'image') return openImageDialog()
+    restoreSelection()
+    if (command === 'bold') document.execCommand('bold')
+    if (command === 'italic') document.execCommand('italic')
+    if (command === 'bullets') document.execCommand('insertUnorderedList')
+    if (command === 'numbers') document.execCommand('insertOrderedList')
+    if (command === 'clear') {
+      document.execCommand('removeFormat')
+      document.execCommand('unlink')
+    }
+    ensureParagraph()
+    updatePressed()
+  }
+
+  // mousedown would otherwise take focus, and with it the selection the button acts on.
+  toolbar.addEventListener('mousedown', event => {
+    if (!event.target.closest('button')) return
+    captureSelection()
+    event.preventDefault()
+  })
+  toolbar.addEventListener('click', event => {
+    const button = event.target.closest('[data-dlp-rich-text-command]')
+    if (button) run(button.dataset.dlpRichTextCommand)
+  })
+
+  if (moreButton && menu) {
+    moreButton.addEventListener('click', () => {
+      const open = menu.hidden
+      menu.hidden = !open
+      moreButton.setAttribute('aria-expanded', String(open))
+      if (open) menu.querySelector('button').focus()
+    })
+    menu.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { closeMenu(); moreButton.focus() }
+    })
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.dlp-rich-text__more')) closeMenu()
+    })
+  }
+
+  editor.addEventListener('keydown', event => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault()
+      run('link')
+    }
+  })
+
+  editor.addEventListener('paste', event => {
+    if (!event.clipboardData) return
+    const files = Array.from(event.clipboardData.files || []).filter(file => file.type.indexOf('image/') === 0)
+    event.preventDefault()
+    if (files.length && imageDialog) return openImageDialog(files[0])
+    document.execCommand('insertText', false, event.clipboardData.getData('text/plain'))
+  })
+
+  // A file dropped on the editor opens the image dialog with it. Anything else dropped would be
+  // markup, which is not kept, so it isn't accepted.
+  editor.addEventListener('dragover', event => event.preventDefault())
+  editor.addEventListener('drop', event => {
+    event.preventDefault()
+    const file = Array.from((event.dataTransfer && event.dataTransfer.files) || []).find(candidate => candidate.type.indexOf('image/') === 0)
+    if (file && imageDialog) {
+      const range = document.caretRangeFromPoint && document.caretRangeFromPoint(event.clientX, event.clientY)
+      if (range && editor.contains(range.startContainer)) savedRange = range
+      openImageDialog(file)
+    }
+  })
+
+  editor.addEventListener('click', event => {
+    const remove = event.target.closest('[data-dlp-rich-text-remove]')
+    if (!remove) return
+    const figure = remove.closest('[data-dlp-rich-image]')
+    const next = figure.nextElementSibling
+    figure.remove()
+    ensureParagraph()
+    announce('Image removed')
+    savedRange = null
+    if (next) {
+      const range = document.createRange()
+      range.selectNodeContents(next)
+      range.collapse(true)
+      savedRange = range
+    }
+    restoreSelection()
+  })
+
+  form.addEventListener('submit', () => {
+    valueField.value = JSON.stringify(richTextBlocks(editor))
+  })
+
+  // --- Images ---
+
+  function addRemoveButton (figure) {
+    if (figure.querySelector('[data-dlp-rich-text-remove]')) return
+    const img = figure.querySelector('img')
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'dlp-rich-text__remove'
+    button.dataset.dlpRichTextRemove = ''
+    button.textContent = 'Remove image'
+    const hidden = document.createElement('span')
+    hidden.className = 'govuk-visually-hidden'
+    hidden.textContent = img && img.alt ? ': ' + img.alt : ''
+    button.appendChild(hidden)
+    figure.appendChild(button)
+  }
+
+  function buildFigure (image) {
+    const figure = document.createElement('figure')
+    figure.className = 'dlp-rich-text__figure'
+    figure.contentEditable = 'false'
+    figure.dataset.dlpRichImage = image.id
+    const img = document.createElement('img')
+    img.className = 'dlp-rich-text__image'
+    img.src = image.src
+    img.alt = image.alt
+    figure.appendChild(img)
+    if (image.caption) {
+      const caption = document.createElement('figcaption')
+      caption.className = 'dlp-rich-text__caption'
+      caption.textContent = image.caption
+      figure.appendChild(caption)
+    }
+    addRemoveButton(figure)
+    return figure
+  }
+
+  function isEmptyBlock (node) {
+    if (!node) return true
+    if (node.nodeType === Node.TEXT_NODE) return !node.nodeValue.trim()
+    return !node.textContent.trim() && !(node.matches && node.matches('figure')) && !node.querySelector('figure, img')
+  }
+
+  // An image is a block of its own, so it goes between paragraphs: the paragraph the caret is
+  // in is split at the caret, and the image goes between the two halves.
+  function insertBlock (block) {
+    const selection = restoreSelection()
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
+    let top = range.startContainer
+    while (top && top.parentNode !== editor) top = top.parentNode
+
+    if (!top || top === editor) {
+      editor.appendChild(block)
+    } else if (top.nodeType === Node.ELEMENT_NODE && top.matches('figure')) {
+      top.after(block)
+    } else {
+      const tail = document.createRange()
+      tail.setStart(range.startContainer, range.startOffset)
+      tail.setEndAfter(top)
+      const rest = tail.extractContents()
+      top.after(block)
+      Array.from(rest.childNodes).reverse().forEach(node => {
+        if (!isEmptyBlock(node)) block.after(node)
+      })
+      if (isEmptyBlock(top)) top.remove()
+    }
+
+    let after = block.nextElementSibling
+    if (!after || after.matches('figure')) {
+      after = document.createElement('p')
+      after.className = 'govuk-body'
+      after.appendChild(document.createElement('br'))
+      block.after(after)
+    }
+    const caret = document.createRange()
+    caret.selectNodeContents(after)
+    caret.collapse(true)
+    selection.removeAllRanges()
+    selection.addRange(caret)
+    savedRange = caret.cloneRange()
+  }
+
+  function dialogParts (dialog) {
+    return {
+      confirm: dialog.querySelector('[data-dlp-dialog-confirm]'),
+      cancels: dialog.querySelectorAll('[data-dlp-dialog-cancel]')
+    }
+  }
+
+  function showError (dialog, name, message) {
+    const group = dialog.querySelector('[data-dlp-dialog-group="' + name + '"]')
+    if (!group) return
+    const error = group.querySelector('[data-dlp-dialog-error]')
+    const field = group.querySelector('input, textarea')
+    group.classList.toggle('govuk-form-group--error', Boolean(message))
+    if (error) {
+      error.hidden = !message
+      error.textContent = ''
+      if (message) {
+        const prefix = document.createElement('span')
+        prefix.className = 'govuk-visually-hidden'
+        prefix.textContent = 'Error: '
+        error.appendChild(prefix)
+        error.appendChild(document.createTextNode(message))
+      }
+    }
+    if (field) {
+      const described = (field.getAttribute('aria-describedby') || '').split(' ').filter(id => id && id !== error.id)
+      if (message && error) described.push(error.id)
+      field.setAttribute('aria-describedby', described.join(' '))
+      field.classList.toggle('govuk-input--error', Boolean(message) && field.matches('.govuk-input'))
+      field.classList.toggle('govuk-textarea--error', Boolean(message) && field.matches('.govuk-textarea'))
+      field.classList.toggle('govuk-file-upload--error', Boolean(message) && field.matches('.govuk-file-upload'))
+    }
+  }
+
+  function closeDialog (dialog) {
+    if (dialog.open && typeof dialog.close === 'function') dialog.close()
+    else dialog.removeAttribute('open')
+    restoreSelection()
+  }
+
+  let imageFile = null
+
+  function openImageDialog (file) {
+    const fileInput = imageDialog.querySelector('[data-dlp-image-file]')
+    const alt = imageDialog.querySelector('[data-dlp-image-alt]')
+    const caption = imageDialog.querySelector('[data-dlp-image-caption]')
+    const imageStatus = imageDialog.querySelector('[data-dlp-image-status]')
+    ;['file', 'alt'].forEach(name => showError(imageDialog, name, ''))
+    fileInput.value = ''
+    alt.value = ''
+    caption.value = ''
+    if (imageStatus) imageStatus.textContent = ''
+    setImageFile(file || null)
+    openModal(imageDialog)
+    ;(file ? alt : fileInput).focus()
+  }
+
+  function setImageFile (file) {
+    const preview = imageDialog.querySelector('[data-dlp-image-preview]')
+    imageFile = file
+    if (preview.src && preview.src.indexOf('blob:') === 0) URL.revokeObjectURL(preview.src)
+    preview.hidden = !file
+    if (file) preview.src = URL.createObjectURL(file)
+    else preview.removeAttribute('src')
+  }
+
+  if (imageDialog) {
+    const parts = dialogParts(imageDialog)
+    const fileInput = imageDialog.querySelector('[data-dlp-image-file]')
+    const alt = imageDialog.querySelector('[data-dlp-image-alt]')
+    const caption = imageDialog.querySelector('[data-dlp-image-caption]')
+    const imageStatus = imageDialog.querySelector('[data-dlp-image-status]')
+    const allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+    let uploading = false
+
+    fileInput.addEventListener('change', () => {
+      showError(imageDialog, 'file', '')
+      setImageFile(fileInput.files[0] || null)
+    })
+    parts.cancels.forEach(button => button.addEventListener('click', () => closeDialog(imageDialog)))
+    imageDialog.addEventListener('cancel', event => { event.preventDefault(); closeDialog(imageDialog) })
+    caption.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); parts.confirm.click() }
+    })
+
+    parts.confirm.addEventListener('click', () => {
+      if (uploading) return
+      let fileError = ''
+      if (!imageFile) fileError = 'Select an image'
+      else if (allowed.indexOf(imageFile.type) === -1) fileError = 'The image must be a PNG, JPG, GIF or WebP'
+      else if (imageFile.size > 5 * 1024 * 1024) fileError = 'The image must be smaller than 5MB'
+      const altError = alt.value.trim() ? '' : 'Describe the image for people who can’t see it'
+      showError(imageDialog, 'file', fileError)
+      showError(imageDialog, 'alt', altError)
+      if (fileError) return fileInput.focus()
+      if (altError) return alt.focus()
+
+      uploading = true
+      parts.confirm.disabled = true
+      if (imageStatus) imageStatus.textContent = 'Uploading image…'
+      window.fetch(uploadUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': imageFile.type },
+        body: imageFile
+      }).then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok || !data.id) throw new Error(data.error || 'The image could not be uploaded. Try again.')
+          closeDialog(imageDialog)
+          insertBlock(buildFigure({ id: data.id, src: data.src, alt: alt.value.trim(), caption: caption.value.trim() }))
+          announce('Image added. Save the draft to keep it.')
+        })
+        .catch(error => {
+          if (imageStatus) imageStatus.textContent = ''
+          showError(imageDialog, 'file', error.message || 'The image could not be uploaded. Try again.')
+          fileInput.focus()
+        })
+        .then(() => {
+          uploading = false
+          parts.confirm.disabled = false
+        })
+    })
+  }
+
+  // --- Links ---
+
+  let editingLink = null
+
+  function openLinkDialog () {
+    const selection = restoreSelection()
+    const range = selection.getRangeAt(0)
+    const node = range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentNode : range.startContainer
+    editingLink = node.closest ? node.closest('a') : null
+    if (editingLink && !editor.contains(editingLink)) editingLink = null
+
+    const url = linkDialog.querySelector('[data-dlp-link-url]')
+    const text = linkDialog.querySelector('[data-dlp-link-text]')
+    const remove = linkDialog.querySelector('[data-dlp-link-remove]')
+    ;['url', 'text'].forEach(name => showError(linkDialog, name, ''))
+    url.value = editingLink ? editingLink.getAttribute('href') : ''
+    text.value = editingLink ? editingLink.textContent : selection.toString()
+    if (remove) remove.hidden = !editingLink
+    linkDialog.querySelector('[data-dlp-dialog-confirm]').textContent = editingLink ? 'Save link' : 'Add link'
+    openModal(linkDialog)
+    url.focus()
+  }
+
+  function normaliseUrl (value) {
+    const url = value.trim()
+    if (!url) return ''
+    if (/^(https?:\/\/|mailto:)/i.test(url) || (url.charAt(0) === '/' && url.charAt(1) !== '/')) return url
+    if (/^[\w-]+(\.[\w-]+)+(\/|$)/.test(url)) return 'https://' + url
+    return null
+  }
+
+  if (linkDialog) {
+    const parts = dialogParts(linkDialog)
+    const url = linkDialog.querySelector('[data-dlp-link-url]')
+    const text = linkDialog.querySelector('[data-dlp-link-text]')
+    const remove = linkDialog.querySelector('[data-dlp-link-remove]')
+
+    parts.cancels.forEach(button => button.addEventListener('click', () => closeDialog(linkDialog)))
+    linkDialog.addEventListener('cancel', event => { event.preventDefault(); closeDialog(linkDialog) })
+    ;[url, text].forEach(field => field.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); parts.confirm.click() }
+    }))
+
+    if (remove) {
+      remove.addEventListener('click', () => {
+        if (editingLink) editingLink.replaceWith(document.createTextNode(editingLink.textContent))
+        editingLink = null
+        savedRange = null
+        closeDialog(linkDialog)
+        announce('Link removed')
+      })
+    }
+
+    parts.confirm.addEventListener('click', () => {
+      const href = normaliseUrl(url.value)
+      const words = text.value.trim()
+      const urlError = href === '' ? 'Enter a web address' : (href === null ? 'Enter a web address starting with https://' : '')
+      const textError = words ? '' : 'Enter the link text'
+      showError(linkDialog, 'url', urlError)
+      showError(linkDialog, 'text', textError)
+      if (urlError) return url.focus()
+      if (textError) return text.focus()
+
+      const link = document.createElement('a')
+      link.className = 'govuk-link'
+      link.setAttribute('href', href)
+      link.textContent = words
+
+      if (editingLink) {
+        editingLink.replaceWith(link)
+      } else {
+        const selection = restoreSelection()
+        const range = selection.getRangeAt(0)
+        range.deleteContents()
+        range.insertNode(link)
+      }
+      editingLink = null
+      const caret = document.createRange()
+      caret.setStartAfter(link)
+      caret.collapse(true)
+      savedRange = caret
+      closeDialog(linkDialog)
+      announce('Link added')
+    })
+  }
+}
+
+// Reads the editor back into the blocks the server stores. Browsers differ in what editing
+// produces (b or strong, div or p, stray spans), so this goes by what each element means rather
+// than which tag it is, and anything it doesn't recognise contributes only its text.
+function richTextBlocks (editor) {
+  const blockTags = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'PRE', 'SECTION', 'ARTICLE']
+  const blocks = []
+  let runs = []
+
+  function marksFor (element, marks) {
+    const next = Object.assign({}, marks)
+    const tag = element.tagName
+    const style = element.style || {}
+    if (tag === 'B' || tag === 'STRONG' || style.fontWeight === 'bold' || parseInt(style.fontWeight, 10) >= 600) next.bold = true
+    if (tag === 'I' || tag === 'EM' || style.fontStyle === 'italic') next.italic = true
+    if (tag === 'A' && element.getAttribute('href')) next.href = element.getAttribute('href')
+    return next
+  }
+
+  function inline (node, marks, into) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // As the page shows it: runs of whitespace are one space, and only <br> breaks a line.
+      const text = node.nodeValue.replace(/[\s ]+/g, ' ')
+      if (text) into.push(Object.assign({ text }, marks))
+      return
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE || node.matches('[data-dlp-rich-text-remove]')) return
+    if (node.tagName === 'BR') {
+      into.push(Object.assign({ text: '\n' }, marks))
+      return
+    }
+    const next = marksFor(node, marks)
+    node.childNodes.forEach(child => inline(child, next, into))
+  }
+
+  function tidy (list) {
+    const merged = []
+    list.forEach(run => {
+      const last = merged[merged.length - 1]
+      if (last && Boolean(last.bold) === Boolean(run.bold) && Boolean(last.italic) === Boolean(run.italic) && last.href === run.href) {
+        last.text += run.text
+      } else {
+        merged.push(Object.assign({}, run))
+      }
+    })
+    merged.forEach(run => { run.text = run.text.replace(/ *\n */g, '\n') })
+    if (merged.length) {
+      merged[0].text = merged[0].text.replace(/^[\s]+/, '')
+      merged[merged.length - 1].text = merged[merged.length - 1].text.replace(/[\s]+$/, '')
+    }
+    return merged.filter(run => run.text)
+  }
+
+  function flush () {
+    const cleaned = tidy(runs)
+    if (cleaned.length) blocks.push({ type: 'paragraph', runs: cleaned })
+    runs = []
+  }
+
+  function listItems (list, items) {
+    list.childNodes.forEach(child => {
+      if (child.nodeType !== Node.ELEMENT_NODE || child.tagName !== 'LI') return
+      const item = []
+      const nested = []
+      child.childNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE && (node.tagName === 'UL' || node.tagName === 'OL')) nested.push(node)
+        else inline(node, {}, item)
+      })
+      const cleaned = tidy(item)
+      if (cleaned.length) items.push(cleaned)
+      // Nested lists aren't kept as nesting; their items join the list in order.
+      nested.forEach(sub => listItems(sub, items))
+    })
+    return items
+  }
+
+  function walk (parent) {
+    parent.childNodes.forEach(node => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.matches('[data-dlp-rich-image]')) {
+          flush()
+          const img = node.querySelector('img')
+          const caption = node.querySelector('figcaption')
+          blocks.push({
+            type: 'image',
+            id: node.dataset.dlpRichImage,
+            alt: img ? img.alt : '',
+            caption: caption ? caption.textContent.trim() : ''
+          })
+          return
+        }
+        if (node.tagName === 'UL' || node.tagName === 'OL') {
+          flush()
+          const items = listItems(node, [])
+          if (items.length) blocks.push({ type: 'list', ordered: node.tagName === 'OL', items })
+          return
+        }
+        if (blockTags.indexOf(node.tagName) !== -1) {
+          flush()
+          walk(node)
+          flush()
+          return
+        }
+      }
+      inline(node, {}, runs)
+    })
+  }
+
+  walk(editor)
+  flush()
+  return blocks
+}
+
+// --- Highlighting tables in the evidence review (data-dlp-evidence-tables) ---
+//
+// A table in the document viewer is highlighted with its "Highlight table" button. While it is,
+// each of its cells becomes a button: a figure selects that cell, a row heading its row(s), a
+// column heading its column(s), and the corner the whole table. Outside that, the cells are
+// plain table cells; describing them as buttons all the time would be untrue.
+//
+// What each cell selects, and that selection's reference, are worked out on the server and sit
+// on the cell as data-dlp-table-rows/-cols/-reference (see evidence-table.html). The figures
+// themselves, under their merged headers, come from the viewer's JSON, so this only looks
+// things up by index. Each change is announced to the viewer as a dlp-table-selection event,
+// which the tag panel (initTagger) listens for; detail is null when nothing is selected. The
+// panel sends dlp-table-clear back when the user selects text instead.
+function initEvidenceTables (viewer) {
+  const dataScript = querySelectorOrNull(viewer.dataset.dlpEvidenceTables)
+  const containers = viewer.querySelectorAll('[data-dlp-evidence-table]')
+  if (!dataScript || !containers.length) return
+
+  let tables = []
+  try {
+    tables = JSON.parse(dataScript.textContent)
+  } catch (error) {
+    return
+  }
+  const byId = {}
+  tables.forEach(table => { byId[table.id] = table })
+
+  let active = null
+
+  function indexes (value) {
+    return (value || '').split(',').filter(Boolean).map(Number)
+  }
+
+  // The figures a selection covers, flattened to one header row and one header column.
+  function extract (table, rows, cols) {
+    const pickedRows = rows.length ? rows : table.rows.map((row, index) => index)
+    const pickedCols = cols.length ? cols : table.columns.map((column, index) => index)
+    return {
+      corner: table.corner,
+      columns: pickedCols.map(index => table.columns[index]),
+      rows: pickedRows.map(index => ({
+        header: table.rows[index].header,
+        values: pickedCols.map(col => table.rows[index].values[col])
+      }))
+    }
+  }
+
+  function announce (container, cell) {
+    const table = byId[container.dataset.dlpEvidenceTable]
+    const rows = cell ? indexes(cell.dataset.dlpTableRows) : []
+    const cols = cell ? indexes(cell.dataset.dlpTableCols) : []
+
+    container.querySelectorAll('[data-dlp-table-pick]').forEach(button => {
+      button.setAttribute('aria-pressed', String(Boolean(cell) && button.parentNode === cell))
+    })
+    container.querySelectorAll('td[data-dlp-table-row]').forEach(td => {
+      const inRow = !rows.length || rows.indexOf(Number(td.dataset.dlpTableRow)) !== -1
+      const inCol = !cols.length || cols.indexOf(Number(td.dataset.dlpTableCol)) !== -1
+      td.classList.toggle('dlp-table-cell--selected', inRow && inCol)
+    })
+
+    viewer.dispatchEvent(new CustomEvent('dlp-table-selection', {
+      detail: {
+        tableId: table.id,
+        rows,
+        cols,
+        reference: cell ? cell.dataset.dlpTableReference : container.dataset.dlpTableReference,
+        data: extract(table, rows, cols)
+      }
+    }))
+  }
+
+  // Each cell's content goes into a button, built from its text, and comes back out of it when
+  // the table is no longer highlighted.
+  function arm (container) {
+    container.querySelectorAll('[data-dlp-table-reference]').forEach(cell => {
+      if (cell === container) return
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'dlp-table-pick'
+      button.dataset.dlpTablePick = ''
+      button.setAttribute('aria-pressed', 'false')
+      button.textContent = cell.textContent
+      const hidden = document.createElement('span')
+      hidden.className = 'govuk-visually-hidden'
+      hidden.textContent = ', select ' + cell.dataset.dlpTableReference
+      button.appendChild(hidden)
+      cell.textContent = ''
+      cell.appendChild(button)
+    })
+  }
+
+  function disarm (container) {
+    container.querySelectorAll('[data-dlp-table-pick]').forEach(button => {
+      const cell = button.parentNode
+      const hidden = button.querySelector('.govuk-visually-hidden')
+      if (hidden) hidden.remove()
+      cell.textContent = button.textContent
+    })
+    container.querySelectorAll('.dlp-table-cell--selected').forEach(td => td.classList.remove('dlp-table-cell--selected'))
+  }
+
+  function setHighlighted (container, on) {
+    const toggle = container.querySelector('[data-dlp-table-toggle]')
+    const hint = container.querySelector('[data-dlp-table-hint]')
+    container.classList.toggle('dlp-evidence-table--highlighted', on)
+    if (toggle) {
+      toggle.setAttribute('aria-pressed', String(on))
+      toggle.firstChild.nodeValue = on ? 'Stop highlighting' : 'Highlight table'
+    }
+    if (hint) hint.hidden = !on
+    if (on) arm(container)
+    else disarm(container)
+  }
+
+  function clear (notify) {
+    if (!active) return
+    setHighlighted(active, false)
+    active = null
+    if (notify) viewer.dispatchEvent(new CustomEvent('dlp-table-selection', { detail: null }))
+  }
+
+  containers.forEach(container => {
+    if (!byId[container.dataset.dlpEvidenceTable]) return
+    const toggle = container.querySelector('[data-dlp-table-toggle]')
+    const whole = container.querySelector('[data-dlp-table-whole]')
+
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        if (active === container) return clear(true)
+        clear(false)
+        active = container
+        setHighlighted(container, true)
+        announce(container, null)
+      })
+    }
+    if (whole) whole.addEventListener('click', () => announce(container, null))
+
+    container.addEventListener('click', event => {
+      const pick = event.target.closest('[data-dlp-table-pick]')
+      if (pick && active === container) announce(container, pick.parentNode)
+    })
+  })
+
+  viewer.addEventListener('dlp-table-clear', () => clear(false))
+}
+
+// Copies a table selection's figures as tab-separated text, which pastes into a spreadsheet as
+// rows and columns.
+function tableSelectionAsText (data) {
+  const lines = [[data.corner].concat(data.columns).join('\t')]
+  data.rows.forEach(row => lines.push([row.header].concat(row.values).join('\t')))
+  return lines.join('\n')
+}
+
+// The figures of a table selection as a small table, built without writing HTML.
+function buildSelectionTable (data, captionText) {
+  const table = document.createElement('table')
+  table.className = 'govuk-table dlp-selected-table__table'
+  const caption = document.createElement('caption')
+  caption.className = 'govuk-visually-hidden'
+  caption.textContent = captionText
+  table.appendChild(caption)
+
+  const cell = (tag, text, className, scope) => {
+    const element = document.createElement(tag)
+    element.className = className
+    if (scope) element.scope = scope
+    element.textContent = text
+    return element
+  }
+
+  const head = document.createElement('thead')
+  head.className = 'govuk-table__head'
+  const headRow = document.createElement('tr')
+  headRow.className = 'govuk-table__row'
+  headRow.appendChild(cell('th', data.corner, 'govuk-table__header', 'col'))
+  data.columns.forEach(column => headRow.appendChild(cell('th', column, 'govuk-table__header govuk-table__header--numeric', 'col')))
+  head.appendChild(headRow)
+  table.appendChild(head)
+
+  const body = document.createElement('tbody')
+  body.className = 'govuk-table__body'
+  data.rows.forEach(row => {
+    const tr = document.createElement('tr')
+    tr.className = 'govuk-table__row'
+    tr.appendChild(cell('th', row.header, 'govuk-table__header', 'row'))
+    row.values.forEach(value => tr.appendChild(cell('td', value, 'govuk-table__cell govuk-table__cell--numeric')))
+    body.appendChild(tr)
+  })
+  table.appendChild(body)
+  return table
 }
