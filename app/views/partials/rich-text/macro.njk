@@ -1,0 +1,52 @@
+{#
+  Rich text: the blocks the policy detail is stored as (see pdCleanRichText in app/routes.js).
+
+  richText(blocks, { editable })
+    blocks: [{ type: 'paragraph', runs } | { type: 'list', ordered, items: [runs] } |
+             { type: 'image', id, alt, caption }], run: { text, bold?, italic?, href? }.
+      A plain string, from a draft saved before the editor existed, renders as it always did.
+    params.editable: true inside the editor (initRichText), which marks each image as a block the
+      caret can't enter. initRichText reads this markup back, so change the two together.
+
+  Everything is autoescaped, never marked safe: hrefs and image ids are checked on save, and the
+  text is the drafter's own. Whitespace control keeps template indentation out of the text, which
+  the editor would otherwise read back as spaces.
+#}
+
+{%- macro richTextRun(run) -%}
+  {%- if run.bold and run.italic -%}<strong><em>{{ run.text | escape | nl2br }}</em></strong>
+  {%- elif run.bold -%}<strong>{{ run.text | escape | nl2br }}</strong>
+  {%- elif run.italic -%}<em>{{ run.text | escape | nl2br }}</em>
+  {%- else -%}{{ run.text | escape | nl2br }}
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro richTextRuns(runs) -%}
+  {%- for run in runs -%}
+    {%- if run.href -%}<a class="govuk-link" href="{{ run.href }}">{{ richTextRun(run) }}</a>
+    {%- else -%}{{ richTextRun(run) }}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endmacro -%}
+
+{%- macro richText(blocks, params) -%}
+  {%- if blocks is string -%}
+    {%- if blocks -%}<p class="govuk-body dlp-pd-prewrap">{{ blocks }}</p>{%- endif -%}
+  {%- else -%}
+    {%- for block in blocks -%}
+      {%- if block.type == "paragraph" -%}
+        <p class="govuk-body">{{ richTextRuns(block.runs) }}</p>
+      {%- elif block.type == "list" -%}
+        {%- set tag = "ol" if block.ordered else "ul" -%}
+        <{{ tag }} class="govuk-list {{ 'govuk-list--number' if block.ordered else 'govuk-list--bullet' }}">
+          {%- for item in block.items -%}<li>{{ richTextRuns(item) }}</li>{%- endfor -%}
+        </{{ tag }}>
+      {%- elif block.type == "image" -%}
+        <figure class="dlp-rich-text__figure" data-dlp-rich-image="{{ block.id }}"{% if params and params.editable %} contenteditable="false"{% endif %}>
+          <img class="dlp-rich-text__image" src="/policy-writing-drafting/images/{{ block.id }}" alt="{{ block.alt }}">
+          {%- if block.caption -%}<figcaption class="dlp-rich-text__caption">{{ block.caption }}</figcaption>{%- endif -%}
+        </figure>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endmacro -%}

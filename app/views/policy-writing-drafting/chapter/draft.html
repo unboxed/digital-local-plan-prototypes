@@ -5,6 +5,7 @@
 {% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
 {% from "policy-writing-drafting/partials/chapter-breadcrumbs.html" import chapterBreadcrumbs %}
 {% from "policy-writing-drafting/partials/evidence-viewer.html" import evidenceViewerContent, evidenceSourcePicker %}
+{% from "partials/rich-text/macro.njk" import richText %}
 
 {% set pageName = "Draft policy: " + chapter.name %}
 {% set chapterUrl = "/policy-writing-drafting/chapters/" + chapter.id %}
@@ -100,27 +101,55 @@
         }) }}
 
         {#
-          The formatting toolbar is in the design but not wired up yet: the field is still a
-          plain textarea. Its buttons are hidden from assistive tech and the tab order, as in
-          the other policy-writing prototypes, so they don't announce controls that do nothing.
+          Rich text, opted into by data-dlp-rich-text (initRichText). Without JavaScript this is
+          a plain textarea and the toolbar stays hidden, since its buttons would do nothing; the
+          textarea shows the draft as plain text, with any image named in brackets. With it, the
+          editor below takes the textarea's place and posts its content as JSON in
+          _policyDetailRich, which the route cleans into blocks (pdCleanRichText). Images are
+          uploaded on their own to imageUploadUrl as soon as they are chosen.
         #}
-        <div class="govuk-form-group">
-          <label class="govuk-label govuk-label--m" for="pd-policy-detail">Policy detail</label>
-          <div class="dlp-editor-toolbar dlp-pd-toolbar">
-            <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1" title="Bold"><strong>B</strong></button>
-            <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1" title="Italic"><em>I</em></button>
-            <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1" title="Bulleted list">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="2" cy="3" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="2" cy="13" r="1.5"/><rect x="5" y="2" width="11" height="2"/><rect x="5" y="7" width="11" height="2"/><rect x="5" y="12" width="11" height="2"/></svg>
+        <div class="govuk-form-group dlp-rich-text"
+             data-dlp-rich-text
+             data-dlp-rich-text-upload="{{ imageUploadUrl }}"
+             data-dlp-rich-text-link-dialog="#pd-link-dialog"
+             data-dlp-rich-text-image-dialog="#pd-image-dialog">
+          <label class="govuk-label govuk-label--m" for="pd-policy-detail" id="pd-policy-detail-label">Policy detail</label>
+          <div class="dlp-editor-toolbar dlp-pd-toolbar dlp-rich-text__toolbar" role="toolbar" aria-label="Format the policy detail" aria-controls="pd-policy-detail-editor" data-dlp-rich-text-toolbar hidden>
+            <button type="button" class="dlp-editor-toolbar__button" data-dlp-rich-text-command="bold" aria-pressed="false" title="Bold (Ctrl+B)">
+              <strong aria-hidden="true">B</strong><span class="govuk-visually-hidden">Bold</span>
             </button>
-            <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1" title="Link">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6.5 9.5l3-3"/><path d="M7 4.5l1.5-1.5a2.8 2.8 0 014 4L11 8.5"/><path d="M9 11.5L7.5 13a2.8 2.8 0 01-4-4L5 7.5"/></svg>
+            <button type="button" class="dlp-editor-toolbar__button" data-dlp-rich-text-command="italic" aria-pressed="false" title="Italic (Ctrl+I)">
+              <em aria-hidden="true">I</em><span class="govuk-visually-hidden">Italic</span>
             </button>
-            <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1" title="Image">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="2.5" width="13" height="11" rx="1"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2 12l4-4 3 3 2-2 3 3"/></svg>
+            <button type="button" class="dlp-editor-toolbar__button" data-dlp-rich-text-command="bullets" aria-pressed="false" title="Bulleted list">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="2" cy="3" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="2" cy="13" r="1.5"/><rect x="5" y="2" width="11" height="2"/><rect x="5" y="7" width="11" height="2"/><rect x="5" y="12" width="11" height="2"/></svg>
+              <span class="govuk-visually-hidden">Bulleted list</span>
             </button>
-            <button type="button" class="dlp-editor-toolbar__button" aria-hidden="true" tabindex="-1" title="More">&hellip;</button>
+            <button type="button" class="dlp-editor-toolbar__button" data-dlp-rich-text-command="link" title="Link (Ctrl+K)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M6.5 9.5l3-3"/><path d="M7 4.5l1.5-1.5a2.8 2.8 0 014 4L11 8.5"/><path d="M9 11.5L7.5 13a2.8 2.8 0 01-4-4L5 7.5"/></svg>
+              <span class="govuk-visually-hidden">Link</span>
+            </button>
+            <button type="button" class="dlp-editor-toolbar__button" data-dlp-rich-text-command="image" title="Image">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><rect x="1.5" y="2.5" width="13" height="11" rx="1"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2 12l4-4 3 3 2-2 3 3"/></svg>
+              <span class="govuk-visually-hidden">Image</span>
+            </button>
+            <span class="dlp-rich-text__more">
+              <button type="button" class="dlp-editor-toolbar__button" aria-expanded="false" aria-controls="pd-policy-detail-more" data-dlp-rich-text-more title="More formatting">
+                <span aria-hidden="true">&hellip;</span><span class="govuk-visually-hidden">More formatting</span>
+              </button>
+              <span class="dlp-rich-text__menu" id="pd-policy-detail-more" data-dlp-rich-text-menu hidden>
+                <button type="button" class="dlp-rich-text__menu-item" data-dlp-rich-text-command="numbers">Numbered list</button>
+                <button type="button" class="dlp-rich-text__menu-item" data-dlp-rich-text-command="clear">Remove formatting</button>
+              </span>
+            </span>
           </div>
-          <textarea class="govuk-textarea dlp-pd-toolbar__textarea" id="pd-policy-detail" name="_policyDetail" rows="14">{{ draft.detail }}</textarea>
+          <div class="govuk-textarea dlp-rich-text__editor" id="pd-policy-detail-editor"
+               contenteditable="true" role="textbox" aria-multiline="true"
+               aria-labelledby="pd-policy-detail-label" spellcheck="true"
+               data-dlp-rich-text-editor hidden>{{ richText(detailBlocks, { editable: true }) }}</div>
+          <textarea class="govuk-textarea dlp-pd-toolbar__textarea" id="pd-policy-detail" name="_policyDetail" rows="14" data-dlp-rich-text-fallback>{{ detailPlain }}</textarea>
+          <input type="hidden" name="_policyDetailRich" value="" disabled data-dlp-rich-text-value>
+          <p class="govuk-visually-hidden" role="status" data-dlp-rich-text-status></p>
         </div>
 
         {% if draft.savedAt %}
@@ -132,6 +161,70 @@
           {{ govukButton({ text: "View and export chapter", classes: "govuk-button--secondary", href: chapterUrl + "/export" }) }}
         </div>
       </form>
+
+      {# The editor's two dialogs, outside the draft form so their fields aren't posted with it. #}
+      <dialog class="dlp-modal dlp-rich-text__dialog" id="pd-link-dialog" aria-labelledby="pd-link-dialog-title">
+        <div class="dlp-modal__header">
+          <h2 class="dlp-modal__title" id="pd-link-dialog-title">Add a link</h2>
+          <button type="button" class="dlp-modal__close" data-dlp-dialog-cancel aria-label="Close">&times;</button>
+        </div>
+        <div class="dlp-modal__body">
+          <div class="govuk-form-group" data-dlp-dialog-group="url">
+            <label class="govuk-label" for="pd-link-url">Web address</label>
+            <div class="govuk-hint" id="pd-link-url-hint">For example, https://www.gov.uk/government/publications/national-planning-policy-framework--2</div>
+            <p class="govuk-error-message" id="pd-link-url-error" data-dlp-dialog-error hidden></p>
+            <input class="govuk-input" id="pd-link-url" type="url" spellcheck="false" autocomplete="off" aria-describedby="pd-link-url-hint" data-dlp-link-url>
+          </div>
+          <div class="govuk-form-group" data-dlp-dialog-group="text">
+            <label class="govuk-label" for="pd-link-text">Link text</label>
+            <div class="govuk-hint" id="pd-link-text-hint">The words people click on. Say where the link goes.</div>
+            <p class="govuk-error-message" id="pd-link-text-error" data-dlp-dialog-error hidden></p>
+            <input class="govuk-input" id="pd-link-text" type="text" aria-describedby="pd-link-text-hint" data-dlp-link-text>
+          </div>
+        </div>
+        <div class="dlp-modal__footer">
+          <button type="button" class="govuk-button govuk-button--warning govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-link-remove hidden>Remove link</button>
+          <div class="dlp-modal__actions">
+            <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-dialog-cancel>Cancel</button>
+            <button type="button" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-dialog-confirm>Add link</button>
+          </div>
+        </div>
+      </dialog>
+
+      <dialog class="dlp-modal dlp-rich-text__dialog" id="pd-image-dialog" aria-labelledby="pd-image-dialog-title">
+        <div class="dlp-modal__header">
+          <h2 class="dlp-modal__title" id="pd-image-dialog-title">Add an image</h2>
+          <button type="button" class="dlp-modal__close" data-dlp-dialog-cancel aria-label="Close">&times;</button>
+        </div>
+        <div class="dlp-modal__body">
+          <p class="govuk-body">The image goes into the policy detail where your cursor is, on a line of its own.</p>
+          <div class="govuk-form-group" data-dlp-dialog-group="file">
+            <label class="govuk-label" for="pd-image-file">Image</label>
+            <div class="govuk-hint" id="pd-image-file-hint">A PNG, JPG, GIF or WebP, smaller than 5MB</div>
+            <p class="govuk-error-message" id="pd-image-file-error" data-dlp-dialog-error hidden></p>
+            <input class="govuk-file-upload" id="pd-image-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-describedby="pd-image-file-hint" data-dlp-image-file>
+          </div>
+          <img class="dlp-rich-text__preview" alt="" data-dlp-image-preview hidden>
+          <div class="govuk-form-group" data-dlp-dialog-group="alt">
+            <label class="govuk-label" for="pd-image-alt">Describe the image</label>
+            <div class="govuk-hint" id="pd-image-alt-hint">For people who can't see it. Say what it shows that matters to the policy, for example "Map of the three residential areas east of Aldersgate Street".</div>
+            <p class="govuk-error-message" id="pd-image-alt-error" data-dlp-dialog-error hidden></p>
+            <textarea class="govuk-textarea" id="pd-image-alt" rows="2" aria-describedby="pd-image-alt-hint" data-dlp-image-alt></textarea>
+          </div>
+          <div class="govuk-form-group">
+            <label class="govuk-label" for="pd-image-caption">Caption (optional)</label>
+            <div class="govuk-hint" id="pd-image-caption-hint">Shown under the image, for example "Figure 4: Residential areas"</div>
+            <input class="govuk-input" id="pd-image-caption" type="text" aria-describedby="pd-image-caption-hint" data-dlp-image-caption>
+          </div>
+        </div>
+        <div class="dlp-modal__footer">
+          <p class="dlp-modal__copied" role="status" data-dlp-image-status></p>
+          <div class="dlp-modal__actions">
+            <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-dialog-cancel>Cancel</button>
+            <button type="button" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-dialog-confirm>Add image</button>
+          </div>
+        </div>
+      </dialog>
     </div>
   </section>
 

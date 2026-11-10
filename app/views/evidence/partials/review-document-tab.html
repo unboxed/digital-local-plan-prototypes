@@ -1,19 +1,24 @@
 {% from "evidence/partials/tag-controls.html" import tagControls %}
 {% from "evidence/partials/evidence-card.html" import evidenceCard %}
+{% from "evidence/partials/evidence-table.html" import evidenceTable %}
 
 {% if doc.paragraphs.length %}
 <p class="dlp-document-hint govuk-body-s">
-  Highlight any text in the document below, then apply tags to it.
+  Highlight any text in the document below, then apply tags to it. To use figures from a
+  table, highlight the table, then choose a figure, a row or a column.
 </p>
 
 <div class="dlp-document-viewer"
      id="review-document-viewer"
      data-dlp-highlights="#review-passages-data"
      data-dlp-remove-action="/evidence/review/remove-tag"
-     data-dlp-return="{{ returnTo }}#view-and-tag">
+     data-dlp-return="{{ returnTo }}#view-and-tag"
+     data-dlp-evidence-tables="#review-tables-data">
   {% if doc.chapter %}<p class="dlp-document-viewer__chapter">{{ doc.chapter }}</p>{% endif %}
   {% for paragraph in doc.paragraphs %}
   <p>{{ paragraph }}</p>
+  {% set paragraphIndex = loop.index0 %}
+  {% for table in tables %}{% if table.afterParagraph == paragraphIndex %}{{ evidenceTable(table) }}{% endif %}{% endfor %}
   {% endfor %}
 </div>
 
@@ -21,12 +26,24 @@
      data-dlp-tagger
      data-dlp-mode="passage"
      data-dlp-viewer="#review-document-viewer">
-  <h3 class="dlp-tag-panel__heading">Tag the selected text</h3>
+  <h3 class="dlp-tag-panel__heading" data-dlp-tag-heading data-dlp-table-heading="Tag the selected table data">Tag the selected text</h3>
 
-  <p class="dlp-tag-panel__hint">Selected text:</p>
+  <p class="dlp-tag-panel__hint" data-dlp-selected-label data-dlp-table-label="Reference:">Selected text:</p>
   <blockquote class="dlp-selected-text dlp-selected-text--empty" data-dlp-selected-text>
-    Nothing selected yet — highlight some text in the document
+    Nothing selected yet — highlight some text or a table in the document
   </blockquote>
+
+  {# Filled in by initTagger when a table selection arrives: the figures it covers, with one
+     header row and one header column, and ways to copy them. #}
+  <div class="dlp-selected-table" data-dlp-selected-table hidden>
+    <p class="dlp-tag-panel__hint">Data:</p>
+    <div class="dlp-selected-table__scroll" data-dlp-selected-table-data></div>
+    <div class="govuk-button-group govuk-!-margin-top-3 govuk-!-margin-bottom-0">
+      <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-copy-table-reference>Copy reference</button>
+      <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button" data-dlp-copy-table-data>Copy data</button>
+      <span class="govuk-body-s dlp-selected-table__copied" role="status" data-dlp-copy-table-status></span>
+    </div>
+  </div>
 
   <form action="/evidence/review" method="post" class="govuk-!-margin-top-4" data-dlp-form>
     <input type="hidden" name="source" value="{{ doc.source }}">
@@ -37,6 +54,9 @@
     <input type="hidden" name="sourceType">
     <input type="hidden" name="tags">
     <input type="hidden" name="policyAreas">
+    <input type="hidden" name="tableId">
+    <input type="hidden" name="tableRows">
+    <input type="hidden" name="tableCols">
 
     {{ tagControls("review-passage", suggestedTags, policyAreas, policyReferences) }}
 
@@ -65,3 +85,4 @@
 </div>
 
 <script type="application/json" id="review-passages-data">{{ savedPassagesJson | safe }}</script>
+<script type="application/json" id="review-tables-data">{{ tablesJson | safe }}</script>

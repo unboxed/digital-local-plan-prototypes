@@ -50,6 +50,7 @@ const {
   DOCUMENTS,
   getDocument
 } = require('./data/documents.js')
+const EVIDENCE_TABLES = require('./data/evidence-tables.js')
 
 const {
   POLICIES,
@@ -220,6 +221,7 @@ function safeReturn (value, fallback) {
 // recognised suggested tag is treated as a custom tag. Returns null when
 // there is nothing worth saving.
 function buildEvidenceItem (body, doc) {
+  if (body.entryType === 'table') return buildTableEvidenceItem(body, doc)
   const submittedTags = parseTagList(body.tags)
   const tags = submittedTags.filter(tag => SUGGESTED_TAGS.includes(tag))
   const customTags = submittedTags.filter(tag => !SUGGESTED_TAGS.includes(tag))
@@ -240,6 +242,41 @@ function buildEvidenceItem (body, doc) {
     type: isNote ? 'note' : 'passage',
     sourceType,
     text,
+    source: doc.source,
+    chapter: doc.chapter,
+    tags,
+    customTags,
+    policyAreas,
+    policyReference: body.policyReference || ''
+  }
+}
+
+// A highlighted table, or a cell, row or column of it. Only the table id and the row and column
+// indexes are taken from the form: the reference and the data are worked out again here from
+// the document's own table, so what is saved can't drift from the document.
+function buildTableEvidenceItem (body, doc) {
+  const submittedTags = parseTagList(body.tags)
+  const tags = submittedTags.filter(tag => SUGGESTED_TAGS.includes(tag))
+  const customTags = submittedTags.filter(tag => !SUGGESTED_TAGS.includes(tag))
+  const policyAreas = parseTagList(body.policyAreas)
+  if (!tags.length && !customTags.length && !policyAreas.length) return null
+
+  const table = (doc.tables || []).find(candidate => candidate.id === body.tableId)
+  if (!table) return null
+  const indexes = value => parseTagList(value).map(Number).filter(Number.isInteger)
+  const selection = EVIDENCE_TABLES.selectTable(EVIDENCE_TABLES.resolveTable(table), indexes(body.tableRows), indexes(body.tableCols))
+
+  return {
+    id: nextEvidenceId(),
+    type: 'table',
+    sourceType: 'document',
+    text: selection.text,
+    reference: selection.reference,
+    tableId: table.id,
+    scope: selection.scope,
+    rows: selection.rows,
+    cols: selection.cols,
+    data: selection.data,
     source: doc.source,
     chapter: doc.chapter,
     tags,
@@ -389,15 +426,21 @@ router.get('/evidence/review', (req, res) => {
     .filter(section => !dismissed.includes(section.id))
     .map(section => Object.assign({}, section, { saved: savedTexts.includes(section.quote) }))
 
+  // Each table resolved once: its merged headers, and what each of its cells selects.
+  const tables = (doc.tables || []).map(table => Object.assign(EVIDENCE_TABLES.resolveTable(table), { afterParagraph: table.afterParagraph }))
+  const highlighted = fromThisDocument.filter(item => item.type === 'passage' || item.type === 'table')
+
   res.render('evidence/review/index', Object.assign({}, evidenceViewData, {
     doc,
+    tables,
+    tablesJson: JSON.stringify(tables.map(EVIDENCE_TABLES.tableClientData)),
     sourceEncoded: encodeURIComponent(source),
     returnTo: getReviewReturn(source),
     summaryGenerated,
     summarySections,
     notes: fromThisDocument.filter(item => item.type === 'note').slice().reverse(),
-    passages: fromThisDocument.filter(item => item.type === 'passage').slice().reverse(),
-    savedPassagesJson: JSON.stringify(fromThisDocument.filter(item => item.type === 'passage')),
+    passages: highlighted.slice().reverse(),
+    savedPassagesJson: JSON.stringify(highlighted),
     documentParagraphsJson: JSON.stringify(doc.paragraphs)
   }))
 })
@@ -3811,9 +3854,153 @@ router.get(PD + '/chapters/:pdChapterId/draft', (req, res) => {
     policyAreas: areas,
     policyArea,
     assignees: Object.fromEntries(areas.map(area => [area.id, pdPolicyAssignee(chapter, areas, area)])),
-    draft: (policyArea && chapter.drafts[policyArea.id]) || {}
+    draft: (policyArea && chapter.drafts[policyArea.id]) || {},
+    detailBlocks: pdRichText(policyArea && chapter.drafts[policyArea.id] ? chapter.drafts[policyArea.id].detail : ''),
+    detailPlain: pdRichTextPlain(policyArea && chapter.drafts[policyArea.id] ? chapter.drafts[policyArea.id].detail : ''),
+    imageUploadUrl: PD + '/images'
   }, viewerLocals(req, chapter, req.query._source)))
 })
+
+// --- Policy detail: rich text ---
+//
+// The policy detail is stored as blocks, never as HTML: the editor (initRichText) turns what is
+// on screen into JSON, pdCleanRichText keeps only the shapes below, and partials/rich-text.html
+// renders them with autoescaping. So nothing a drafter types or pastes is ever trusted as markup.
+//   { type: 'paragraph', runs }   { type: 'list', ordered, items: [runs] }
+//   { type: 'image', id, alt, caption }
+//   run: { text, bold?, italic?, href? }
+// A draft saved before the editor existed has a plain string, which pdRichText reads as
+// paragraphs, so seeded drafts and export snapshots render either way.
+
+const PD_IMAGE_TYPES = {
+  png: { mime: 'image/png', test: bytes => bytes.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  jpg: { mime: 'image/jpeg', test: bytes => bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff },
+  gif: { mime: 'image/gif', test: bytes => bytes.slice(0, 4).toString('latin1') === 'GIF8' },
+  webp: { mime: 'image/webp', test: bytes => bytes.slice(0, 4).toString('latin1') === 'RIFF' && bytes.slice(8, 12).toString('latin1') === 'WEBP' }
+}
+const PD_IMAGE_LIMIT = 5 * 1024 * 1024
+const PD_IMAGE_ID = /^[a-f0-9]{16}\.(png|jpg|gif|webp)$/
+// Uploaded images are kept on disk in the kit's git-ignored .tmp folder rather than in session
+// data, which is read and written on every request. They outlive a restart of the dev server.
+const PD_IMAGE_DIR = require('path').join(process.cwd(), '.tmp', 'policy-drafting-images')
+
+function pdImageExists (id) {
+  return PD_IMAGE_ID.test(id) && require('fs').existsSync(require('path').join(PD_IMAGE_DIR, id))
+}
+
+function pdSafeHref (value) {
+  const href = typeof value === 'string' ? value.trim() : ''
+  if (/^(https?:\/\/|mailto:)/i.test(href) || (href.startsWith('/') && !href.startsWith('//'))) return href.slice(0, 2000)
+  return undefined
+}
+
+function pdCleanRuns (runs) {
+  const cleaned = []
+  ;(Array.isArray(runs) ? runs : []).slice(0, 500).forEach(run => {
+    if (!run || typeof run.text !== 'string' || !run.text) return
+    const next = { text: run.text.slice(0, 10000) }
+    if (run.bold === true) next.bold = true
+    if (run.italic === true) next.italic = true
+    const href = pdSafeHref(run.href)
+    if (href) next.href = href
+    cleaned.push(next)
+  })
+  return cleaned
+}
+
+function pdCleanRichText (blocks) {
+  const cleaned = []
+  ;(Array.isArray(blocks) ? blocks : []).slice(0, 500).forEach(block => {
+    if (!block) return
+    if (block.type === 'paragraph') {
+      const runs = pdCleanRuns(block.runs)
+      if (runs.some(run => run.text.trim())) cleaned.push({ type: 'paragraph', runs })
+    } else if (block.type === 'list') {
+      const items = (Array.isArray(block.items) ? block.items : []).slice(0, 200).map(pdCleanRuns)
+        .filter(runs => runs.some(run => run.text.trim()))
+      if (items.length) cleaned.push({ type: 'list', ordered: block.ordered === true, items })
+    } else if (block.type === 'image' && pdImageExists(block.id)) {
+      cleaned.push({
+        type: 'image',
+        id: block.id,
+        alt: typeof block.alt === 'string' ? block.alt.trim().slice(0, 500) : '',
+        caption: typeof block.caption === 'string' ? block.caption.trim().slice(0, 500) : ''
+      })
+    }
+  })
+  return cleaned
+}
+
+// Plain text, from the no-JavaScript textarea or a draft saved before the editor: a paragraph
+// per blank-line-separated chunk, keeping single line breaks inside it.
+function pdRichText (detail) {
+  if (Array.isArray(detail)) return detail
+  return String(detail || '').split(/\n\s*\n/).map(text => text.trim()).filter(Boolean)
+    .map(text => ({ type: 'paragraph', runs: [{ text }] }))
+}
+
+// What the no-JavaScript textarea shows. Images can't be shown in it, so it says where they are.
+function pdRichTextPlain (detail) {
+  return pdRichText(detail).map(block => {
+    if (block.type === 'paragraph') return block.runs.map(run => run.text).join('')
+    if (block.type === 'list') return block.items.map((runs, index) => (block.ordered ? (index + 1) + '. ' : '- ') + runs.map(run => run.text).join('')).join('\n')
+    return '[Image: ' + (block.alt || 'no description') + ']'
+  }).join('\n\n')
+}
+
+// Reads the request body as bytes. The kit only parses form and JSON bodies, so an image posted
+// with its own content type arrives untouched. An oversized body is drained, not kept.
+function pdReadBody (req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    req.on('data', chunk => {
+      size += chunk.length
+      if (size <= limit) chunks.push(chunk)
+    })
+    req.on('end', () => resolve(size > limit ? null : Buffer.concat(chunks)))
+    req.on('error', reject)
+  })
+}
+
+// The editor posts the chosen file's bytes here and gets back the id to put in the draft. The
+// type is read from the file's first bytes, not trusted from the request, and SVG is not
+// accepted because it can carry script.
+router.post(PD + '/images', async (req, res) => {
+  try {
+    const bytes = await pdReadBody(req, PD_IMAGE_LIMIT)
+    if (!bytes) return res.status(413).json({ error: 'The image must be smaller than 5MB' })
+    const ext = Object.keys(PD_IMAGE_TYPES).find(key => bytes.length > 12 && PD_IMAGE_TYPES[key].test(bytes))
+    if (!ext) return res.status(415).json({ error: 'The image must be a PNG, JPG, GIF or WebP' })
+    const id = require('crypto').randomBytes(8).toString('hex') + '.' + ext
+    const fs = require('fs')
+    fs.mkdirSync(PD_IMAGE_DIR, { recursive: true })
+    fs.writeFileSync(require('path').join(PD_IMAGE_DIR, id), bytes)
+    res.json({ id, src: PD + '/images/' + id })
+  } catch (error) {
+    console.error('Policy drafting image upload failed:', error)
+    res.status(500).json({ error: 'The image could not be uploaded. Try again.' })
+  }
+})
+
+router.get(PD + '/images/:imageId', (req, res) => {
+  const id = req.params.imageId
+  if (!pdImageExists(id)) return res.sendStatus(404)
+  res.set('Content-Type', PD_IMAGE_TYPES[id.split('.')[1]].mime)
+  res.set('X-Content-Type-Options', 'nosniff')
+  res.set('Cache-Control', 'private, max-age=31536000, immutable')
+  res.sendFile(require('path').join(PD_IMAGE_DIR, id))
+})
+
+// The editor's JSON when JavaScript ran, otherwise the textarea's plain text.
+function pdReadPolicyDetail (body) {
+  if (typeof body._policyDetailRich === 'string' && body._policyDetailRich) {
+    try {
+      return pdCleanRichText(JSON.parse(body._policyDetailRich))
+    } catch (error) {}
+  }
+  return pdRichText((body._policyDetail || '').trim())
+}
 
 router.post(PD + '/chapters/:pdChapterId/draft/:areaId', (req, res) => {
   const chapter = req.pdChapter
@@ -3825,7 +4012,7 @@ router.post(PD + '/chapters/:pdChapterId/draft/:areaId', (req, res) => {
     chapter.drafts[policyArea.id] = {
       title: typeof req.body._policyTitle === 'string' ? req.body._policyTitle.trim() : (existing.title || ''),
       context: (req.body._policyContext || '').trim(),
-      detail: (req.body._policyDetail || '').trim(),
+      detail: pdReadPolicyDetail(req.body),
       strategic: req.body._strategic === 'yes',
       savedAt: pdTimestamp()
     }

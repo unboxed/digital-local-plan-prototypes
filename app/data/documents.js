@@ -24,6 +24,46 @@ const DOCUMENT_PARAGRAPHS = [
   'In several parts of the borough, the evidence suggests that housing demand is concentrated in areas with stronger public transport links and better access to services. This means that future growth may need to be planned carefully to maintain the balance between housing provision and local amenity.'
 ]
 
+// Tables of figures, placed in the document after the paragraph at index `afterParagraph`.
+// Invented for the prototype, like the rest of this document; the figures add up. Table 3.1
+// has two header rows and Table 3.2 two header columns, so a highlighted table shows both kinds
+// of header being merged into one (see app/data/evidence-tables.js). Keep commas out of titles
+// and headers: a reference separates its parts with commas.
+const DOCUMENT_TABLES = [
+  {
+    id: 'lhna-table-3-1',
+    title: 'Table 3.1: Projected households by area (2024 to 2039)',
+    afterParagraph: 2,
+    note: 'Source: household projections, Housing Research Consultants analysis.',
+    headerRows: 2,
+    headerCols: 1,
+    rows: [
+      [{ text: 'Area', rowspan: 2 }, { text: 'Households', colspan: 2 }, { text: 'Change (2024 to 2039)', colspan: 2 }],
+      ['2024', '2039', 'Number', 'Per cent'],
+      ['North', '18,400', '21,300', '2,900', '15.8%'],
+      ['Central', '24,100', '28,900', '4,800', '19.9%'],
+      ['South', '15,700', '17,200', '1,500', '9.6%'],
+      ['Borough total', '58,200', '67,400', '9,200', '15.8%']
+    ]
+  },
+  {
+    id: 'lhna-table-3-2',
+    title: 'Table 3.2: Annual need for affordable homes by tenure',
+    afterParagraph: 4,
+    note: 'Need per year over the plan period, rounded to the nearest 5 homes.',
+    headerRows: 1,
+    headerCols: 2,
+    rows: [
+      [{ text: 'Tenure', colspan: 2 }, 'Homes needed per year', 'Share of need'],
+      [{ text: 'Affordable housing for rent', rowspan: 2 }, 'Social rent', '310', '48%'],
+      ['Affordable rent', '150', '23%'],
+      [{ text: 'Affordable home ownership', rowspan: 2 }, 'Shared ownership', '120', '19%'],
+      ['First Homes', '65', '10%'],
+      [{ text: 'Total', colspan: 2 }, '645', '100%']
+    ]
+  }
+]
+
 // A canned "AI" summary. Each section carries both the paraphrase shown to
 // the user (`text`) and the verbatim `quote` it came from.
 //
@@ -97,6 +137,7 @@ const DOCUMENTS = {
     author: 'Housing Research Consultants',
     policyArea: 'Housing',
     paragraphs: DOCUMENT_PARAGRAPHS,
+    tables: DOCUMENT_TABLES,
     summary: HOUSING_NEEDS_SUMMARY
   },
   'Heritage and Conservation Study': {
@@ -106,6 +147,7 @@ const DOCUMENTS = {
     author: 'Heritage and Design Consultants',
     policyArea: 'Heritage and Tall Buildings',
     paragraphs: [],
+    tables: [],
     summary: null
   },
   'Green Belt Assessment': {
@@ -115,6 +157,7 @@ const DOCUMENTS = {
     author: 'Land and Environment Consultants',
     policyArea: 'Open Spaces and Green Infrastructure',
     paragraphs: [],
+    tables: [],
     summary: null
   },
   'Stakeholder feedback': {
@@ -124,6 +167,7 @@ const DOCUMENTS = {
     author: 'Planning Policy Team',
     policyArea: 'Housing',
     paragraphs: [],
+    tables: [],
     summary: null
   },
   'Scoping Consultation 2024': {
@@ -133,6 +177,7 @@ const DOCUMENTS = {
     author: 'Planning Policy Team',
     policyArea: 'Offices',
     paragraphs: [],
+    tables: [],
     summary: null
   }
 }
@@ -145,6 +190,7 @@ function getDocument (source) {
     author: 'Not recorded',
     policyArea: '',
     paragraphs: [],
+    tables: [],
     summary: null
   }
 }
