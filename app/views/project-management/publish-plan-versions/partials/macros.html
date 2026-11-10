@@ -73,3 +73,23 @@
   </dl>
 </li>
 {% endmacro %}
+
+{#
+  A read-only link with a "Copy link" button, reusing the statement of compliance's copy-link
+  component (initCopyLink); the field is the no-JavaScript fallback. With `logUrl`, a copy is
+  posted there with `access` (Choose how to share uses it to record the share).
+#}
+{# `hideLabel` keeps the label for screen readers only, where a heading above already says it. #}
+{% macro copyLink(id, label, hint, url, logUrl, access, hideLabel) %}
+<div class="govuk-form-group dlp-share-link" data-dlp-copy-link {%- if logUrl %} data-dlp-copy-link-log="{{ logUrl }}" data-dlp-copy-link-access="{{ access }}"{% endif %}>
+  <label class="govuk-label {{ 'govuk-visually-hidden' if hideLabel else 'govuk-label--s' }}" for="{{ id }}">{{ label }}</label>
+  {% if hint %}<div class="govuk-hint" id="{{ id }}-hint">{{ hint }}</div>{% endif %}
+  <div class="dlp-share-link__row">
+    <input class="govuk-input dlp-share-link__input" id="{{ id }}" type="text" value="{{ url }}" readonly {%- if hint %} aria-describedby="{{ id }}-hint"{% endif %} data-dlp-copy-link-input>
+    <button type="button" class="govuk-button govuk-button--secondary dlp-share-link__button" data-module="govuk-button" data-dlp-copy-link-button hidden>
+      Copy link<span class="govuk-visually-hidden"> {{ label | lower }}</span>
+    </button>
+  </div>
+  <p class="govuk-body govuk-!-margin-bottom-0" role="status" aria-live="polite" data-dlp-copy-link-status></p>
+</div>
+{% endmacro %}

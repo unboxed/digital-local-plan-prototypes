@@ -65,10 +65,9 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
   }
 }
 
-// Share or publish, step 1: an item's status on the same line as its label, the tags lined up
-// on the right of the column. A long title wraps beside its tag rather than pushing it down.
-// Share or publish, step 1: chapters and documents as tables to tick, with status in its own
-// column. Narrower than the version history's tables, so it fits the page measure.
+// Share or publish, step 1: chapters and documents as tables to tick, each row with its latest
+// version in the version history's columns, so as wide as the history's tables (scrolling
+// sideways on a narrow screen).
 .dlp-ppv-select {
   margin-bottom: govuk-spacing(7);
 
@@ -78,7 +77,6 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
 }
 
 .dlp-ppv-table.dlp-ppv-select__table {
-  min-width: 0;
   margin-bottom: 0;
 
   .govuk-table__cell {
@@ -92,12 +90,6 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
   .govuk-checkboxes__item {
     margin-bottom: 0;
   }
-}
-
-.dlp-ppv-select__status {
-  text-align: right;
-  white-space: nowrap;
-  width: 1%;
 }
 
 // Share or publish, step 2: one fieldset per item, ruled off from the next.

@@ -1,5 +1,6 @@
 {% extends "project-management/publish-plan-versions/partials/layout.html" %}
 {% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "project-management/publish-plan-versions/partials/macros.html" import copyLink %}
 {% from "govuk/components/radios/macro.njk" import govukRadios %}
 {% from "govuk/components/input/macro.njk" import govukInput %}
 {% from "govuk/components/select/macro.njk" import govukSelect %}
@@ -9,21 +10,6 @@
 {% set pageName = ("Error: " if errorList.length else "") + "Choose how to share" %}
 {% set backLink = { href: ppv + "/share", text: "Choose what to share or publish" } %}
 
-{# A read-only link with a Copy link button, reusing the statement of compliance's copy-link
-   component (initCopyLink). `log` is posted to when it's copied, so the share is recorded. #}
-{% macro copyLink(id, label, hint, url, access) %}
-<div class="govuk-form-group dlp-share-link" data-dlp-copy-link {%- if access %} data-dlp-copy-link-log="{{ ppv }}/share/how/copied" data-dlp-copy-link-access="{{ access }}"{% endif %}>
-  <label class="govuk-label govuk-label--s" for="{{ id }}">{{ label }}</label>
-  {% if hint %}<div class="govuk-hint" id="{{ id }}-hint">{{ hint }}</div>{% endif %}
-  <div class="dlp-share-link__row">
-    <input class="govuk-input dlp-share-link__input" id="{{ id }}" type="text" value="{{ url }}" readonly {%- if hint %} aria-describedby="{{ id }}-hint"{% endif %} data-dlp-copy-link-input>
-    <button type="button" class="govuk-button govuk-button--secondary dlp-share-link__button" data-module="govuk-button" data-dlp-copy-link-button hidden>
-      Copy link<span class="govuk-visually-hidden"> {{ label | lower }}</span>
-    </button>
-  </div>
-  <p class="govuk-body govuk-!-margin-bottom-0" role="status" aria-live="polite" data-dlp-copy-link-status></p>
-</div>
-{% endmacro %}
 
 {% block main %}
 <div class="dlp-ppv-measure">
@@ -39,8 +25,8 @@
 <section class="dlp-ppv-share-option" aria-labelledby="link-heading">
   <h2 class="govuk-heading-m" id="link-heading">Share a link</h2>
   <p class="govuk-body">Anyone you send a link to can open it. Copying a link adds it to the version history.</p>
-  {{ copyLink("link-view", "Link to view", "Can read and comment", links.view, "view") }}
-  {{ copyLink("link-edit", "Link to edit", "Can make changes and comment", links.edit, "edit") }}
+  {{ copyLink("link-view", "Link to view", "Can read and comment", links.view, ppv + "/share/how/copied", "view") }}
+  {{ copyLink("link-edit", "Link to edit", "Can make changes and comment", links.edit, ppv + "/share/how/copied", "edit") }}
 </section>
 
 {# ---------- Invite people ---------- #}

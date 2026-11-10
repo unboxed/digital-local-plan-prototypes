@@ -51,9 +51,6 @@
   <div class="dlp-summary__section{% if section.saved %} dlp-summary__section--saved{% endif %}">
     <div class="dlp-summary__header">
       <h3 class="dlp-summary__heading">{{ section.heading }}</h3>
-      <span class="dlp-summary__confidence dlp-summary__confidence--{{ section.confidence }}">
-        {{ section.confidence }} confidence
-      </span>
     </div>
 
     <p class="govuk-body">{{ section.text }}</p>
@@ -62,9 +59,9 @@
 
     <p class="dlp-summary__suggested">
       <span class="dlp-summary__suggested-label">Suggested tags</span>
-      {% for tag in section.suggestedTags %}<span class="dlp-chip dlp-chip--suggested">{{ tag }}</span>{% endfor %}
-      {% for area in section.suggestedPolicyAreas %}<span class="dlp-chip dlp-chip--suggested dlp-chip--policy">{{ area }}</span>{% endfor %}
-      {% if section.suggestedPolicyReference %}<span class="dlp-chip dlp-chip--suggested">{{ section.suggestedPolicyReference }}</span>{% endif %}
+      {% for tag in section.suggestedTags %}<strong class="govuk-tag{% if tagColours[tag] %} govuk-tag--{{ tagColours[tag] }}{% endif %} dlp-tag">{{ tag }}</strong>{% endfor %}
+      {% for area in section.suggestedPolicyAreas %}<strong class="govuk-tag govuk-tag--grey dlp-tag">{{ area }}</strong>{% endfor %}
+      {% if section.suggestedPolicyReference %}<strong class="govuk-tag govuk-tag--grey dlp-tag">Policy {{ section.suggestedPolicyReference }}</strong>{% endif %}
     </p>
 
     {% if section.saved %}

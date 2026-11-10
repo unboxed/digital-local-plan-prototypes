@@ -111,18 +111,21 @@ const SUGGESTED_TAGS = [
 ]
 
 // Maps each suggested tag to a govuk-tag colour modifier (blank = default blue)
+// GOV.UK tag colours (govuk-tag--<colour>; '' is the default blue). Only the supported ones:
+// turquoise and pink are deprecated in GOV.UK Frontend, so Conservation shares Heritage's purple
+// and Office is grey. The text, not the colour, says which tag it is.
 const TAG_COLOURS = {
   'Need': '',
   'Capacity': 'grey',
   'Heritage': 'purple',
-  'Conservation': 'turquoise',
+  'Conservation': 'purple',
   'Green Belt': 'green',
   'AONB': 'teal',
   'SSSI': 'magenta',
   'Article 4': 'orange',
   'Flood Risk': 'red',
   'Site Allocations': 'yellow',
-  'Office': 'pink'
+  'Office': 'grey'
 }
 
 const POLICY_AREAS = [
@@ -166,10 +169,29 @@ const PLAN_PARAGRAPHS = POLICY_AREAS.flatMap(area =>
   )
 )
 
-const POLICY_REFERENCES = [
-  'H1', 'H2', 'H3', 'T1', 'T2', 'EN1', 'EN2',
-  'HE1', 'HE2', 'GB1', 'SA1', 'SA2', 'EMP1', 'OFF1'
-]
+// Policy references are the City Plan 2040's own (policies.js), so a tagged item's reference
+// names a real policy. POLICY_TITLES labels them in the select ("HS1 – Location of New Housing").
+const POLICY_REFERENCES = POLICIES.map(policy => policy.ref)
+const POLICY_TITLES = Object.fromEntries(POLICIES.map(policy => [policy.ref, policy.title]))
+
+// The placeholder references used before (H1, T2, EMP1 and so on), mapped to the City Plan 2040
+// policy nearest in meaning, so items saved in an existing session still name a real policy.
+const LEGACY_POLICY_REFERENCES = {
+  H1: 'S3',
+  H2: 'HS1',
+  H3: 'HS4',
+  T1: 'VT1',
+  T2: 'VT1',
+  EN1: 'S15',
+  EN2: 'CR2',
+  HE1: 'HE1',
+  HE2: 'HE2',
+  GB1: 'OS1',
+  SA1: 'HS1',
+  SA2: 'HS1',
+  EMP1: 'OF1',
+  OFF1: 'OF2'
+}
 
 // An evidence item's sourceType decides its display header:
 //   document                     -> "<source> / <chapter>"
@@ -192,6 +214,9 @@ function getEvidenceItems (req) {
     req.session.data.evidenceItems = JSON.parse(JSON.stringify(req.session.data.evidenceItems || []))
     req.session.data.evidenceItemsOwned = true
   }
+  req.session.data.evidenceItems.forEach(item => {
+    if (LEGACY_POLICY_REFERENCES[item.policyReference]) item.policyReference = LEGACY_POLICY_REFERENCES[item.policyReference]
+  })
   return req.session.data.evidenceItems
 }
 
@@ -320,7 +345,8 @@ const evidenceViewData = {
   tagColours: TAG_COLOURS,
   policyAreas: POLICY_AREAS,
   policyAreaLinks: POLICY_AREA_LINKS,
-  policyReferences: POLICY_REFERENCES,
+  // For the reference selects: each City Plan 2040 policy as { value, text }.
+  policyReferences: POLICY_REFERENCES.map(ref => ({ value: ref, text: ref + ' – ' + POLICY_TITLES[ref] })),
   noteSourceTypes: NOTE_SOURCE_TYPES
 }
 
@@ -372,6 +398,20 @@ function getReviewReturn (source, fragment) {
   return '/evidence/review?source=' + encodeURIComponent(source) + (fragment || '')
 }
 
+// The policies the evidence base links a document to: those that cite it as a source
+// (policies.js) and those its excerpts support (evidence-excerpts.js), in plan order. Not the
+// references tagged in the session. Each links to its policy summary where there is one.
+function getLinkedPolicies (source) {
+  const refs = new Set(getPolicyRefsForSource(source))
+  EVIDENCE_EXCERPTS.filter(excerpt => excerpt.source === source)
+    .forEach(excerpt => excerpt.policyRefs.forEach(ref => refs.add(ref)))
+  return POLICIES.filter(policy => refs.has(policy.ref)).map(policy => ({
+    ref: policy.ref,
+    title: policy.title,
+    href: getPolicy(policy.ref) ? '/policy-writing/policy-summary?ref=' + encodeURIComponent(policy.ref) : null
+  }))
+}
+
 router.get('/evidence/review', (req, res) => {
   const items = getEvidenceItems(req)
   const source = req.query.source || DOCUMENT_SOURCE
@@ -392,6 +432,7 @@ router.get('/evidence/review', (req, res) => {
   res.render('evidence/review/index', Object.assign({}, evidenceViewData, {
     doc,
     sourceEncoded: encodeURIComponent(source),
+    linkedPolicies: getLinkedPolicies(source),
     returnTo: getReviewReturn(source),
     summaryGenerated,
     summarySections,
@@ -3318,7 +3359,9 @@ const CHAPTER_STEPS = [
   { slug: 'sources', label: 'Add sources', done: chapter => chapter.sources.length > 0 },
   { slug: 'policies', label: 'Manage policies', done: chapter => Boolean(chapter.policiesConfirmed) },
   { slug: 'draft', label: 'Draft policy', done: chapter => Object.keys(chapter.drafts).length > 0 },
-  { slug: 'export', label: 'Share and publish', done: chapter => chapter.exports.length > 0 }
+  // Goes to Publish plan versions' Share or publish (a new share), not the chapter's own export
+  // page, by request. The export page is still there, from the draft's "View and export chapter".
+  { slug: 'export', label: 'Share and publish', href: '/project-management/publish-plan-versions/share?_new=1', done: chapter => chapter.exports.length > 0 }
 ]
 
 const pdChapterUrl = (chapter, step) => PD + '/chapters/' + chapter.id + '/' + step
@@ -3436,7 +3479,7 @@ function buildDraftingSidebar (data, active) {
           const isActive = step.slug === active.step
           return {
             text: step.label,
-            href: pdChapterUrl(chapter, step.slug),
+            href: step.href || pdChapterUrl(chapter, step.slug),
             active: isActive,
             status: step.done(chapter) ? 'Completed' : (isActive ? 'In progress' : 'Not started')
           }
@@ -5931,12 +5974,19 @@ router.get(PPV + '/history', (req, res) => {
   })
 })
 
+// A view-only link to one version, as "Share a link to this version" offers on its page.
+// initCopyLink swaps in the page's own origin (see Choose how to share).
+function ppvVersionLink (req, path) {
+  return req.protocol + '://' + req.get('host') + PPV + path + '?access=view'
+}
+
 router.get(PPV + '/versions/:id', (req, res) => {
   const version = getPlanVersions(req).versions.find(v => v.id === req.params.id)
   if (!version) return res.redirect(PPV + '/history')
   renderPpv(req, res, 'version', 'history', {
     version,
-    layers: version.layers.map(ppvLayerView)
+    layers: version.layers.map(ppvLayerView),
+    shareUrl: ppvVersionLink(req, '/versions/' + version.id)
   })
 })
 
@@ -5975,7 +6025,9 @@ router.get([PPV + '/documents/:id', PPV + '/documents/:id/versions/:version'], (
   renderPpv(req, res, 'document', 'history', {
     document,
     version,
-    layers: version.layers.map(ppvLayerView)
+    layers: version.layers.map(ppvLayerView),
+    // Always the numbered address, so the link keeps opening this version after a newer one.
+    shareUrl: ppvVersionLink(req, '/documents/' + document.id + '/versions/' + version.version)
   })
 })
 
@@ -6019,19 +6071,29 @@ function ppvItemStatus (req, itemId, seeded) {
   return PV.ITEM_STATUSES[pending ? 'pending' : seeded] || null
 }
 
+// The latest plan version with this chapter in it. The seeded versions are the full plan; one
+// made in this session has the chapter if its schedule includes it or all chapters.
+function ppvChapterLatest (versions, chapterId) {
+  return versions.slice().reverse().find(version => !version.schedule || version.schedule.some(item =>
+    item.id === 'all-chapters' || item.id === 'chapter-' + chapterId)) || null
+}
+
 function ppvShareView (req, res, values, errors) {
   renderPpv(req, res, 'share', 'share', {
     values,
     errors,
     errorList: ppvErrorList(errors),
+    // Each table shows only the latest version, in the version history's columns: for a chapter,
+    // the latest plan version that includes it; for a supporting document, its own latest.
     chapters: PV.CHAPTERS.map(chapter => ({
       id: chapter.id,
       title: chapter.title,
-      status: ppvItemStatus(req, 'chapter-' + chapter.id, PV.CHAPTER_STATUSES[chapter.id])
+      latest: ppvChapterLatest(getPlanVersions(req).versions, chapter.id)
     })),
-    documents: PV.PLAN_DOCUMENTS.map(document => Object.assign({}, document, {
-      status: document.status ? ppvItemStatus(req, 'doc-' + document.id, document.status) : null
-    }))
+    documents: PV.PLAN_DOCUMENTS.filter(d => d.id !== 'other').map(document => {
+      const source = PV.SUPPORTING_DOCUMENTS.find(d => d.id === document.id)
+      return { id: document.id, title: document.title, latest: source ? source.versions.slice(-1)[0] : null }
+    })
   })
 }
 

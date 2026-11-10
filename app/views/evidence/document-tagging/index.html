@@ -20,7 +20,7 @@ block content %}
       Highlight any text in the document below, then apply tags in the panel.
     </p>
 
-    <div class="dlp-document-viewer" id="document-viewer" data-dlp-highlights="#saved-passages-data">
+    <div class="dlp-document-viewer" id="document-viewer" data-dlp-highlights="#saved-passages-data" data-dlp-tag-colours="{{ tagColours | dump }}">
       <p class="dlp-document-viewer__chapter">{{ documentChapter }}</p>
       {% for paragraph in documentParagraphs %}
       <p>{{ paragraph }}</p>
@@ -118,7 +118,7 @@ block content %}
           <select class="dlp-select" id="policy-reference-select" name="policyReference">
             <option value="">Choose a reference</option>
             {% for reference in policyReferences %}
-            <option value="{{ reference }}">{{ reference }}</option>
+            <option value="{{ reference.value }}">{{ reference.text }}</option>
             {% endfor %}
           </select>
         </div>
