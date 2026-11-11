@@ -73,3 +73,110 @@
 .dlp-share-link__button {
   margin-bottom: govuk-spacing(2);
 }
+
+// --- General conformity with the spatial development strategy (sds/index.html) -------------
+
+// One tile per status. Each is a link that filters the statement to that status.
+.dlp-sds-counts {
+  display: grid;
+  gap: govuk-spacing(3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: govuk-spacing(6);
+
+  @include govuk-media-query($from: tablet) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.dlp-sds-counts__item {
+  margin: 0;
+}
+
+.dlp-sds-counts__link {
+  background: $dlp-panel-background;
+  display: block;
+  height: 100%;
+  padding: govuk-spacing(3);
+  text-decoration: none;
+
+  &:hover .dlp-sds-counts__label {
+    text-decoration: underline;
+  }
+}
+
+.dlp-sds-counts__number {
+  @include govuk-font($size: 36, $weight: bold);
+  display: block;
+}
+
+.dlp-sds-counts__label {
+  @include govuk-font($size: 16);
+  display: block;
+}
+
+.dlp-sds-filters__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 govuk-spacing(4);
+}
+
+// With JavaScript the filters apply as soon as they change, so Apply is only the fallback.
+.govuk-frontend-supported .dlp-sds-filters__apply {
+  display: none;
+}
+
+.dlp-sds-table {
+  @include govuk-font($size: 16);
+  margin-bottom: govuk-spacing(8);
+
+  .govuk-table__header,
+  .govuk-table__cell {
+    vertical-align: top;
+  }
+}
+
+.dlp-sds-table__policy {
+  width: 22%;
+}
+
+.dlp-sds-table__links {
+  width: 26%;
+}
+
+.dlp-sds-table__status {
+  width: 16%;
+}
+
+.dlp-sds-table__title {
+  font-weight: $govuk-font-weight-regular;
+}
+
+.dlp-sds-table__list {
+  @include govuk-font($size: 16);
+  margin-bottom: 0;
+
+  li {
+    margin-bottom: govuk-spacing(1);
+  }
+}
+
+// A select is as wide as its longest option ("CV1: Protection of Existing Cultural …"), which
+// on a phone is wider than the page.
+.dlp-sds-field {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dlp-sds-select {
+  max-width: 100%;
+}
+
+.dlp-sds-table-scroll {
+  margin-bottom: govuk-spacing(8);
+  overflow-x: auto;
+
+  .dlp-sds-table {
+    margin-bottom: 0;
+    min-width: 40em;
+  }
+}

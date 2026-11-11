@@ -1,0 +1,35 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = item.title + ", " + item.ref %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/statement-of-compliance/spatial-development-strategy">Back to general conformity with the {{ sds.shortName }}</a>
+
+    <span class="govuk-caption-xl">Evidence</span>
+    <h1 class="govuk-heading-xl">{{ item.title }}</h1>
+
+    <h2 class="govuk-heading-m">{{ item.ref }}</h2>
+    <div class="govuk-inset-text">
+      <p class="govuk-body">{{ item.text }}</p>
+    </div>
+    <p class="govuk-body-s dlp-pd-muted">This extract is invented for this prototype.</p>
+
+    <h2 class="govuk-heading-m govuk-!-margin-top-6">Cited for</h2>
+    {% if citedBy.length %}
+    <ul class="govuk-list">
+      {% for policy in citedBy %}
+      <li><a class="govuk-link" href="{{ policy.href }}">{{ policy.ref }} {{ policy.title }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="govuk-body">This evidence is not cited against any {{ sds.shortName }} policy at the moment.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = policy.ref + " " + policy.title + ": general conformity" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="{{ backHref }}">Back to general conformity with the {{ sds.shortName }}</a>
+
+    <span class="govuk-caption-l">{{ sds.name }}, chapter {{ chapter.number }}: {{ chapter.title }}</span>
+    <h1 class="govuk-heading-l">{{ policy.ref }} {{ policy.title }}</h1>
+
+    <p class="govuk-body">
+      <strong class="govuk-tag govuk-tag--{{ statusColours[policy.status] }}">{{ policy.status }}</strong>
+      {% if policy.nextStep %}<span class="govuk-body-s dlp-pd-muted govuk-!-margin-left-2">{{ policy.nextStep }}</span>{% endif %}
+    </p>
+
+    <p class="govuk-body">
+      <a class="govuk-link" href="{{ sds.url }}" target="_blank" rel="noopener noreferrer">Read Policy {{ policy.ref }} in {{ sds.name }}<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>
+    </p>
+
+    <form method="post" action="" novalidate>
+      {# Pressing Enter submits with the form's first button, which would otherwise be a Remove. #}
+      <button type="submit" name="_action" value="save" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Save</button>
+
+      <h2 class="govuk-heading-m govuk-!-margin-top-6" id="sds-links">Linked local plan policies</h2>
+      <p class="govuk-body">The policies in {{ organisationName }} Local Plan that deliver this {{ sds.shortName }} policy.</p>
+
+      {% if policy.links.length %}
+      <dl class="govuk-summary-list">
+        {% for link in policy.links %}
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">{{ link.ref }}</dt>
+          <dd class="govuk-summary-list__value">
+            {% if link.href %}<a class="govuk-link" href="{{ link.href }}">{{ link.title }}</a>{% else %}{{ link.title }}{% endif %}
+            <br><span class="govuk-body-s dlp-pd-muted">{{ link.policyArea }}</span>
+          </dd>
+          <dd class="govuk-summary-list__actions">
+            <button type="submit" name="_action" value="remove-link:{{ link.ref }}" class="dlp-link-button">
+              Remove<span class="govuk-visually-hidden"> {{ link.ref }} {{ link.title }}</span>
+            </button>
+          </dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <p class="govuk-body dlp-pd-muted">No local plan policies linked.</p>
+      {% endif %}
+
+      <div class="dlp-pd-inline-field">
+        <div class="govuk-form-group dlp-sds-field">
+          <label class="govuk-label" for="sds-link">Link a local plan policy</label>
+          <select class="govuk-select dlp-sds-select" id="sds-link" name="_link">
+            {% for group in localPolicyGroups %}
+            <optgroup label="{{ group.label }}">
+              {% for option in group.options %}
+              <option value="{{ option.value }}">{{ option.text }}</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" name="_action" value="add-link" class="govuk-button govuk-button--secondary" data-module="govuk-button">Add policy</button>
+      </div>
+
+      <div class="govuk-form-group govuk-!-margin-top-6">
+        <h2 class="govuk-label-wrapper">
+          <label class="govuk-label govuk-label--m" for="sds-comment">Authority comment</label>
+        </h2>
+        <div class="govuk-hint" id="sds-comment-hint">
+          Describe how the linked policies deliver this {{ sds.shortName }} policy. If it is not
+          addressed in the local plan, explain why, and add evidence below that shows it is
+          unnecessary.
+        </div>
+        <textarea class="govuk-textarea" id="sds-comment" name="_comment" rows="5" aria-describedby="sds-comment-hint">{{ policy.comment }}</textarea>
+      </div>
+
+      <h2 class="govuk-heading-m govuk-!-margin-top-6" id="sds-evidence">Evidence</h2>
+      <p class="govuk-body">Evidence that supports the comment. It is needed when no local plan policy is linked.</p>
+
+      {% if policy.evidence.length %}
+      <dl class="govuk-summary-list">
+        {% for item in policy.evidence %}
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">
+            <a class="govuk-link" href="{{ item.href }}">{{ item.title }}</a>
+          </dt>
+          <dd class="govuk-summary-list__value">{{ item.ref }}</dd>
+          <dd class="govuk-summary-list__actions">
+            <button type="submit" name="_action" value="remove-evidence:{{ item.id }}" class="dlp-link-button">
+              Remove<span class="govuk-visually-hidden"> {{ item.title }}, {{ item.ref }}</span>
+            </button>
+          </dd>
+        </div>
+        {% endfor %}
+      </dl>
+      {% else %}
+      <p class="govuk-body dlp-pd-muted">No evidence added.</p>
+      {% endif %}
+
+      {% if evidenceOptions.length %}
+      <div class="dlp-pd-inline-field">
+        <div class="govuk-form-group dlp-sds-field">
+          <label class="govuk-label" for="sds-evidence-select">Add evidence</label>
+          <select class="govuk-select dlp-sds-select" id="sds-evidence-select" name="_evidence">
+            {% for option in evidenceOptions %}
+            <option value="{{ option.value }}">{{ option.text }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" name="_action" value="add-evidence" class="govuk-button govuk-button--secondary" data-module="govuk-button">Add evidence</button>
+      </div>
+      {% endif %}
+
+      <div class="govuk-button-group govuk-!-margin-top-6">
+        <button type="submit" name="_action" value="save" class="govuk-button" data-module="govuk-button">Save and return to statement</button>
+        {% if next %}
+        <button type="submit" name="_action" value="next" class="govuk-button govuk-button--secondary" data-module="govuk-button">Save and go to {{ next.ref }}</button>
+        {% endif %}
+      </div>
+    </form>
+
+    <nav class="govuk-pagination govuk-pagination--block" aria-label="London Plan policies">
+      {% if previous %}
+      <div class="govuk-pagination__prev">
+        <a class="govuk-link govuk-pagination__link" href="{{ previous.href }}" rel="prev">
+          <svg class="govuk-pagination__icon govuk-pagination__icon--prev" xmlns="http://www.w3.org/2000/svg" height="13" width="15" aria-hidden="true" focusable="false" viewBox="0 0 15 13"><path d="m6.5938-0.0078125-6.7266 6.7266 6.7441 6.4062 1.377-1.449-4.1856-3.9768h12.896v-2h-12.984l4.2931-4.293-1.414-1.414z"></path></svg>
+          <span class="govuk-pagination__link-title">Previous<span class="govuk-visually-hidden"> policy</span></span>
+          <span class="govuk-visually-hidden">:</span>
+          <span class="govuk-pagination__link-label">{{ previous.ref }} {{ previous.title }}</span>
+        </a>
+      </div>
+      {% endif %}
+      {% if next %}
+      <div class="govuk-pagination__next">
+        <a class="govuk-link govuk-pagination__link" href="{{ next.href }}" rel="next">
+          <svg class="govuk-pagination__icon govuk-pagination__icon--next" xmlns="http://www.w3.org/2000/svg" height="13" width="15" aria-hidden="true" focusable="false" viewBox="0 0 15 13"><path d="m8.107-0.0078125-1.4136 1.414 4.2926 4.293h-12.986v2h12.896l-4.1855 3.9766 1.377 1.4492 6.7441-6.4062-6.7246-6.7266z"></path></svg>
+          <span class="govuk-pagination__link-title">Next<span class="govuk-visually-hidden"> policy</span></span>
+          <span class="govuk-visually-hidden">:</span>
+          <span class="govuk-pagination__link-label">{{ next.ref }} {{ next.title }}</span>
+        </a>
+      </div>
+      {% endif %}
+    </nav>
+
+  </div>
+</div>
+
+{% endblock %}
