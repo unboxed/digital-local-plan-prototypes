@@ -1,0 +1,152 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "General conformity with the " + sds.shortName %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+
+    <a class="govuk-back-link" href="/statement-of-compliance">Back to Statement of compliance</a>
+
+    {% if flash %}
+    <div class="govuk-notification-banner govuk-notification-banner--success" role="alert" aria-labelledby="sds-flash-title" data-module="govuk-notification-banner">
+      <div class="govuk-notification-banner__header">
+        <h2 class="govuk-notification-banner__title" id="sds-flash-title">Success</h2>
+      </div>
+      <div class="govuk-notification-banner__content">
+        <p class="govuk-notification-banner__heading">
+          {{ flash.ref }} {{ flash.title }} saved.
+          <a class="govuk-notification-banner__link" href="#{{ flash.anchor }}">Go to {{ flash.ref }}</a>
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    <span class="govuk-caption-xl">Statement of compliance: Regulation 28</span>
+    <h1 class="govuk-heading-xl">General conformity with the {{ sds.shortName }}</h1>
+
+    <div class="dlp-pd-measure">
+      <p class="govuk-body">
+        {{ organisationName }} Local Plan must be in general conformity with the operative spatial
+        development strategy for its area: <a class="govuk-link" href="{{ sds.url }}" target="_blank" rel="noopener noreferrer">{{ sds.name }}<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>,
+        the spatial development strategy for Greater London, published by the {{ sds.author }} in {{ sds.published }}.
+      </p>
+      <p class="govuk-body">
+        Each of its {{ total }} policies is listed below with the local plan policies that deliver it
+        and the authority's comment on how. Where a policy is not addressed in the local plan, the
+        comment explains why and links to evidence that shows it is unnecessary.
+      </p>
+      <p class="govuk-body-s dlp-pd-muted">
+        Policy references and titles are the {{ sds.shortName }}'s own. The links, comments and
+        evidence are invented for this prototype.
+      </p>
+    </div>
+
+    <h2 class="govuk-heading-m">Progress</h2>
+    <ul class="govuk-list dlp-sds-counts">
+      {% for item in counts %}
+      <li class="dlp-sds-counts__item">
+        <a class="govuk-link govuk-link--no-visited-state dlp-sds-counts__link" href="?sdsStatus={{ item.status | urlencode }}&amp;sdsChapter=">
+          <span class="dlp-sds-counts__number">{{ item.count }}</span>
+          <span class="dlp-sds-counts__label">{{ item.status }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <form method="get" action="" class="dlp-sds-filters" novalidate>
+      {# data-dlp-autosubmit: with JavaScript a filter applies as soon as it is changed. #}
+      <div class="dlp-sds-filters__fields" data-dlp-autosubmit>
+        <div class="govuk-form-group dlp-sds-field">
+          <label class="govuk-label" for="sds-chapter">Chapter</label>
+          <select class="govuk-select dlp-sds-select" id="sds-chapter" name="sdsChapter">
+            <option value="">All chapters</option>
+            {% for option in chapterOptions %}
+            <option value="{{ option.value }}" {% if option.value == filters.chapter %}selected{% endif %}>{{ option.text }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="govuk-form-group dlp-sds-field">
+          <label class="govuk-label" for="sds-status">Status</label>
+          <select class="govuk-select dlp-sds-select" id="sds-status" name="sdsStatus">
+            <option value="">All statuses</option>
+            {% for status in statuses %}
+            <option value="{{ status }}" {% if status == filters.status %}selected{% endif %}>{{ status }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button govuk-button--secondary dlp-sds-filters__apply" data-module="govuk-button">Apply filters</button>
+        {% if filters.chapter or filters.status %}
+        <a class="govuk-link" href="?sdsChapter=&amp;sdsStatus=">Clear filters</a>
+        {% endif %}
+      </div>
+    </form>
+
+    {% for chapter in chapters %}
+    {# Scrolls sideways on a narrow screen rather than widening the page. #}
+    <div class="dlp-sds-table-scroll">
+    <table class="govuk-table dlp-sds-table">
+      <caption class="govuk-table__caption govuk-table__caption--m">Chapter {{ chapter.number }}: {{ chapter.title }}</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th scope="col" class="govuk-table__header dlp-sds-table__policy">{{ sds.shortName }} policy</th>
+          <th scope="col" class="govuk-table__header dlp-sds-table__links">Local plan policies</th>
+          <th scope="col" class="govuk-table__header">Authority comment</th>
+          <th scope="col" class="govuk-table__header dlp-sds-table__status">Status</th>
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        {% for policy in chapter.policies %}
+        <tr class="govuk-table__row" id="{{ policy.anchor }}">
+          <th scope="row" class="govuk-table__header">
+            <a class="govuk-link" href="{{ policy.href }}">{{ policy.ref }}<span class="govuk-visually-hidden">:</span> <span class="dlp-sds-table__title">{{ policy.title }}</span></a>
+          </th>
+          <td class="govuk-table__cell">
+            {% if policy.links.length %}
+            <ul class="govuk-list dlp-sds-table__list">
+              {% for link in policy.links %}
+              <li>
+                {% if link.href %}<a class="govuk-link" href="{{ link.href }}">{{ link.ref }}</a>{% else %}<strong>{{ link.ref }}</strong>{% endif %}
+                {{ link.title }}
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <span class="dlp-pd-muted">None</span>
+            {% endif %}
+          </td>
+          <td class="govuk-table__cell">
+            {% if policy.comment %}<p class="govuk-body-s govuk-!-margin-bottom-1">{{ policy.comment }}</p>{% else %}<span class="dlp-pd-muted">No comment yet</span>{% endif %}
+            {% if policy.evidence.length %}
+            <p class="govuk-body-s govuk-!-margin-bottom-0">
+              Evidence:
+              {% for item in policy.evidence %}<a class="govuk-link" href="{{ item.href }}">{{ item.title }}, {{ item.ref | lower }}</a>{% if not loop.last %}; {% endif %}{% endfor %}
+            </p>
+            {% endif %}
+          </td>
+          <td class="govuk-table__cell">
+            <strong class="govuk-tag govuk-tag--{{ statusColours[policy.status] }}">{{ policy.status }}</strong>
+            {% if policy.nextStep %}<p class="govuk-body-s dlp-pd-muted govuk-!-margin-top-1 govuk-!-margin-bottom-0">{{ policy.nextStep }}</p>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="govuk-body">No policies match these filters.</p>
+    {% endfor %}
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
+
+    <form method="post" action="/statement-of-compliance/spatial-development-strategy/reset">
+      <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">Reset to the example statement</button>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}
