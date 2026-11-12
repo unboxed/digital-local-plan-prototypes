@@ -8,7 +8,7 @@
 
 {{ govukBreadcrumbs({
   items: [
-    { text: "Home", href: "/policy-writing-drafting" },
+    { text: "Home", href: "/plan/make/policy-drafting" },
     { text: "Manage chapters" }
   ]
 }) }}
@@ -46,7 +46,7 @@
     {% for chapter in chapters %}
       <tr class="govuk-table__row">
         <td class="govuk-table__cell">
-          <a class="govuk-link govuk-!-font-weight-bold" href="/policy-writing-drafting/chapters/{{ chapter.id }}/brief">{{ chapter.name }}</a>
+          <a class="govuk-link govuk-!-font-weight-bold" href="/plan/make/policy-drafting/chapters/{{ chapter.id }}/brief">{{ chapter.name }}</a>
         </td>
         <td class="govuk-table__cell">
           <strong class="govuk-tag govuk-tag--{{ statusColours[chapter.status] }}">{{ chapter.status }}</strong>
@@ -55,17 +55,17 @@
     {% else %}
       <tr class="govuk-table__row">
         <td class="govuk-table__cell" colspan="2">
-          No chapters yet. <a class="govuk-link" href="/policy-writing-drafting/starting-points">Include some starting points</a> or add a chapter.
+          No chapters yet. <a class="govuk-link" href="/plan/make/policy-drafting/starting-points">Include some starting points</a> or add a chapter.
         </td>
       </tr>
     {% endfor %}
   </tbody>
 </table>
 
-<form method="post" action="/policy-writing-drafting/chapters">
+<form method="post" action="/plan/make/policy-drafting/chapters">
   <div class="govuk-button-group">
     {{ govukButton({ text: "Save" }) }}
-    {{ govukButton({ text: "Add new chapter", classes: "govuk-button--secondary", href: "/policy-writing-drafting/chapters/new" }) }}
+    {{ govukButton({ text: "Add new chapter", classes: "govuk-button--secondary", href: "/plan/make/policy-drafting/chapters/new" }) }}
   </div>
 </form>
 

@@ -21,7 +21,7 @@
 {% block content %}
 
 {{ govukBreadcrumbs({ items: [
-  { text: "Home", href: "/evidence/commissioned" },
+  { text: "Home", href: "/plan/sources/commissioned" },
   { text: "Submit report" }
 ] }) }}
 
@@ -47,7 +47,7 @@
   {{ ceHandoff({
     text: "The officer hasn't sent a brief in this run of the prototype.",
     linkText: "Switch to Danny Dyer (policy officer) to create a brief",
-    href: "/evidence/commissioned/create-brief"
+    href: "/plan/sources/commissioned/create-brief"
   }) }}
 
 {% else %}
@@ -97,7 +97,7 @@
 
         <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
 
-        <form method="post" action="/evidence/commissioned/consultant/submit-report" novalidate>
+        <form method="post" action="/plan/sources/commissioned/consultant/submit-report" novalidate>
 
           {# Pressing Enter in a text field submits the form with its first submit button.
              Without this, that would be "Add link" rather than submitting the report. #}
@@ -187,7 +187,7 @@
         {{ ceHandoff({
           text: "You've submitted this report. To see what the council does with it, switch back to the officer.",
           linkText: "Switch back to Danny Dyer (policy officer)",
-          href: "/evidence/commissioned/review"
+          href: "/plan/sources/commissioned/review"
         }) }}
       {% endif %}
 

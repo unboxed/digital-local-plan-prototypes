@@ -3,7 +3,7 @@
 {% from "partials/gis/macro.njk" import gisConnect, gisLayerGroup, gisLayerTag, gisLayerTypeSwitch %}
 
 {% set pageName = "Add GIS layers" %}
-{% set returnTo = "/evidence/commissioned/layers#added-layers" %}
+{% set returnTo = "/plan/sources/commissioned/layers#added-layers" %}
 
 {% block content %}
 
@@ -11,7 +11,7 @@
 <div class="dlp-ce-page">
 
 {{ govukBreadcrumbs({ items: [
-  { text: "Home", href: "/evidence/commissioned" },
+  { text: "Home", href: "/plan/sources/commissioned" },
   { text: "Add GIS layers" }
 ] }) }}
 
@@ -52,7 +52,7 @@
           <td class="govuk-table__cell">{{ gisLayerTag(layer) }}</td>
           <td class="govuk-table__cell">
             {{ gisLayerTypeSwitch(layer, returnTo) }}
-            <form class="dlp-inline-form" method="post" action="/evidence/commissioned/layers/{{ layer.id }}/remove">
+            <form class="dlp-inline-form" method="post" action="/plan/sources/commissioned/layers/{{ layer.id }}/remove">
               <button type="submit" class="dlp-link-button">Remove<span class="govuk-visually-hidden"> {{ layer.name }}</span></button>
             </form>
           </td>
@@ -66,8 +66,8 @@
   </table>
 
   <div class="govuk-button-group">
-    {{ govukButton({ text: "Continue to accept and save", href: "/evidence/commissioned/accept" }) }}
-    <a class="govuk-link" href="/evidence/commissioned/review">Back to review and comment</a>
+    {{ govukButton({ text: "Continue to accept and save", href: "/plan/sources/commissioned/accept" }) }}
+    <a class="govuk-link" href="/plan/sources/commissioned/review">Back to review and comment</a>
   </div>
 </div>
 

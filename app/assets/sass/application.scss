@@ -15,6 +15,7 @@
 }
 
 @import "service-header";
+@import "feedback";
 @import "side-navigation";
 @import "external-header";
 @import "timeline";
@@ -1337,35 +1338,6 @@ $dlp-confidence-low: govuk-colour("orange");
   border-left-color: $dlp-policy-accent;
 }
 
-// User stories listing
-.dlp-story-list {
-  margin: 0;
-}
-
-.dlp-story-list__item {
-  border-top: 1px solid $dlp-border-grey;
-  display: flex;
-  flex-wrap: wrap;
-  gap: govuk-spacing(3);
-  padding: govuk-spacing(3) 0;
-
-  &:last-child {
-    border-bottom: 1px solid $dlp-border-grey;
-  }
-}
-
-.dlp-story-list__ref {
-  @include govuk-font($size: 19, $weight: bold);
-  flex: 0 0 auto;
-  width: 5em;
-}
-
-.dlp-story-list__text {
-  @include govuk-font($size: 19);
-  flex: 1 1 16em;
-  margin: 0;
-}
-
 // Examination - inspector view: related-resource tables (evidence, comments, NPPF/SDS
 // policies) and the panel that shows the selected one's full text. Highlights the row whose
 // link is currently shown in the panel alongside it.
@@ -1448,3 +1420,6 @@ $dlp-confidence-low: govuk-colour("orange");
 
 // Statement of compliance. Uses the variables above.
 @import "statement-of-compliance";
+
+// The site's own pages: plan maker home and section pages.
+@import "site-structure";

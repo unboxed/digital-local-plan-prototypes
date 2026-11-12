@@ -10,7 +10,7 @@
 #}
 
 {% macro chapterHeader(chapter, policy) %}
-<form class="dlp-pw2-chapter" action="/policy-writing-v2/chapter/{{ policy.id }}/details" method="post">
+<form class="dlp-pw2-chapter" action="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/details" method="post">
 
   <div class="govuk-form-group govuk-!-margin-bottom-3">
     <label class="govuk-label govuk-label--s" for="pw2-chapter-title">Chapter title</label>
@@ -69,7 +69,7 @@
     {# A link, not a submit — it opens the read-only preview rather than changing anything. #}
     <a class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
        data-module="govuk-button"
-       href="/policy-writing-v2/chapter-preview"
+       href="/plan/make/policy-side-by-side/chapter-preview"
        target="_blank" rel="noopener noreferrer">
       View chapter in new window<span class="govuk-visually-hidden"> (opens in a new tab)</span>
     </a>

@@ -328,7 +328,7 @@ module.exports.generateIllustrativeGeoJSON = generateIllustrativeGeoJSON
 
 // --- GIS layer library -----------------------------------------------------------------------
 //
-// What the library (/evidence/gis-layers) shows about a layer beyond what its map server says.
+// What the library (/plan/sources/gis-layers) shows about a layer beyond what its map server says.
 // A layer's name, folder, geometry, feature count and data address are real (see COMPASS_LAYERS);
 // THE DESCRIPTIONS, VERSIONS, DATES AND CONSULTATIONS BELOW ARE INVENTED FOR THE PROTOTYPE. The
 // City's server publishes none of them. Versions are newest first; dates are ISO.

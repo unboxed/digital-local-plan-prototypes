@@ -10,8 +10,8 @@
 <div class="dlp-ce-page">
 
 {{ govukBreadcrumbs({ items: [
-  { text: "Home", href: "/evidence/commissioned" },
-  { text: "Review and comment", href: "/evidence/commissioned/review" },
+  { text: "Home", href: "/plan/sources/commissioned" },
+  { text: "Review and comment", href: "/plan/sources/commissioned/review" },
   { text: "Add or view notes" }
 ] }) }}
 
@@ -29,7 +29,7 @@
 </div>
 <p class="govuk-body-s dlp-ce-muted govuk-!-margin-top-1">Logged in as {{ viewer }}</p>
 
-<form method="post" action="/evidence/commissioned/notes" class="dlp-ce-measure" novalidate>
+<form method="post" action="/plan/sources/commissioned/notes" class="dlp-ce-measure" novalidate>
   {{ govukTextarea({
     id: "note",
     name: "_note",
@@ -80,7 +80,7 @@
   <p class="govuk-body">No notes yet.</p>
 {% endif %}
 
-<p class="govuk-body"><a class="govuk-link" href="/evidence/commissioned/review">Back to review and comment</a></p>
+<p class="govuk-body"><a class="govuk-link" href="/plan/sources/commissioned/review">Back to review and comment</a></p>
 
 </div>
 

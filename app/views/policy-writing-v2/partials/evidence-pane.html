@@ -15,12 +15,12 @@
          data-dlp-split-pane="evidence"
          data-dlp-evidence-drop
          data-dlp-sources-source="#pw2-policy-sources"
-         data-dlp-source-url="/policy-writing-v2/chapter/{{ policy.id }}/source/">
+         data-dlp-source-url="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/source/">
   <div class="dlp-pw2-pane__heading">
     <h2 class="govuk-heading-s dlp-pw2-pane__title" id="pw2-evidence-heading">View evidence</h2>
     <span class="dlp-pw2-pane__actions">
       <a class="govuk-link dlp-pw2-pane__link"
-         href="/policy-writing-v2/chapter/{{ policy.id }}/source/{{ selectedSource.id if selectedSource else '' }}"
+         href="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/source/{{ selectedSource.id if selectedSource else '' }}"
          target="_blank" rel="noopener noreferrer"
          data-dlp-evidence-open-link
          {% if not selectedSource %}hidden{% endif %}>

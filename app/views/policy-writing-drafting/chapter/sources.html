@@ -7,7 +7,7 @@
 {% from "partials/gis/macro.njk" import gisLayerGroup, gisLayerTag, gisLayerTypeSwitch %}
 
 {% set pageName = "Add sources" %}
-{% set sourcesUrl = "/policy-writing-drafting/chapters/" + chapter.id + "/sources" %}
+{% set sourcesUrl = "/plan/make/policy-drafting/chapters/" + chapter.id + "/sources" %}
 
 {# A select whose first option means "no filter". #}
 {% macro filterSelect(id, name, label, options, selected) %}
@@ -216,8 +216,8 @@
 <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m dlp-pd-short-rule" />
 
 <div class="govuk-button-group">
-  {{ govukButton({ text: "Save and continue", href: "/policy-writing-drafting/chapters/" + chapter.id + "/policies" }) }}
-  {{ govukButton({ text: "Back", classes: "govuk-button--secondary", href: "/policy-writing-drafting/chapters/" + chapter.id + "/explanatory-text" }) }}
+  {{ govukButton({ text: "Save and continue", href: "/plan/make/policy-drafting/chapters/" + chapter.id + "/policies" }) }}
+  {{ govukButton({ text: "Back", classes: "govuk-button--secondary", href: "/plan/make/policy-drafting/chapters/" + chapter.id + "/explanatory-text" }) }}
 </div>
 
 </div>

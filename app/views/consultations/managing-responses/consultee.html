@@ -3,11 +3,11 @@
 {% from "consultations/managing-responses/partials/macros.html" import crTag %}
 
 {% set pageName = consultee.name %}
-{% set base = "/consultations/managing-responses/consultees/" + consultee.id %}
+{% set base = "/plan/consultation/managing-responses/consultees/" + consultee.id %}
 {% set breadcrumbs = [
-  { text: "Consultations", href: "/consultations" },
-  { text: "Manage consultation responses", href: "/consultations/managing-responses" },
-  { text: "View and respond", href: "/consultations/managing-responses/view" },
+  { text: "Consultations", href: "/plan/consultation" },
+  { text: "Manage consultation responses", href: "/plan/consultation/managing-responses" },
+  { text: "View and respond", href: "/plan/consultation/managing-responses/view" },
   { text: consultee.name }
 ] %}
 
@@ -85,7 +85,7 @@
         {% if rep.hasResponse %}
           <p class="govuk-body-s dlp-cr-muted govuk-!-margin-bottom-1">
             {% if rep.responseSource == "template" %}
-              Standard response: <a class="govuk-link" href="/consultations/managing-responses/themes/{{ rep.themeId }}#standard-response">{{ rep.themeTitle }}</a>
+              Standard response: <a class="govuk-link" href="/plan/consultation/managing-responses/themes/{{ rep.themeId }}#standard-response">{{ rep.themeTitle }}</a>
             {% else %}
               Written for this representation
             {% endif %}
@@ -95,7 +95,7 @@
         {% else %}
           <p class="govuk-body-s govuk-!-margin-bottom-2">No response has been assigned yet.</p>
         {% endif %}
-        <a class="govuk-link govuk-link--no-visited-state govuk-body-s" href="/consultations/managing-responses/officer?_rep={{ rep.id }}">
+        <a class="govuk-link govuk-link--no-visited-state govuk-body-s" href="/plan/consultation/managing-responses/officer?_rep={{ rep.id }}">
           {{ "Edit response" if rep.hasResponse else "Write a response" }}<span class="govuk-visually-hidden"> to {{ rep.id }}</span>
         </a>
       </div>
@@ -149,7 +149,7 @@
 {% endif %}
 
 <p class="govuk-body govuk-!-margin-top-6">
-  <a class="govuk-link govuk-link--no-visited-state" href="/consultations/managing-responses/view">← Back to View and respond</a>
+  <a class="govuk-link govuk-link--no-visited-state" href="/plan/consultation/managing-responses/view">← Back to View and respond</a>
 </p>
 
 {% endblock %}

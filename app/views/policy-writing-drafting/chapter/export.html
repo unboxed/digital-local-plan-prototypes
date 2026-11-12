@@ -6,7 +6,7 @@
 {% from "partials/timeline/macro.njk" import appTimeline %}
 
 {% set pageName = "View and export policies" %}
-{% set chapterUrl = "/policy-writing-drafting/chapters/" + chapter.id %}
+{% set chapterUrl = "/plan/make/policy-drafting/chapters/" + chapter.id %}
 
 {% block content %}
 <div class="dlp-pd-page-width">
@@ -34,7 +34,7 @@
   </p>
 </div>
 
-<form method="get" action="/policy-writing-drafting/preview" target="_blank" class="govuk-!-margin-top-8">
+<form method="get" action="/plan/make/policy-drafting/preview" target="_blank" class="govuk-!-margin-top-8">
   <input type="hidden" name="_chapter" value="{{ chapter.id }}">
   <div class="govuk-form-group">
     <fieldset class="govuk-fieldset" aria-describedby="pd-view-hint">

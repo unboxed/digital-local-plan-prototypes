@@ -4,8 +4,8 @@
 
 {% set pageName = "View and respond" %}
 {% set breadcrumbs = [
-  { text: "Consultations", href: "/consultations" },
-  { text: "Manage consultation responses", href: "/consultations/managing-responses" },
+  { text: "Consultations", href: "/plan/consultation" },
+  { text: "Manage consultation responses", href: "/plan/consultation/managing-responses" },
   { text: "View and respond" }
 ] %}
 
@@ -20,14 +20,14 @@
 </p>
 
 {{ crTabs("View responses", [
-  { text: "By consultee", href: "/consultations/managing-responses/view", active: true },
-  { text: "By theme", href: "/consultations/managing-responses/view/themes" }
+  { text: "By consultee", href: "/plan/consultation/managing-responses/view", active: true },
+  { text: "By theme", href: "/plan/consultation/managing-responses/view/themes" }
 ]) }}
 
 <h2 class="govuk-heading-l">Select a consultee</h2>
 
 {# crConsulteeSearch is stored by the kit, so the search sticks as the officer moves around. #}
-<form method="get" action="/consultations/managing-responses/view" class="dlp-cr-search" novalidate>
+<form method="get" action="/plan/consultation/managing-responses/view" class="dlp-cr-search" novalidate>
   <div class="govuk-form-group govuk-!-margin-bottom-0">
     <label class="govuk-label govuk-!-font-weight-bold" for="consultee-search">Search for a consultee</label>
     <div class="dlp-cr-search__row">
@@ -38,7 +38,7 @@
   {% if search %}
     <p class="govuk-body govuk-!-margin-top-2">
       {{ resultCount }} consultee{% if resultCount != 1 %}s{% endif %} matching &ldquo;{{ search }}&rdquo;.
-      <a class="govuk-link govuk-link--no-visited-state" href="/consultations/managing-responses/view?crConsulteeSearch=">Clear search</a>
+      <a class="govuk-link govuk-link--no-visited-state" href="/plan/consultation/managing-responses/view?crConsulteeSearch=">Clear search</a>
     </p>
   {% endif %}
 </form>
@@ -57,7 +57,7 @@
       {% for row in rows %}
         <tr class="govuk-table__row">
           <td class="govuk-table__cell">
-            <a class="govuk-link" href="/consultations/managing-responses/consultees/{{ row.consultee.id }}">{{ row.consultee.name }}</a>
+            <a class="govuk-link" href="/plan/consultation/managing-responses/consultees/{{ row.consultee.id }}">{{ row.consultee.name }}</a>
           </td>
           <td class="govuk-table__cell dlp-cr-muted">{{ row.consultee.type }}</td>
           <td class="govuk-table__cell govuk-table__cell--numeric">

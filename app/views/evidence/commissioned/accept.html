@@ -8,7 +8,7 @@
 {% block content %}
 
 {{ govukBreadcrumbs({ items: [
-  { text: "Home", href: "/evidence/commissioned" },
+  { text: "Home", href: "/plan/sources/commissioned" },
   { text: "Accept and save" }
 ] }) }}
 
@@ -22,7 +22,7 @@
 </div>
 <p class="govuk-body-s dlp-ce-muted govuk-!-margin-top-1">Logged in as {{ viewer }}</p>
 
-<form method="post" action="/evidence/commissioned/accept" class="dlp-ce-measure" novalidate>
+<form method="post" action="/plan/sources/commissioned/accept" class="dlp-ce-measure" novalidate>
 
   {% if accepted %}
     <div class="govuk-inset-text">
@@ -63,7 +63,7 @@
         <strong class="govuk-warning-text__text">
           <span class="govuk-visually-hidden">Warning</span>
           {{ openCount }} comment{{ "s are" if openCount > 1 else " is" }} still open.
-          <a class="govuk-link" href="/evidence/commissioned/review#comments">Review the comments</a>
+          <a class="govuk-link" href="/plan/sources/commissioned/review#comments">Review the comments</a>
         </strong>
       </div>
     {% endif %}

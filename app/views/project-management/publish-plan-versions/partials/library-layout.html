@@ -1,7 +1,7 @@
 {#
   Shell for the Examination library. It is a public site, read by the inspector, participants
   and the public, so it shows the external header rather than the service header. The `header`
-  block is overridden WITHOUT super() on purpose: the URLs sit under /project-management, so
+  block is overridden WITHOUT super() on purpose: the URLs sit under /plan/manage, so
   `activeSection` is set and super() would bring the internal nav back.
 
   Children fill `main`. `viewing` ({ ref, title, version, current, note? }) adds a block under the

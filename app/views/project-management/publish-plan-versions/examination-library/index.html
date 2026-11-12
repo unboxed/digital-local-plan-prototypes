@@ -138,13 +138,13 @@
       <li class="govuk-body">No policies or evidence match. Try a policy reference such as HS1.</li>
       {% endfor %}
     </ul>
-    <p class="govuk-body"><a class="govuk-link" href="/examination-inspector-view">Browse all policies and related evidence</a></p>
+    <p class="govuk-body"><a class="govuk-link" href="/plan/view/examination">Browse all policies and related evidence</a></p>
   {% else %}
     <ul class="govuk-list dlp-exl-rows">
       {% for item in section.items %}{{ itemRow(item) }}{% endfor %}
     </ul>
     {% if section.id == "local-plan" %}
-    <p class="govuk-body govuk-!-margin-bottom-1"><a class="govuk-link" href="/consultations/managing-responses/inspector">View all consultation representations</a></p>
+    <p class="govuk-body govuk-!-margin-bottom-1"><a class="govuk-link" href="/plan/consultation/managing-responses/inspector">View all consultation representations</a></p>
     <p class="govuk-body-s dlp-exl-muted">Browse the consultation record and individual representation version details and PDF exports.</p>
     {% endif %}
   {% endif %}

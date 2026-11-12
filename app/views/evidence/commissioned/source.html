@@ -15,8 +15,8 @@
 <div class="dlp-ce-page">
 
 {{ govukBreadcrumbs({ items: [
-  { text: "Home", href: "/evidence/commissioned" },
-  { text: "Evidence library", href: "/evidence/library" },
+  { text: "Home", href: "/plan/sources/commissioned" },
+  { text: "Evidence library", href: "/plan/sources/library" },
   { text: "Manage source" }
 ] }) }}
 
@@ -48,7 +48,7 @@
       { key: { text: "Owned by" }, value: { text: officer.name + ", " + officer.role } },
       { key: { text: "Date commenced" }, value: { text: commission.brief.commencedOn } },
       { key: { text: "Date accepted" }, value: { text: commission.acceptedOn } },
-      { key: { text: "Tags" }, value: { html: tagsHtml }, actions: { items: [{ href: "/evidence/commissioned/accept", text: "Change", visuallyHiddenText: "tags" }] } }
+      { key: { text: "Tags" }, value: { html: tagsHtml }, actions: { items: [{ href: "/plan/sources/commissioned/accept", text: "Change", visuallyHiddenText: "tags" }] } }
     ] }) }}
 
     <h2 class="govuk-heading-m">Summary</h2>
@@ -63,7 +63,7 @@
       <span class="dlp-ce-break">{{ file.name }}</span>
     </p>
     <p class="govuk-body-s dlp-ce-muted">{{ file.meta }}</p>
-    {{ govukButton({ text: "Open document", href: "/evidence/commissioned/review", classes: "govuk-button--secondary govuk-!-margin-bottom-3" }) }}
+    {{ govukButton({ text: "Open document", href: "/plan/sources/commissioned/review", classes: "govuk-button--secondary govuk-!-margin-bottom-3" }) }}
     {# Inert placeholder from the design: the prototype stores no files. #}
     <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link dlp-ce-placeholder" aria-hidden="true" tabindex="-1">Download PDF</a></p>
   </aside>
@@ -73,7 +73,7 @@
 
 <div class="dlp-ce-section-head">
   <h2 class="govuk-heading-m govuk-!-margin-bottom-0" id="gis-layers">GIS layers</h2>
-  <a class="govuk-link" href="/evidence/commissioned/layers">Add or remove layers</a>
+  <a class="govuk-link" href="/plan/sources/commissioned/layers">Add or remove layers</a>
 </div>
 {% if layers.length %}
   <ul class="govuk-list dlp-gis-list">
@@ -81,7 +81,7 @@
       <li class="dlp-gis-list__item">
         <span>{{ layer.name }}</span>
         {{ gisLayerTag(layer) }}
-        {{ gisLayerTypeSwitch(layer, "/evidence/commissioned/source#gis-layers") }}
+        {{ gisLayerTypeSwitch(layer, "/plan/sources/commissioned/source#gis-layers") }}
       </li>
     {% endfor %}
   </ul>
@@ -104,7 +104,7 @@
       {{ comments.length }} comment{{ "" if comments.length == 1 else "s" }} · {{ openCount }} open · {{ comments.length - openCount }} resolved
     </p>
   </div>
-  <a class="govuk-link" href="/evidence/commissioned/review#add-comment">Add a comment</a>
+  <a class="govuk-link" href="/plan/sources/commissioned/review#add-comment">Add a comment</a>
 </div>
 
 {% for comment in comments %}

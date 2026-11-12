@@ -40,7 +40,7 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <a class="govuk-back-link" href="/gateway-2-progress-check">Back to Plan Progress</a>
+    <a class="govuk-back-link" href="/plan/view/gateway-2-progress-check">Back to Plan Progress</a>
 
     <h1 class="govuk-heading-xl" id="top">{{ area }}</h1>
 
@@ -189,7 +189,7 @@
         {% endset %}
         {% set policyHtml %}
           {{ appPolicyText(policy.body) }}
-          <p class="govuk-body"><a class="govuk-link" href="/examination-inspector-view/paragraphs/{{ policy.ref | lower }}-1">View {{ policy.ref }} in the examination view</a></p>
+          <p class="govuk-body"><a class="govuk-link" href="/plan/view/examination/paragraphs/{{ policy.ref | lower }}-1">View {{ policy.ref }} in the examination view</a></p>
         {% endset %}
         {% set policyItems = (policyItems.push({
           heading: { text: policy.ref + " " + policy.title },
@@ -210,7 +210,7 @@
         {% if paragraph.policyRef != currentPolicyRef %}
           {% set currentPolicyRef = paragraph.policyRef %}
           <h3 class="govuk-heading-m govuk-!-margin-top-6">
-            <a class="govuk-link" href="/examination-inspector-view/paragraphs/{{ paragraph.policyRef | lower }}-1">{{ paragraph.policyRef }} {{ paragraph.policyTitle }}</a>
+            <a class="govuk-link" href="/plan/view/examination/paragraphs/{{ paragraph.policyRef | lower }}-1">{{ paragraph.policyRef }} {{ paragraph.policyTitle }}</a>
             {% if paragraph.isStrategic %}
             <strong class="govuk-tag govuk-!-margin-left-2">Strategic Policy</strong>
             {% endif %}

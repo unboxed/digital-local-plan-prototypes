@@ -1,5 +1,5 @@
 // Static content for the Examination library journey in Publish plan versions
-// (/project-management/publish-plan-versions/examination-library). Built from the idea frames
+// (/plan/manage/versions/examination-library). Built from the idea frames
 // "Local Plan Examination Library" and "Inspector's report — illustrative reading page" in the
 // git-ignored `Figma screenshots/Versioning/` folder.
 //
@@ -161,7 +161,7 @@ const SECTIONS = [
         kind: 'Document',
         summary: 'Who was consulted, how, and the main issues raised at each stage.',
         content: { type: 'paragraphs', paragraphs: ['The statement summarises each consultation on the plan, the main issues raised and how they have been taken into account.'] },
-        links: [{ href: '/consultations/managing-responses/inspector', text: 'View the representations', note: 'Opens the consultation record, with each representation and the authority’s response.' }],
+        links: [{ href: '/plan/consultation/managing-responses/inspector', text: 'View the representations', note: 'Opens the consultation record, with each representation and the authority’s response.' }],
         versions: first()
       }
     ]
@@ -235,11 +235,11 @@ const SECTIONS = [
         ref: 'PA-01',
         title: 'Timetable',
         kind: 'Live content',
-        summary: 'The plan’s published timetable, from Make your plan.',
-        content: { type: 'paragraphs', paragraphs: ['The timetable is created and published in Make your plan. This record is the version published with the examination library.'] },
+        summary: 'The plan’s published timetable, from Getting ready.',
+        content: { type: 'paragraphs', paragraphs: ['The timetable is created and published in Getting ready. This record is the version published with the examination library.'] },
         // Every timetable link in Make your plan goes to its placeholder while the flow is rebuilt.
-        listLink: { href: '/project-management/make-your-plan/timetable-placeholder', text: 'View the plan timetable', note: 'Opens Create and publish timetable in Make your plan.' },
-        links: [{ href: '/project-management/make-your-plan/timetable-placeholder', text: 'View the plan timetable', note: 'Opens Create and publish timetable in Make your plan.' }],
+        listLink: { href: '/plan/manage/getting-ready/timetable-placeholder', text: 'View the plan timetable', note: 'Opens Create and publish timetable in Getting ready.' },
+        links: [{ href: '/plan/manage/getting-ready/timetable-placeholder', text: 'View the plan timetable', note: 'Opens Create and publish timetable in Getting ready.' }],
         versions: first()
       },
       {

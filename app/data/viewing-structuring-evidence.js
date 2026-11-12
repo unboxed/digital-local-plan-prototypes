@@ -1,5 +1,5 @@
 // Static content for the "Viewing and structuring evidence" prototype
-// (/evidence/viewing-structuring). Built from the Figma frames in the git-ignored
+// (/plan/sources/viewing-structuring). Built from the Figma frames in the git-ignored
 // `Figma screenshots/` folder (1 document-viewer, 1b hearing-transcript-viewer,
 // 2 evidence-report-card, 3 evidence-list, 4 policy-writer-evidence).
 //

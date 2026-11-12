@@ -10,18 +10,18 @@
 
 {{ govukBreadcrumbs({
   items: [
-    { text: "Home", href: "/policy-writing-drafting" },
-    { text: "Manage chapters", href: "/policy-writing-drafting/chapters" },
+    { text: "Home", href: "/plan/make/policy-drafting" },
+    { text: "Manage chapters", href: "/plan/make/policy-drafting/chapters" },
     { text: "Edit starting point" }
   ]
 }) }}
 
-<a class="govuk-back-link govuk-!-margin-top-0" href="/policy-writing-drafting/chapters">Back to starting points</a>
+<a class="govuk-back-link govuk-!-margin-top-0" href="/plan/make/policy-drafting/chapters">Back to starting points</a>
 
 <h1 class="govuk-heading-xl">{{ chapter.name }}</h1>
 
 <div class="dlp-pd-with-panel">
-  <form method="post" action="/policy-writing-drafting/chapters/{{ chapter.id }}/brief" class="dlp-pd-with-panel__main">
+  <form method="post" action="/plan/make/policy-drafting/chapters/{{ chapter.id }}/brief" class="dlp-pd-with-panel__main">
     {{ govukCharacterCount({
       name: "_brief",
       id: "pd-brief",
@@ -46,7 +46,7 @@
 
     <div class="govuk-button-group">
       {{ govukButton({ text: "Save changes" }) }}
-      <a class="govuk-link" href="/policy-writing-drafting/chapters">Cancel</a>
+      <a class="govuk-link" href="/plan/make/policy-drafting/chapters">Cancel</a>
     </div>
   </form>
 

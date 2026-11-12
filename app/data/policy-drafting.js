@@ -1,6 +1,6 @@
 //
 // Static reference data for the "Policy drafting with starting points" prototype
-// (/policy-writing-drafting). Nothing here is mutated by a route — what the user changes lives in
+// (/plan/make/policy-drafting). Nothing here is mutated by a route — what the user changes lives in
 // req.session.data.policyDrafting, seeded from session-data-defaults.js.
 //
 // Content follows the Figma designs for this journey. Officers, the evidence library, the

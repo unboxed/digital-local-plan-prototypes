@@ -1,6 +1,6 @@
 //
 // Static content for the "Managing consultation responses" prototype
-// (/consultations/managing-responses). Nothing here is mutated: what an officer changes —
+// (/plan/consultation/managing-responses). Nothing here is mutated: what an officer changes —
 // templates, assignments, statuses, uploads, inspector comments — lives in session data, seeded
 // by startingState() below and read through getConsultationResponses in app/routes.js.
 //

@@ -4,8 +4,8 @@
 
 {% set pageName = "View and respond by theme" %}
 {% set breadcrumbs = [
-  { text: "Consultations", href: "/consultations" },
-  { text: "Manage consultation responses", href: "/consultations/managing-responses" },
+  { text: "Consultations", href: "/plan/consultation" },
+  { text: "Manage consultation responses", href: "/plan/consultation/managing-responses" },
   { text: "View and respond" }
 ] %}
 
@@ -20,8 +20,8 @@
 </p>
 
 {{ crTabs("View responses", [
-  { text: "By consultee", href: "/consultations/managing-responses/view" },
-  { text: "By theme", href: "/consultations/managing-responses/view/themes", active: true }
+  { text: "By consultee", href: "/plan/consultation/managing-responses/view" },
+  { text: "By theme", href: "/plan/consultation/managing-responses/view/themes", active: true }
 ]) }}
 
 <table class="govuk-table">
@@ -37,7 +37,7 @@
     {% for theme in themes %}
       <tr class="govuk-table__row">
         <td class="govuk-table__cell">
-          <a class="govuk-link" href="/consultations/managing-responses/themes/{{ theme.id }}">{{ theme.title }}</a>
+          <a class="govuk-link" href="/plan/consultation/managing-responses/themes/{{ theme.id }}">{{ theme.title }}</a>
         </td>
         <td class="govuk-table__cell govuk-!-font-weight-bold dlp-cr-nowrap">
           {{ theme.respondents }}/{{ totalRespondents }}

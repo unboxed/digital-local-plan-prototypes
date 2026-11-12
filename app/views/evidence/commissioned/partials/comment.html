@@ -47,10 +47,10 @@
 
   <div class="dlp-ce-comment__actions">
     {% if params.context == "source" %}
-      <a class="govuk-link" href="/evidence/commissioned/review#comment-{{ comment.id }}">View comment<span class="govuk-visually-hidden"> from {{ comment.author }}</span></a>
+      <a class="govuk-link" href="/plan/sources/commissioned/review#comment-{{ comment.id }}">View comment<span class="govuk-visually-hidden"> from {{ comment.author }}</span></a>
     {% endif %}
     {% if not comment.resolved %}
-      <form method="post" action="/evidence/commissioned/comments/{{ comment.id }}/resolve" class="dlp-ce-inline-form" novalidate>
+      <form method="post" action="/plan/sources/commissioned/comments/{{ comment.id }}/resolve" class="dlp-ce-inline-form" novalidate>
         <input type="hidden" name="_returnTo" value="{{ params.context }}">
         <button type="submit" class="dlp-ce-link-button">Resolve comment<span class="govuk-visually-hidden"> from {{ comment.author }}</span></button>
       </form>
@@ -63,7 +63,7 @@
         <span class="govuk-details__summary-text">Reply<span class="govuk-visually-hidden"> to {{ comment.author }}</span></span>
       </summary>
       <div class="govuk-details__text">
-        <form method="post" action="/evidence/commissioned/review/comments/{{ comment.id }}/reply" novalidate>
+        <form method="post" action="/plan/sources/commissioned/review/comments/{{ comment.id }}/reply" novalidate>
           <div class="govuk-form-group {%- if replyError %} govuk-form-group--error{% endif %}">
             <label class="govuk-label govuk-label--s" for="reply-{{ comment.id }}">Your reply</label>
             {% if replyError %}

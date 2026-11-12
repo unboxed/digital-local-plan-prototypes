@@ -1,4 +1,4 @@
-// Publish plan versions (/project-management/publish-plan-versions). Classes are dlp-ppv-*.
+// Publish plan versions (/plan/manage/versions). Classes are dlp-ppv-*.
 
 $dlp-ppv-removed: govuk-colour("red");
 $dlp-ppv-removed-fill: govuk-colour("red", $variant: "tint-95");
@@ -328,7 +328,7 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
   }
 }
 
-// Examination library (/project-management/publish-plan-versions/examination-library).
+// Examination library (/plan/manage/versions/examination-library).
 // Classes are dlp-exl-*. Everything is built to say which version is on screen.
 
 .dlp-exl {

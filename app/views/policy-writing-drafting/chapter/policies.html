@@ -3,7 +3,7 @@
 {% from "policy-writing-drafting/partials/chapter-breadcrumbs.html" import chapterBreadcrumbs %}
 
 {% set pageName = "Create policy areas: " + chapter.name %}
-{% set policiesUrl = "/policy-writing-drafting/chapters/" + chapter.id + "/policies" %}
+{% set policiesUrl = "/plan/make/policy-drafting/chapters/" + chapter.id + "/policies" %}
 
 {% block content %}
 <div class="dlp-pd-page-width">
@@ -72,7 +72,7 @@
 
   <div class="govuk-button-group">
     {{ govukButton({ text: "Save and continue" }) }}
-    {{ govukButton({ text: "Back", classes: "govuk-button--secondary", href: "/policy-writing-drafting/chapters/" + chapter.id + "/sources" }) }}
+    {{ govukButton({ text: "Back", classes: "govuk-button--secondary", href: "/plan/make/policy-drafting/chapters/" + chapter.id + "/sources" }) }}
   </div>
 </form>
 

@@ -6,7 +6,7 @@ block content %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+    <a class="govuk-back-link" href="/plan/sources">Back to Manage sources</a>
 
     <span class="govuk-caption-l">Evidence document</span>
     <h1 class="govuk-heading-xl">{{ documentSource }}</h1>
@@ -28,7 +28,7 @@ block content %}
     </div>
 
     <p class="govuk-!-margin-top-4">
-      <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="/evidence/document-view?source={{ documentSourceEncoded }}" target="_blank" rel="noopener noreferrer">
+      <a class="govuk-button govuk-button--secondary" data-module="govuk-button" href="/plan/sources/document-view?source={{ documentSourceEncoded }}" target="_blank" rel="noopener noreferrer">
         Open document in new window
       </a>
     </p>
@@ -47,7 +47,7 @@ block content %}
       {% endif %}
 
       <p class="govuk-body govuk-!-margin-top-4">
-        <a class="govuk-link" href="/evidence/library">View evidence library</a>
+        <a class="govuk-link" href="/plan/sources/library">View evidence library</a>
       </p>
     </div>
   </div>
@@ -80,7 +80,7 @@ block content %}
         <textarea class="dlp-textarea" id="note-text" rows="4" data-dlp-note-text placeholder="Add a note about a conversation or meeting"></textarea>
       </div>
 
-      <form action="/evidence/document-tagging" method="post" id="save-tags-form" data-dlp-form>
+      <form action="/plan/sources/document-tagging" method="post" id="save-tags-form" data-dlp-form>
         <input type="hidden" name="entryType" id="entry-type-input" value="passage">
         <input type="hidden" name="selectedText" id="selected-text-input">
         <input type="hidden" name="noteText" id="note-text-input">

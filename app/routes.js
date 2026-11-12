@@ -8,39 +8,116 @@ const router = govukPrototypeKit.requests.setupRouter()
 const appConfig = require('./config.json')
 const sessionDataDefaults = require('./data/session-data-defaults.js')
 
+const path = require('path')
+const fs = require('fs')
+const SITE = require('./data/site-map.js')
+
+// --- Site structure ---
+//
+// The site mirrors the proposed service: a home page (/), a plan start page (/start) where you
+// choose the type of plan, then the plan maker home (/plan) and its sections, each at
+// /plan/<section>. The prototypes sit inside the sections. They used to live at their own top-level
+// URLs (/evidence, /policy-writing and so on). Those addresses now redirect to the new ones
+// (MOVED_URLS), and the view files stay where they were, so a moved page is still rendered from
+// its old folder (MOVED_VIEWS, used by the fallback at the end of this file). See CLAUDE.md,
+// "Site structure".
+
+// Old URL prefix → new, longest first. An old address keeps the rest of its path and its query.
+const MOVED_URLS = [
+  ['/project-management/make-your-plan', '/plan/manage/getting-ready'],
+  ['/project-management/publish-plan-versions', '/plan/manage/versions'],
+  ['/project-management/tasks', '/plan/manage/tasks'],
+  ['/project-management', '/plan/manage'],
+  ['/policy-writing-drafting', '/plan/make/policy-drafting'],
+  ['/policy-writing-v2', '/plan/make/policy-side-by-side'],
+  ['/policy-writing', '/plan/make/policy-writing'],
+  ['/evidence', '/plan/sources'],
+  ['/consultations', '/plan/consultation'],
+  ['/pins-view', '/plan/view'],
+  ['/gateway-2-progress-check', '/plan/view/gateway-2-progress-check'],
+  ['/examination-inspector-view', '/plan/view/examination'],
+  ['/statement-of-compliance', '/plan/view/statement-of-compliance'],
+  ['/public-view', '/plan/view'],
+  ['/user-stories', '/']
+]
+// The old hub pages, which have no page of their own now: their section page instead.
+const MOVED_HUBS = { '/policy-writing': '/plan/make' }
+
+// New URL prefix → the view folder its pages are still in, longest first.
+const MOVED_VIEWS = [
+  ['/plan/manage/getting-ready', 'project-management/make-your-plan'],
+  ['/plan/manage/versions', 'project-management/publish-plan-versions'],
+  ['/plan/manage/tasks', 'project-management/tasks'],
+  ['/plan/make/policy-drafting', 'policy-writing-drafting'],
+  ['/plan/make/policy-side-by-side', 'policy-writing-v2'],
+  ['/plan/make/policy-writing', 'policy-writing'],
+  ['/plan/sources', 'evidence'],
+  ['/plan/consultation', 'consultations'],
+  ['/plan/view/gateway-2-progress-check', 'gateway-2-progress-check'],
+  ['/plan/view/examination', 'examination-inspector-view'],
+  ['/plan/view/statement-of-compliance', 'statement-of-compliance'],
+  ['/plan/view', 'public-view']
+]
+
+function startsWithPrefix (urlPath, prefix) {
+  return urlPath === prefix || urlPath.startsWith(prefix + '/')
+}
+
+// Old addresses (bookmarks, links shared before the move) go to their new ones.
+router.use((req, res, next) => {
+  const move = MOVED_URLS.find(([from]) => startsWithPrefix(req.path, from))
+  if (!move) return next()
+  const query = req.originalUrl.slice(req.path.length)
+  const target = MOVED_HUBS[req.path] || (move[1] === '/' ? '/' : move[1] + req.path.slice(move[0].length))
+  res.redirect(req.method === 'GET' ? 302 : 307, target + (move[1] === '/' ? '' : query))
+})
+
 // --- Site-wide service header ---
 //
 // setupRouter() mounts this router at "/", ahead of the kit's own auto-view-rendering
 // fallback (see node_modules/govuk-prototype-kit/server.js), so this middleware runs for every
-// request — including pages with no custom route below, like the plain app/views/*/index.html
-// prototype landing pages. That makes res.locals.activeSection/organisationName available to
-// every template via layouts/main.html's `header` block, with no per-page wiring needed.
+// request. It sets which section of the header nav is current (partials/service-header), from
+// the URL: 'intro' (the home and plan start pages, with no nav), 'home' (the plan maker home and
+// its dashboard features) or a section id. Prototypes seen by people outside the council (under
+// /plan/view, and the consultant's and inspector's screens) override the header block themselves.
 router.use((req, res, next) => {
   res.locals.organisationName = appConfig.organisationName
-  if (req.path.startsWith('/project-management')) {
-    res.locals.activeSection = 'project-management'
-  } else if (req.path.startsWith('/policy-writing')) {
-    res.locals.activeSection = 'policy-writing'
-  } else if (req.path.startsWith('/evidence')) {
-    res.locals.activeSection = 'evidence'
-  } else if (req.path.startsWith('/user-stories')) {
-    res.locals.activeSection = 'user-stories'
-  } else if (req.path.startsWith('/statement-of-compliance')) {
-    res.locals.activeSection = 'statement-of-compliance'
-  } else if (req.path.startsWith('/consultations')) {
-    // Includes the inspector's screen, which overrides the header block to leave this nav out
-    // (see consultations/managing-responses/partials/inspector-layout.html).
-    res.locals.activeSection = 'consultations'
-  } else if (req.path.startsWith('/pins-view')) {
-    // Only the PINS hub page. The prototypes it links to are seen by inspectors, so they keep
-    // their own external header with no internal nav (see partials/external-header).
-    res.locals.activeSection = 'pins-view'
-  } else if (req.path.startsWith('/public-view')) {
-    // The hub page shows this nav; the prototypes it lists are seen by members of the public, so
-    // they override the header block to leave it out (see public-view/partials/layout.html).
-    res.locals.activeSection = 'public-view'
+  res.locals.siteSections = SITE.SECTIONS
+  res.locals.planName = SITE.PLAN_NAME
+  const planType = SITE.PLAN_TYPES.find(type => type.value === (req.session.data || {}).planType)
+  res.locals.planTypeName = planType ? planType.text : SITE.PLAN_TYPES[0].text
+  if (req.path === '/' || req.path === '/start') {
+    res.locals.activeSection = 'intro'
+  } else if (startsWithPrefix(req.path, '/plan')) {
+    const section = SITE.SECTIONS.find(candidate => startsWithPrefix(req.path, candidate.href))
+    res.locals.activeSection = section ? section.id : 'home'
   }
   next()
+})
+
+// --- Home, plan start, plan maker home and section pages ---
+
+router.get('/start', (req, res) => {
+  res.render('start', { planTypes: SITE.PLAN_TYPES, value: (req.session.data || {}).planType })
+})
+
+router.post('/start', (req, res) => {
+  const value = req.body.planType
+  if (!SITE.PLAN_TYPES.some(type => type.value === value)) {
+    return res.render('start', { planTypes: SITE.PLAN_TYPES, error: 'Select the type of plan you are making' })
+  }
+  req.session.data.planType = value
+  res.redirect('/plan')
+})
+
+router.get('/plan', (req, res) => {
+  res.render('plan/index', { dashboardFeatures: SITE.DASHBOARD_FEATURES })
+})
+
+SITE.SECTIONS.forEach(section => {
+  router.get(section.href, (req, res) => {
+    res.render('plan/section', { section })
+  })
 })
 
 const {
@@ -60,7 +137,6 @@ const {
   getPolicyRefsForSource
 } = require('./data/policies.js')
 const { EVIDENCE_EXCERPTS } = require('./data/evidence-excerpts.js')
-const { USER_STORY_THEMES, getUserStoryCount, getUserStoryThemeGroups, getUserStories } = require('./data/user-stories.js')
 const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES, POLICY_RESOURCES, POLICY_TEXT } = require('./data/plan-paragraphs.js')
 const { POLICY_TEMPLATES, getPolicyTemplate } = require('./data/policy-templates.js')
 const { getEvidenceDocument } = require('./data/evidence-documents.js')
@@ -89,13 +165,13 @@ const {
 // --- Evidence prototype (E2US3 / E2US4) ---
 //
 // Session-backed evidence tagging flow:
-//   /evidence                    - index of the evidence prototypes
-//   /evidence/library            - evidence library, policy areas, filters
-//   /evidence/document-tagging   - document viewing, passage and note tagging
-//   /evidence/review             - review a document: details, tag it by hand
+//   /plan/sources                    - index of the evidence prototypes
+//   /plan/sources/library            - evidence library, policy areas, filters
+//   /plan/sources/document-tagging   - document viewing, passage and note tagging
+//   /plan/sources/review             - review a document: details, tag it by hand
 //                                  or from an AI summary, and take notes
-//   /evidence/document-view      - read-only, PDF-style document preview
-//   /evidence/results            - filtered results and export confirmation
+//   /plan/sources/document-view      - read-only, PDF-style document preview
+//   /plan/sources/results            - filtered results and export confirmation
 //
 // Evidence items are stored in req.session.data.evidenceItems. Search and
 // filter state is stored in session too (evidenceSearch, evidenceTagFilter,
@@ -238,7 +314,7 @@ function nextEvidenceId () {
 
 // Only ever redirect back to somewhere inside this prototype.
 function safeReturn (value, fallback) {
-  return typeof value === 'string' && value.indexOf('/evidence') === 0 ? value : fallback
+  return typeof value === 'string' && value.indexOf('/plan/sources') === 0 ? value : fallback
 }
 
 // Builds an evidence item from a submitted tagging form. Tag lozenge
@@ -389,17 +465,17 @@ const evidenceViewData = {
 
 // --- Compatibility redirects for earlier prototype URLs ---
 
-router.get('/evidence/selected-evidence', (req, res) => {
-  res.redirect('/evidence/library')
+router.get('/plan/sources/selected-evidence', (req, res) => {
+  res.redirect('/plan/sources/library')
 })
 
-router.get('/evidence/tag-insight', (req, res) => {
-  res.redirect('/evidence/document-tagging')
+router.get('/plan/sources/tag-insight', (req, res) => {
+  res.redirect('/plan/sources/document-tagging')
 })
 
 // --- Document viewing, highlight-to-tag and note tagging ---
 
-router.get('/evidence/document-tagging', (req, res) => {
+router.get('/plan/sources/document-tagging', (req, res) => {
   const items = getEvidenceItems(req)
   const savedPassages = items.filter(item => item.source === DOCUMENT_SOURCE && item.type === 'passage')
 
@@ -413,26 +489,26 @@ router.get('/evidence/document-tagging', (req, res) => {
   }))
 })
 
-router.post('/evidence/document-tagging', (req, res) => {
+router.post('/plan/sources/document-tagging', (req, res) => {
   const items = getEvidenceItems(req)
   const item = buildEvidenceItem(req.body, getDocument(DOCUMENT_SOURCE))
 
   if (item) items.push(item)
 
-  res.redirect('/evidence/document-tagging')
+  res.redirect('/plan/sources/document-tagging')
 })
 
 // Removes a single tag (suggested or custom) from a saved item, clicked
 // directly on its chip within the document view.
-router.post('/evidence/document-tagging/remove-tag', (req, res) => {
+router.post('/plan/sources/document-tagging/remove-tag', (req, res) => {
   removeTagFromItem(getEvidenceItems(req), req.body.itemId, req.body.tag)
-  res.redirect('/evidence/document-tagging')
+  res.redirect('/plan/sources/document-tagging')
 })
 
 // --- Review evidence: document details, manual tagging or an AI summary ---
 
 function getReviewReturn (source, fragment) {
-  return '/evidence/review?source=' + encodeURIComponent(source) + (fragment || '')
+  return '/plan/sources/review?source=' + encodeURIComponent(source) + (fragment || '')
 }
 
 // The policies the evidence base links a document to: those that cite it as a source
@@ -445,11 +521,11 @@ function getLinkedPolicies (source) {
   return POLICIES.filter(policy => refs.has(policy.ref)).map(policy => ({
     ref: policy.ref,
     title: policy.title,
-    href: getPolicy(policy.ref) ? '/policy-writing/policy-summary?ref=' + encodeURIComponent(policy.ref) : null
+    href: getPolicy(policy.ref) ? '/plan/make/policy-writing/policy-summary?ref=' + encodeURIComponent(policy.ref) : null
   }))
 }
 
-router.get('/evidence/review', (req, res) => {
+router.get('/plan/sources/review', (req, res) => {
   const items = getEvidenceItems(req)
   const source = req.query.source || DOCUMENT_SOURCE
   const doc = getDocument(source)
@@ -486,7 +562,7 @@ router.get('/evidence/review', (req, res) => {
   }))
 })
 
-router.post('/evidence/review', (req, res) => {
+router.post('/plan/sources/review', (req, res) => {
   const items = getEvidenceItems(req)
   const doc = getDocument(req.body.source || DOCUMENT_SOURCE)
   const item = buildEvidenceItem(req.body, doc)
@@ -496,12 +572,12 @@ router.post('/evidence/review', (req, res) => {
   res.redirect(safeReturn(req.body._returnTo, getReviewReturn(doc.source)))
 })
 
-router.post('/evidence/review/remove-tag', (req, res) => {
+router.post('/plan/sources/review/remove-tag', (req, res) => {
   removeTagFromItem(getEvidenceItems(req), req.body.itemId, req.body.tag)
-  res.redirect(safeReturn(req.body._returnTo, '/evidence/review'))
+  res.redirect(safeReturn(req.body._returnTo, '/plan/sources/review'))
 })
 
-router.post('/evidence/review/generate-summary', (req, res) => {
+router.post('/plan/sources/review/generate-summary', (req, res) => {
   const source = req.body.source || DOCUMENT_SOURCE
   const generated = asArray(req.session.data.evidenceSummariesGenerated)
 
@@ -515,7 +591,7 @@ router.post('/evidence/review/generate-summary', (req, res) => {
 // Accepts an AI suggestion, turning that section into a real tagged evidence
 // item. The verbatim quote is saved (not the paraphrase) so the passage
 // still matches when the document view draws its highlights.
-router.post('/evidence/review/accept-suggestion', (req, res) => {
+router.post('/plan/sources/review/accept-suggestion', (req, res) => {
   const items = getEvidenceItems(req)
   const source = req.body.source || DOCUMENT_SOURCE
   const doc = getDocument(source)
@@ -535,7 +611,7 @@ router.post('/evidence/review/accept-suggestion', (req, res) => {
   res.redirect(safeReturn(req.body._returnTo, getReviewReturn(source, '#auto-summarise')))
 })
 
-router.post('/evidence/review/dismiss-suggestion', (req, res) => {
+router.post('/plan/sources/review/dismiss-suggestion', (req, res) => {
   const source = req.body.source || DOCUMENT_SOURCE
   const dismissed = asArray(req.session.data.evidenceDismissedSuggestions)
 
@@ -550,7 +626,7 @@ router.post('/evidence/review/dismiss-suggestion', (req, res) => {
 // by "Open in new window" actions. The prototype only holds the full body
 // text for the interactive document (DOCUMENT_SOURCE) — for any other
 // source, it falls back to showing the extracts already tagged from it.
-router.get('/evidence/document-view', (req, res) => {
+router.get('/plan/sources/document-view', (req, res) => {
   const items = getEvidenceItems(req)
   const source = req.query.source || DOCUMENT_SOURCE
   const isInteractiveDocument = source === DOCUMENT_SOURCE
@@ -586,7 +662,7 @@ function getDocumentsForPolicyArea (items, policyArea) {
   return documents
 }
 
-router.get('/evidence/library', (req, res) => {
+router.get('/plan/sources/library', (req, res) => {
   const items = getEvidenceItems(req)
   const filters = getFilters(req)
   const documents = getDocumentsForPolicyArea(items, filters.policyArea)
@@ -604,15 +680,6 @@ router.get('/evidence/library', (req, res) => {
     filtersApplied,
     filters
   }))
-})
-
-// --- User stories from the value proposition framework ---
-
-router.get('/user-stories', (req, res) => {
-  res.render('user-stories/index', {
-    themes: getUserStoryThemeGroups(),
-    storyCount: getUserStoryCount()
-  })
 })
 
 // --- Policy: view a policy summary ---
@@ -684,7 +751,7 @@ function getSearchableEvidence (items) {
   return passages
 }
 
-router.get('/policy-writing/policy-summary', (req, res) => {
+router.get('/plan/make/policy-writing/policy-summary', (req, res) => {
   const items = getEvidenceItems(req)
   const policyArea = req.query.policyArea || ''
   const policies = getPoliciesForArea(policyArea)
@@ -704,7 +771,7 @@ router.get('/policy-writing/policy-summary', (req, res) => {
 
 // --- Filtered results and export confirmation ---
 
-router.get('/evidence/results', (req, res) => {
+router.get('/plan/sources/results', (req, res) => {
   const items = getEvidenceItems(req)
   const filters = getFilters(req)
   const filteredItems = filterEvidenceItems(items, filters)
@@ -717,7 +784,7 @@ router.get('/evidence/results', (req, res) => {
   }))
 })
 
-router.post('/evidence/results', (req, res) => {
+router.post('/plan/sources/results', (req, res) => {
   const items = getEvidenceItems(req)
   const filters = getFilters(req)
   const filteredItems = filterEvidenceItems(items, filters)
@@ -727,21 +794,21 @@ router.post('/evidence/results', (req, res) => {
     filters
   }
 
-  res.redirect('/evidence/results?exported=1')
+  res.redirect('/plan/sources/results?exported=1')
 })
 
 // --- Managing commissioned evidence ---
 //
 // An officer briefs an external consultant, the consultant submits a report, and the officer
 // reviews, comments, adds notes and accepts it into the evidence library:
-//   /evidence/commissioned                       - landing page, with a reset per entry point
-//   /evidence/commissioned/create-brief          - write and send the brief
-//   /evidence/commissioned/brief(-sent)          - the sent brief, and its confirmation
-//   /evidence/commissioned/consultant/...        - the consultant's screens (an external user)
-//   /evidence/commissioned/review                - the report, with comments beside it
-//   /evidence/commissioned/notes                 - notes, sent to the consultant or internal
-//   /evidence/commissioned/accept                - tag and accept the report
-//   /evidence/commissioned/source                - the accepted source in the library
+//   /plan/sources/commissioned                       - landing page, with a reset per entry point
+//   /plan/sources/commissioned/create-brief          - write and send the brief
+//   /plan/sources/commissioned/brief(-sent)          - the sent brief, and its confirmation
+//   /plan/sources/commissioned/consultant/...        - the consultant's screens (an external user)
+//   /plan/sources/commissioned/review                - the report, with comments beside it
+//   /plan/sources/commissioned/notes                 - notes, sent to the consultant or internal
+//   /plan/sources/commissioned/accept                - tag and accept the report
+//   /plan/sources/commissioned/source                - the accepted source in the library
 //
 // The consultant's screens wouldn't be reachable from the officer's journey in a real service.
 // Testers get to them through "Prototype only" handoff panels (commissioned/partials/handoff.html)
@@ -750,7 +817,7 @@ router.post('/evidence/results', (req, res) => {
 // Everything is one object, req.session.data.commissionedEvidence, read only through
 // getCommission. Free-text fields are named `_…` so the kit doesn't copy them into session data.
 
-const CE = '/evidence/commissioned'
+const CE = '/plan/sources/commissioned'
 const COMMISSIONED_EVIDENCE_SCHEMA_VERSION = 2
 
 const {
@@ -1292,17 +1359,17 @@ router.get(CE + '/source', (req, res) => {
 //
 // Linked screens built from Figma frames, with no session state: every page is static content
 // from app/data/viewing-structuring-evidence.js, looked up by id.
-//   /evidence/viewing-structuring                      - landing page
-//   /evidence/viewing-structuring/documents/:id        - a document, with its tagged passages
-//   /evidence/viewing-structuring/hearings/:id         - a hearing transcript, the same way
-//   /evidence/viewing-structuring/evidence-items/:id   - an evidence item's report card
-//   /evidence/viewing-structuring/lists/:id            - an officer's list of evidence items
-//   /evidence/viewing-structuring/policy/:id           - a policy citing evidence items
+//   /plan/sources/viewing-structuring                      - landing page
+//   /plan/sources/viewing-structuring/documents/:id        - a document, with its tagged passages
+//   /plan/sources/viewing-structuring/hearings/:id         - a hearing transcript, the same way
+//   /plan/sources/viewing-structuring/evidence-items/:id   - an evidence item's report card
+//   /plan/sources/viewing-structuring/lists/:id            - an officer's list of evidence items
+//   /plan/sources/viewing-structuring/policy/:id           - a policy citing evidence items
 //
 // Save, Edit, Remove, Export, Share and the Create links are inert placeholders from the design.
 // An unknown id goes back to the landing page.
 
-const VSE = '/evidence/viewing-structuring'
+const VSE = '/plan/sources/viewing-structuring'
 
 const {
   TYPES: VSE_TYPES,
@@ -1402,11 +1469,11 @@ router.get(VSE + '/policy/:id', (req, res) => {
 //
 // Session-backed, three-phase journey, in two independent variants (see PW_VARIANTS) so a user
 // can experience either starting from realistic example data ("prefilled") or from a blank
-// slate ("blank") — /policy-writing links to both. Every route below is namespaced under
-// /policy-writing/:variant/... so the two never share state:
-//   /policy-writing/:variant/starting-points/:step   - 7-step "starting points" wizard
-//   /policy-writing/:variant/topics/...              - aggregate view + create/review topics
-//   /policy-writing/:variant/write/:topicId          - policy writer drafting workspace
+// slate ("blank") — /plan/make links to both. Every route below is namespaced under
+// /plan/make/policy-writing/:variant/... so the two never share state:
+//   /plan/make/policy-writing/:variant/starting-points/:step   - 7-step "starting points" wizard
+//   /plan/make/policy-writing/:variant/topics/...              - aggregate view + create/review topics
+//   /plan/make/policy-writing/:variant/write/:topicId          - policy writer drafting workspace
 //
 // Starting point items are stored in req.session.data.policyStartingPointItems[variant], an
 // object keyed by step slug. Topics are stored in req.session.data.policyTopics[variant]. The
@@ -1420,11 +1487,11 @@ router.get(VSE + '/policy/:id', (req, res) => {
 
 const PW_VARIANTS = ['prefilled', 'blank']
 
-// Runs before any /policy-writing/:variant/... route, so a mistyped or old-bookmarked variant
+// Runs before any /plan/make/policy-writing/:variant/... route, so a mistyped or old-bookmarked variant
 // segment falls back to the prototype's landing page rather than 404ing or reading undefined
 // session data.
 router.param('variant', (req, res, next, variant) => {
-  if (!PW_VARIANTS.includes(variant)) return res.redirect('/policy-writing')
+  if (!PW_VARIANTS.includes(variant)) return res.redirect('/plan/make')
   next()
 })
 
@@ -1698,14 +1765,14 @@ router.post('/gis-layers/:layerId/type', (req, res) => {
 
 // --- GIS layer library ---
 //
-// /evidence/gis-layers: every layer in the shared gisLayers collection, as Policy layers (tag
+// /plan/sources/gis-layers: every layer in the shared gisLayers collection, as Policy layers (tag
 // `plan`) or Evidence base layers (tag `evidence`), with a map preview and metadata. Layers added
 // here have the origin 'library'; layers added in the starting points or commissioned evidence
 // show up here too, because there is one collection. A layer's linked policies are `policyRefs`
 // on the layer itself. Descriptions and versions come from GIS.LAYER_DETAILS (invented) or, for a
 // layer added from an external source, from the layer. "Add to Local Plan timetable stage" and
 // "See connected consultation responses" are inert placeholders from the sketch.
-const GL = '/evidence/gis-layers'
+const GL = '/plan/sources/gis-layers'
 const GL_TABS = {
   policy: { slug: 'policy', type: 'plan', title: 'Policy layers', other: 'evidence' },
   evidence: { slug: 'evidence', type: 'evidence', title: 'Evidence base layers', other: 'policy' }
@@ -2231,7 +2298,7 @@ function getPolicyWriterSources (req) {
 // shown via the status icons in partials/icons/status-icon.html) for every page across the
 // starting-points and create-topics phases.
 function buildStartingPointsSidebar (req, variant, activeHref) {
-  const base = '/policy-writing/' + variant
+  const base = '/plan/make/policy-writing/' + variant
 
   const stepNavItem = step => {
     const href = base + '/starting-points/' + step.slug
@@ -2275,7 +2342,7 @@ function buildStartingPointsSidebar (req, variant, activeHref) {
 const SCOPING_JOURNEY = 'scoping'
 
 function spBase (journey) {
-  return journey === SCOPING_JOURNEY ? PM + '/scoping-activities' : '/policy-writing/' + journey + '/starting-points'
+  return journey === SCOPING_JOURNEY ? PM + '/scoping-activities' : '/plan/make/policy-writing/' + journey + '/starting-points'
 }
 
 // Make your plan keeps its starting points in projectManagement, so its statuses can be derived
@@ -2309,15 +2376,15 @@ function spStepLocals (req, journey, slug) {
   }, step.gis ? gisStepLocals(req, journey, items) : {})
 }
 
-router.get('/policy-writing/:variant/starting-points/:step', (req, res) => {
+router.get('/plan/make/policy-writing/:variant/starting-points/:step', (req, res) => {
   const { variant } = req.params
   const locals = spStepLocals(req, variant, req.params.step)
   if (!locals) return res.redirect(spBase(variant) + '/' + STARTING_POINT_STEPS[0].slug)
 
   res.render('policy-writing/starting-points/step', Object.assign(locals, {
     variant,
-    continueHref: '/policy-writing/' + variant + '/topics/review-starting-points',
-    backHref: '/policy-writing',
+    continueHref: '/plan/make/policy-writing/' + variant + '/topics/review-starting-points',
+    backHref: '/plan/make',
     sidebarSections: buildStartingPointsSidebar(req, variant, spBase(variant) + '/' + locals.step.slug)
   }))
 })
@@ -2416,15 +2483,15 @@ function spRemoveItem (req, res, journey) {
   res.redirect(spBase(journey) + '/' + req.params.step)
 }
 
-router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/connect', (req, res) => spConnect(req, res, req.params.variant))
-router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/disconnect', (req, res) => spDisconnect(req, res, req.params.variant))
-router.post('/policy-writing/:variant/starting-points/' + GIS_STEP + '/layers', (req, res) => spAddLayers(req, res, req.params.variant))
-router.post('/policy-writing/:variant/starting-points/:step', (req, res) => spSaveItem(req, res, req.params.variant))
-router.post('/policy-writing/:variant/starting-points/:step/:itemId/remove', (req, res) => spRemoveItem(req, res, req.params.variant))
+router.post('/plan/make/policy-writing/:variant/starting-points/' + GIS_STEP + '/connect', (req, res) => spConnect(req, res, req.params.variant))
+router.post('/plan/make/policy-writing/:variant/starting-points/' + GIS_STEP + '/disconnect', (req, res) => spDisconnect(req, res, req.params.variant))
+router.post('/plan/make/policy-writing/:variant/starting-points/' + GIS_STEP + '/layers', (req, res) => spAddLayers(req, res, req.params.variant))
+router.post('/plan/make/policy-writing/:variant/starting-points/:step', (req, res) => spSaveItem(req, res, req.params.variant))
+router.post('/plan/make/policy-writing/:variant/starting-points/:step/:itemId/remove', (req, res) => spRemoveItem(req, res, req.params.variant))
 
 // --- Review starting points: aggregate table across all 8 steps ---
 
-router.get('/policy-writing/:variant/topics/review-starting-points', (req, res) => {
+router.get('/plan/make/policy-writing/:variant/topics/review-starting-points', (req, res) => {
   const { variant } = req.params
   const rows = []
   STARTING_POINT_STEPS.forEach(step => {
@@ -2442,11 +2509,11 @@ router.get('/policy-writing/:variant/topics/review-starting-points', (req, res) 
   res.render('policy-writing/topics/review-starting-points', {
     variant,
     rows,
-    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/topics/review-starting-points')
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/plan/make/policy-writing/' + variant + '/topics/review-starting-points')
   })
 })
 
-router.post('/policy-writing/:variant/topics/review-starting-points/:sourceStep/:itemId/remove', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/review-starting-points/:sourceStep/:itemId/remove', (req, res) => {
   const { variant } = req.params
   const step = findStartingPointStep(req.params.sourceStep)
   if (step) {
@@ -2454,23 +2521,23 @@ router.post('/policy-writing/:variant/topics/review-starting-points/:sourceStep/
     const index = items.findIndex(item => item.id === req.params.itemId)
     if (index !== -1) items.splice(index, 1)
   }
-  res.redirect('/policy-writing/' + variant + '/topics/review-starting-points')
+  res.redirect('/plan/make/policy-writing/' + variant + '/topics/review-starting-points')
 })
 
 // --- Topics list ---
 
-router.get('/policy-writing/:variant/topics', (req, res) => {
+router.get('/plan/make/policy-writing/:variant/topics', (req, res) => {
   const { variant } = req.params
   res.render('policy-writing/topics/index', {
     variant,
     topics: getPolicyTopics(req, variant),
-    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/topics')
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/plan/make/policy-writing/' + variant + '/topics')
   })
 })
 
 // --- Create topics ---
 
-router.get('/policy-writing/:variant/topics/new', (req, res) => {
+router.get('/plan/make/policy-writing/:variant/topics/new', (req, res) => {
   const { variant } = req.params
   res.render('policy-writing/topics/new', {
     variant,
@@ -2478,11 +2545,11 @@ router.get('/policy-writing/:variant/topics/new', (req, res) => {
       step,
       items: getStartingPointItems(req, variant, step.slug)
     })),
-    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/topics/new')
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/plan/make/policy-writing/' + variant + '/topics/new')
   })
 })
 
-router.post('/policy-writing/:variant/topics/new', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/new', (req, res) => {
   const { variant } = req.params
   const topics = getPolicyTopics(req, variant)
   const name = (req.body.topicName || '').trim()
@@ -2516,25 +2583,25 @@ router.post('/policy-writing/:variant/topics/new', (req, res) => {
     })
   }
 
-  res.redirect('/policy-writing/' + variant + (req.body.action === 'add-another' ? '/topics/new' : '/topics'))
+  res.redirect('/plan/make/policy-writing/' + variant + (req.body.action === 'add-another' ? '/topics/new' : '/topics'))
 })
 
 // --- Review topics: single-topic detail ---
 
-router.get('/policy-writing/:variant/topics/:topicId', (req, res) => {
+router.get('/plan/make/policy-writing/:variant/topics/:topicId', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
-  if (!topic) return res.redirect('/policy-writing/' + variant + '/topics')
+  if (!topic) return res.redirect('/plan/make/policy-writing/' + variant + '/topics')
 
   res.render('policy-writing/topics/show', {
     variant,
     topic,
     existingDocuments: EXISTING_DOCUMENTS,
-    sidebarSections: buildStartingPointsSidebar(req, variant, '/policy-writing/' + variant + '/topics')
+    sidebarSections: buildStartingPointsSidebar(req, variant, '/plan/make/policy-writing/' + variant + '/topics')
   })
 })
 
-router.post('/policy-writing/:variant/topics/:topicId', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/:topicId', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   if (topic) {
@@ -2544,59 +2611,59 @@ router.post('/policy-writing/:variant/topics/:topicId', (req, res) => {
     topic.evidenceNotes = req.body.evidenceNotes || ''
     topic.additionalEvidenceNeeds = req.body.additionalEvidenceNeeds || ''
   }
-  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.get('/policy-writing/:variant/topics/:topicId/assigned-to', (req, res) => {
+router.get('/plan/make/policy-writing/:variant/topics/:topicId/assigned-to', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
-  if (!topic) return res.redirect('/policy-writing/' + variant + '/topics')
+  if (!topic) return res.redirect('/plan/make/policy-writing/' + variant + '/topics')
   res.render('policy-writing/topics/assigned-to', { variant, topic })
 })
 
-router.post('/policy-writing/:variant/topics/:topicId/assigned-to', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/:topicId/assigned-to', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   if (topic) topic.assignedTo = (req.body.assignedTo || '').trim()
-  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.post('/policy-writing/:variant/topics/:topicId/sources', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/:topicId/sources', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   const label = (req.body.sourceLabel || '').trim()
   if (topic && label) {
     topic.sources.push({ id: 'src-' + Date.now(), label })
   }
-  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.post('/policy-writing/:variant/topics/:topicId/sources/:sourceId/remove', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/:topicId/sources/:sourceId/remove', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   if (topic) {
     topic.sources = topic.sources.filter(source => source.id !== req.params.sourceId)
   }
-  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.post('/policy-writing/:variant/topics/:topicId/example-policies', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/:topicId/example-policies', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   const label = (req.body.examplePolicyLabel || '').trim()
   if (topic && label) {
     topic.examplePolicies.push({ id: 'ep-' + Date.now(), label })
   }
-  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
-router.post('/policy-writing/:variant/topics/:topicId/example-policies/:policyId/remove', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/:topicId/example-policies/:policyId/remove', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   if (topic) {
     topic.examplePolicies = topic.examplePolicies.filter(policy => policy.id !== req.params.policyId)
   }
-  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
 // Evidence can be linked either by picking an existing document from the dropdown, or by
@@ -2604,22 +2671,22 @@ router.post('/policy-writing/:variant/topics/:topicId/example-policies/:policyId
 // uploads, so — consistent with the "Policy writer" workspace's decorative rich-text toolbar —
 // the file input is present but not wired up; only the "link to existing document" path
 // actually records a linked-evidence entry.
-router.post('/policy-writing/:variant/topics/:topicId/linked-evidence', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/topics/:topicId/linked-evidence', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   const label = (req.body.existingDocument || '').trim()
   if (topic && label) {
     topic.linkedEvidence.push({ id: 'le-' + Date.now(), label })
   }
-  res.redirect('/policy-writing/' + variant + '/topics/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/topics/' + req.params.topicId)
 })
 
 // --- Policy writer workspace ---
 
-router.get('/policy-writing/:variant/write/:topicId', (req, res) => {
+router.get('/plan/make/policy-writing/:variant/write/:topicId', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
-  if (!topic) return res.redirect('/policy-writing/' + variant + '/topics')
+  if (!topic) return res.redirect('/plan/make/policy-writing/' + variant + '/topics')
 
   const sources = getPolicyWriterSources(req)
   const requestedKinds = asArray(req.query.sourceType)
@@ -2651,21 +2718,21 @@ function saveWorkspaceFields (topic, body) {
   })
 }
 
-router.post('/policy-writing/:variant/write/:topicId', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/write/:topicId', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   if (topic) saveWorkspaceFields(topic, req.body)
-  res.redirect('/policy-writing/' + variant + '/write/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/write/' + req.params.topicId)
 })
 
-router.post('/policy-writing/:variant/write/:topicId/policy-blocks', (req, res) => {
+router.post('/plan/make/policy-writing/:variant/write/:topicId/policy-blocks', (req, res) => {
   const { variant } = req.params
   const topic = getTopic(req, variant, req.params.topicId)
   if (topic) {
     saveWorkspaceFields(topic, req.body)
     topic.policyBlocks.push({ id: 'block-' + Date.now(), title: '', detail: '' })
   }
-  res.redirect('/policy-writing/' + variant + '/write/' + req.params.topicId)
+  res.redirect('/plan/make/policy-writing/' + variant + '/write/' + req.params.topicId)
 })
 
 // --- Examination - inspector view prototype ---
@@ -2688,7 +2755,7 @@ function buildLocalPlanSidebarSections (activePolicyRef) {
     heading: area,
     items: getPoliciesForArea(area).map(policy => ({
       text: policy.ref + ' ' + policy.title,
-      href: '/examination-inspector-view/paragraphs/' + policy.ref.toLowerCase() + '-1',
+      href: '/plan/view/examination/paragraphs/' + policy.ref.toLowerCase() + '-1',
       active: policy.ref === activePolicyRef
     }))
   }))
@@ -2747,7 +2814,7 @@ function buildRelatedResources (policy, paragraphId) {
       title: group.theme,
       meta: group.count + (group.count === 1 ? ' representation' : ' representations'),
       responses: group.responses,
-      href: '/examination-inspector-view/paragraphs/' + paragraphId + '/representations/' + id
+      href: '/plan/view/examination/paragraphs/' + paragraphId + '/representations/' + id
     }
   })
 
@@ -2769,15 +2836,15 @@ function buildRelatedResources (policy, paragraphId) {
   }
 }
 
-router.get('/examination-inspector-view', (req, res) => {
+router.get('/plan/view/examination', (req, res) => {
   res.render('examination-inspector-view/index.html', {
     sidebarSections: buildLocalPlanSidebarSections()
   })
 })
 
-router.get('/examination-inspector-view/paragraphs/:id', (req, res) => {
+router.get('/plan/view/examination/paragraphs/:id', (req, res) => {
   const index = PLAN_PARAGRAPHS.findIndex(paragraph => paragraph.id === req.params.id)
-  if (index === -1) return res.redirect('/examination-inspector-view')
+  if (index === -1) return res.redirect('/plan/view/examination')
 
   const paragraph = PLAN_PARAGRAPHS[index]
   const policy = POLICIES.find(policy => policy.ref === paragraph.policyRef)
@@ -2797,16 +2864,16 @@ router.get('/examination-inspector-view/paragraphs/:id', (req, res) => {
 // paragraph's resource viewer. Representations are policy-level data (like the rest of
 // buildRelatedResources), but the route is nested under the paragraph the user came from so
 // the back link returns them to exactly where they were reading.
-router.get('/examination-inspector-view/paragraphs/:id/representations/:themeId', (req, res) => {
+router.get('/plan/view/examination/paragraphs/:id/representations/:themeId', (req, res) => {
   const index = PLAN_PARAGRAPHS.findIndex(paragraph => paragraph.id === req.params.id)
-  if (index === -1) return res.redirect('/examination-inspector-view')
+  if (index === -1) return res.redirect('/plan/view/examination')
 
   const paragraph = PLAN_PARAGRAPHS[index]
   const policy = POLICIES.find(policy => policy.ref === paragraph.policyRef)
   const theme = buildRelatedResources(policy, paragraph.id).representations
     .find(representation => representation.id === req.params.themeId)
 
-  if (!theme) return res.redirect('/examination-inspector-view/paragraphs/' + paragraph.id)
+  if (!theme) return res.redirect('/plan/view/examination/paragraphs/' + paragraph.id)
 
   res.render('examination-inspector-view/representations/show.html', {
     paragraph,
@@ -2815,23 +2882,15 @@ router.get('/examination-inspector-view/paragraphs/:id/representations/:themeId'
   })
 })
 
-// The v2 landing page would otherwise be file-routed. It needs a route only so the user
-// stories can be read from app/data/user-stories.js rather than copied into the template.
-router.get('/policy-writing-v2', (req, res) => {
-  res.render('policy-writing-v2/index', {
-    userStories: getUserStories(['POUS3', 'POUS4', 'POUS5'])
-  })
-})
-
 // --- Policy writer v2 ---
 //
 // A second take on the drafting workspace: evidence and the policy draft side by side on a
 // wider page, with a draggable divider between them. See CLAUDE.md.
 //
-// Slug note: this lives at /policy-writing-v2, NOT nested under /policy-writing/. Nested, the
+// Slug note: this lives at /plan/make/policy-side-by-side, NOT nested under /plan/make/policy-writing/. Nested, the
 // "v2" segment would be captured by router.param('variant', ...) above and bounced back to the
 // policy-writing landing page. As a sibling path it is still caught by the activeSection
-// middleware's startsWith('/policy-writing') branch at the top of this file, which is what we
+// middleware's startsWith('/plan/make') branch at the top of this file, which is what we
 // want — v2 sits under "Policy writing" in the nav rather than adding a fifth nav item.
 
 const POLICY_WRITER_V2_SCHEMA_VERSION = 6
@@ -2870,7 +2929,7 @@ function getV2Policy (req, policyId) {
   return getV2Policies(req).find(policy => policy.id === policyId)
 }
 
-const v2PolicyUrl = policyId => '/policy-writing-v2/chapter/' + policyId
+const v2PolicyUrl = policyId => '/plan/make/policy-side-by-side/chapter/' + policyId
 
 // The chapter's policies as a sidebar, using the shared side navigation component so status
 // icons and the active-item treatment match the other prototypes (see CLAUDE.md).
@@ -2903,7 +2962,7 @@ function saveV2DraftFields (policy, body) {
   }
 }
 
-router.get('/policy-writing-v2/chapter', (req, res) => {
+router.get('/plan/make/policy-side-by-side/chapter', (req, res) => {
   const policies = getV2Policies(req)
   if (!policies.length) return res.render('policy-writing-v2/chapter/index', { chapter: getV2Chapter(req), policy: null })
   res.redirect(v2PolicyUrl(policies[0].id))
@@ -2911,7 +2970,7 @@ router.get('/policy-writing-v2/chapter', (req, res) => {
 
 // Declared before /chapter/:policyId would ever see it — but it's a sibling path, not a child,
 // so it could never be captured by that route anyway.
-router.get('/policy-writing-v2/chapter-preview', (req, res) => {
+router.get('/plan/make/policy-side-by-side/chapter-preview', (req, res) => {
   const chapter = getV2Chapter(req)
   const policies = chapter.policies || []
   res.render('policy-writing-v2/chapter-preview/index', {
@@ -2921,10 +2980,10 @@ router.get('/policy-writing-v2/chapter-preview', (req, res) => {
   })
 })
 
-router.get('/policy-writing-v2/chapter/:policyId', (req, res) => {
+router.get('/plan/make/policy-side-by-side/chapter/:policyId', (req, res) => {
   const chapter = getV2Chapter(req)
   const policy = getV2Policy(req, req.params.policyId)
-  if (!policy) return res.redirect('/policy-writing-v2/chapter')
+  if (!policy) return res.redirect('/plan/make/policy-side-by-side/chapter')
 
   const sources = policy.sources || []
   // Which source the middle pane is showing. Read from the query string so each row in the
@@ -2954,20 +3013,20 @@ router.get('/policy-writing-v2/chapter/:policyId', (req, res) => {
   })
 })
 
-router.post('/policy-writing-v2/chapter/:policyId/details', (req, res) => {
+router.post('/plan/make/policy-side-by-side/chapter/:policyId/details', (req, res) => {
   const chapter = getV2Chapter(req)
   chapter.title = req.body.chapterTitleV2 || ''
   chapter.explanatoryText = req.body.explanatoryTextV2 || ''
   res.redirect(v2PolicyUrl(req.params.policyId))
 })
 
-router.post('/policy-writing-v2/chapter/:policyId/draft', (req, res) => {
+router.post('/plan/make/policy-side-by-side/chapter/:policyId/draft', (req, res) => {
   const policy = getV2Policy(req, req.params.policyId)
   if (policy) saveV2DraftFields(policy, req.body)
   res.redirect(v2PolicyUrl(req.params.policyId))
 })
 
-router.post('/policy-writing-v2/chapter/:policyId/policies', (req, res) => {
+router.post('/plan/make/policy-side-by-side/chapter/:policyId/policies', (req, res) => {
   const policy = getV2Policy(req, req.params.policyId)
   if (policy) saveV2DraftFields(policy, req.body)
 
@@ -2984,7 +3043,7 @@ router.post('/policy-writing-v2/chapter/:policyId/policies', (req, res) => {
   res.redirect(v2PolicyUrl(newPolicy.id))
 })
 
-router.post('/policy-writing-v2/chapter/:policyId/template', (req, res) => {
+router.post('/plan/make/policy-side-by-side/chapter/:policyId/template', (req, res) => {
   const policy = getV2Policy(req, req.params.policyId)
   const template = getPolicyTemplate(req.body.templateId)
   if (policy && template) {
@@ -3001,7 +3060,7 @@ router.post('/policy-writing-v2/chapter/:policyId/template', (req, res) => {
 // manual add. The modal's fields are named _selected[...] because the kit's session middleware
 // skips anything starting with "_" — so a payload of full evidence excerpts never ends up
 // duplicated into req.session.data, while Express still parses it into req.body.
-router.post('/policy-writing-v2/chapter/:policyId/sources', (req, res) => {
+router.post('/plan/make/policy-side-by-side/chapter/:policyId/sources', (req, res) => {
   const policy = getV2Policy(req, req.params.policyId)
   if (policy) {
     if (!policy.sources) policy.sources = []
@@ -3043,7 +3102,7 @@ router.post('/policy-writing-v2/chapter/:policyId/sources', (req, res) => {
   res.redirect(v2PolicyUrl(req.params.policyId))
 })
 
-router.post('/policy-writing-v2/chapter/:policyId/sources/:sourceId/remove', (req, res) => {
+router.post('/plan/make/policy-side-by-side/chapter/:policyId/sources/:sourceId/remove', (req, res) => {
   const policy = getV2Policy(req, req.params.policyId)
   if (policy && policy.sources) {
     policy.sources = policy.sources.filter(source => source.id !== req.params.sourceId)
@@ -3051,7 +3110,7 @@ router.post('/policy-writing-v2/chapter/:policyId/sources/:sourceId/remove', (re
   res.redirect(v2PolicyUrl(req.params.policyId))
 })
 
-router.post('/policy-writing-v2/chapter/:policyId/notes', (req, res) => {
+router.post('/plan/make/policy-side-by-side/chapter/:policyId/notes', (req, res) => {
   const policy = getV2Policy(req, req.params.policyId)
   const text = (req.body.noteText || '').trim()
   if (policy && text) {
@@ -3066,7 +3125,7 @@ router.post('/policy-writing-v2/chapter/:policyId/notes', (req, res) => {
   res.redirect(v2PolicyUrl(req.params.policyId))
 })
 
-router.post('/policy-writing-v2/chapter/:policyId/notes/:noteId/remove', (req, res) => {
+router.post('/plan/make/policy-side-by-side/chapter/:policyId/notes/:noteId/remove', (req, res) => {
   const policy = getV2Policy(req, req.params.policyId)
   if (policy && policy.notes) {
     policy.notes = policy.notes.filter(note => note.id !== req.params.noteId)
@@ -3077,10 +3136,10 @@ router.post('/policy-writing-v2/chapter/:policyId/notes/:noteId/remove', (req, r
 
 // A single evidence excerpt on its own page, for reading alongside the workspace in a second
 // window. A GET at /source/ (singular) so it can't collide with the /sources/ POST routes.
-router.get('/policy-writing-v2/chapter/:policyId/source/:sourceId', (req, res) => {
+router.get('/plan/make/policy-side-by-side/chapter/:policyId/source/:sourceId', (req, res) => {
   const chapter = getV2Chapter(req)
   const policy = getV2Policy(req, req.params.policyId)
-  if (!policy) return res.redirect('/policy-writing-v2/chapter')
+  if (!policy) return res.redirect('/plan/make/policy-side-by-side/chapter')
 
   const source = (policy.sources || []).find(item => item.id === req.params.sourceId)
   if (!source) return res.redirect(v2PolicyUrl(policy.id))
@@ -3127,18 +3186,18 @@ const EVIDENCE_STATUS_COLOURS = {
 
 // Hrefs are pre-encoded here, not with a Nunjucks urlencode filter, for the same reason
 // POLICY_AREA_LINKS is pre-encoded above.
-router.get('/gateway-2-progress-check', (req, res) => {
+router.get('/plan/view/gateway-2-progress-check', (req, res) => {
   const chapters = POLICY_AREAS.map(area => ({
     name: area,
     status: getChapterStatus(area),
-    href: '/gateway-2-progress-check/chapters/' + encodeURIComponent(area)
+    href: '/plan/view/gateway-2-progress-check/chapters/' + encodeURIComponent(area)
   }))
 
   const evidence = Object.keys(DOCUMENTS).map(source => ({
     name: source,
     status: getEvidenceStatus(source),
     lastUpdated: DOCUMENTS[source].date,
-    href: '/gateway-2-progress-check/evidence/' + encodeURIComponent(source)
+    href: '/plan/view/gateway-2-progress-check/evidence/' + encodeURIComponent(source)
   }))
 
   res.render('gateway-2-progress-check/index.html', {
@@ -3162,7 +3221,7 @@ function buildChapterResources (area) {
   const sources = Object.values(DOCUMENTS)
     .filter(doc => doc.policyArea === area)
     .map(doc => Object.assign({
-      href: '/gateway-2-progress-check/evidence/' + encodeURIComponent(doc.source),
+      href: '/plan/view/gateway-2-progress-check/evidence/' + encodeURIComponent(doc.source),
       officerNote: getSourceOfficerNote(doc.source)
     }, doc))
 
@@ -3170,7 +3229,7 @@ function buildChapterResources (area) {
     .filter(excerpt => excerpt.policyRefs.some(ref => policyRefs.includes(ref)))
     .map(excerpt => Object.assign({
       href: DOCUMENTS[excerpt.source]
-        ? '/gateway-2-progress-check/evidence/' + encodeURIComponent(excerpt.source)
+        ? '/plan/view/gateway-2-progress-check/evidence/' + encodeURIComponent(excerpt.source)
         : null,
       officerNote: getEvidenceOfficerNote(excerpt)
     }, excerpt))
@@ -3213,9 +3272,9 @@ function buildChapterResources (area) {
   }
 }
 
-router.get('/gateway-2-progress-check/chapters/:area', (req, res) => {
+router.get('/plan/view/gateway-2-progress-check/chapters/:area', (req, res) => {
   const area = req.params.area
-  if (!POLICY_AREAS.includes(area)) return res.redirect('/gateway-2-progress-check')
+  if (!POLICY_AREAS.includes(area)) return res.redirect('/plan/view/gateway-2-progress-check')
 
   const status = getChapterStatus(area)
   const policies = getPoliciesForArea(area)
@@ -3241,9 +3300,9 @@ router.get('/gateway-2-progress-check/chapters/:area', (req, res) => {
   })
 })
 
-router.get('/gateway-2-progress-check/evidence/:source', (req, res) => {
+router.get('/plan/view/gateway-2-progress-check/evidence/:source', (req, res) => {
   const source = req.params.source
-  if (!DOCUMENTS[source]) return res.redirect('/gateway-2-progress-check')
+  if (!DOCUMENTS[source]) return res.redirect('/plan/view/gateway-2-progress-check')
 
   res.render('gateway-2-progress-check/evidence/show.html', {
     document: getDocument(source),
@@ -3267,11 +3326,11 @@ router.get('/gateway-2-progress-check/evidence/:source', (req, res) => {
 // param name from policy-writing's :variant — router.param registers per parameter name across
 // the whole router, not per route, so reusing :variant here would also run PW_VARIANTS'
 // ['prefilled', 'blank'] check against 'draft'/'completed' and bounce every request to
-// /policy-writing.
+// /plan/make.
 const SOC_VARIANTS = ['draft', 'completed']
 
 router.param('socVariant', (req, res, next, socVariant) => {
-  if (!SOC_VARIANTS.includes(socVariant)) return res.redirect('/statement-of-compliance')
+  if (!SOC_VARIANTS.includes(socVariant)) return res.redirect('/plan/view/statement-of-compliance')
   next()
 })
 
@@ -3281,7 +3340,7 @@ const STATEMENT_STATUS_COLOURS = {
   'Fully met': 'green'
 }
 
-router.get('/statement-of-compliance', (req, res) => {
+router.get('/plan/view/statement-of-compliance', (req, res) => {
   res.render('statement-of-compliance/index.html')
 })
 
@@ -3292,7 +3351,7 @@ function socRequirementRows (variant) {
     ref: requirement.ref,
     title: requirement.title,
     status: getRequirementStatus(requirement.ref, variant),
-    href: '/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(requirement.ref)
+    href: '/plan/view/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(requirement.ref)
   }))
 }
 
@@ -3303,7 +3362,7 @@ const SOC_PDF = {
   completed: { size: '486 KB', pages: 24 }
 }
 
-router.get('/statement-of-compliance/:socVariant', (req, res) => {
+router.get('/plan/view/statement-of-compliance/:socVariant', (req, res) => {
   const variant = req.params.socVariant
   res.render('statement-of-compliance/checklist.html', {
     variant,
@@ -3317,10 +3376,10 @@ router.get('/statement-of-compliance/:socVariant', (req, res) => {
   })
 })
 
-router.get('/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
+router.get('/plan/view/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
   const variant = req.params.socVariant
   const requirement = getRequirement(req.params.ref)
-  if (!requirement) return res.redirect('/statement-of-compliance/' + variant)
+  if (!requirement) return res.redirect('/plan/view/statement-of-compliance/' + variant)
 
   res.render('statement-of-compliance/requirements/show.html', {
     variant,
@@ -3335,8 +3394,8 @@ router.get('/statement-of-compliance/:socVariant/requirements/:ref', (req, res) 
 // A placeholder viewer for the materials linked from the audit log (the notice, a consultation
 // summary, the self-assessment, and so on) — there's no real document behind any of them, so
 // this renders the title only rather than pretending to show real content.
-router.get('/statement-of-compliance/documents/:title', (req, res) => {
-  if (!isKnownDocument(req.params.title)) return res.redirect('/statement-of-compliance')
+router.get('/plan/view/statement-of-compliance/documents/:title', (req, res) => {
+  if (!isKnownDocument(req.params.title)) return res.redirect('/plan/view/statement-of-compliance')
 
   res.render('statement-of-compliance/documents/show.html', {
     title: req.params.title
@@ -3345,11 +3404,11 @@ router.get('/statement-of-compliance/documents/:title', (req, res) => {
 // --- Policy drafting with starting points ---
 //
 // Built from the Figma designs for this journey (see CLAUDE.md). Two phases:
-//   /policy-writing-drafting/starting-points      - review starting points (include/remove)
-//   /policy-writing-drafting/chapters             - chapters made from them, and their briefs
-//   /policy-writing-drafting/chapters/:id/<step>  - per-chapter steps, in CHAPTER_STEPS order
+//   /plan/make/policy-drafting/starting-points      - review starting points (include/remove)
+//   /plan/make/policy-drafting/chapters             - chapters made from them, and their briefs
+//   /plan/make/policy-drafting/chapters/:id/<step>  - per-chapter steps, in CHAPTER_STEPS order
 //
-// Slug note: a sibling of /policy-writing rather than nested in it, for the same reason as
+// Slug note: a sibling of /plan/make rather than nested in it, for the same reason as
 // policy-writing-v2 — nested, the segment would be caught by router.param('variant', ...).
 //
 // Everything the user changes is in req.session.data.policyDrafting, read only through
@@ -3373,7 +3432,7 @@ const {
   getSuggestedPolicyAreas
 } = require('./data/policy-drafting.js')
 
-const PD = '/policy-writing-drafting'
+const PD = '/plan/make/policy-drafting'
 const POLICY_DRAFTING_SCHEMA_VERSION = 2
 const PD_RESULTS_PER_PAGE = 10
 
@@ -3404,7 +3463,7 @@ const CHAPTER_STEPS = [
   { slug: 'draft', label: 'Draft policy', done: chapter => Object.keys(chapter.drafts).length > 0 },
   // Goes to Publish plan versions' Share or publish (a new share), not the chapter's own export
   // page, by request. The export page is still there, from the draft's "View and export chapter".
-  { slug: 'export', label: 'Share and publish', href: '/project-management/publish-plan-versions/share?_new=1', done: chapter => chapter.exports.length > 0 }
+  { slug: 'export', label: 'Share and publish', href: '/plan/manage/versions/share?_new=1', done: chapter => chapter.exports.length > 0 }
 ]
 
 const pdChapterUrl = (chapter, step) => PD + '/chapters/' + chapter.id + '/' + step
@@ -3554,9 +3613,7 @@ router.param('pdChapterId', (req, res, next, id) => {
 })
 
 router.get(PD, (req, res) => {
-  res.render('policy-writing-drafting/index', {
-    userStories: getUserStories(['POUS1', 'POUS3', 'POUS4'])
-  })
+  res.render('policy-writing-drafting/index')
 })
 
 // --- Starting points ---
@@ -4166,7 +4223,7 @@ router.get(PD + '/preview', (req, res) => {
 //
 // An officer imports a consultation's representations, responds to them — in bulk by theme, or
 // one by one — and sends the finished responses for review:
-//   /consultations/managing-responses                  - landing page, one link per pathway
+//   /plan/consultation/managing-responses                  - landing page, one link per pathway
 //   .../import                                          - upload a CSV (only the name is kept)
 //   .../view, .../view/themes                           - View and respond, by consultee or theme
 //   .../themes/:crThemeId                               - a theme, and its standard response
@@ -4184,7 +4241,7 @@ router.get(PD + '/preview', (req, res) => {
 // either { templateId } — so editing a standard response changes every representation it's
 // assigned to, as the templates page promises — or { text } written for that one representation.
 
-const CR = '/consultations/managing-responses'
+const CR = '/plan/consultation/managing-responses'
 const CONSULTATION_RESPONSES_SCHEMA_VERSION = 2
 const CR_PAGE_SIZE = 10
 const CR_SIDE_BY_SIDE_PAGE_SIZE = 4
@@ -4847,7 +4904,7 @@ router.post(CR + '/inspector/:repId', (req, res) => {
 
 // --- Make your plan (project management) ---
 //
-// /project-management/make-your-plan, built from the Figma frames in the git-ignored
+// /plan/manage/getting-ready, built from the Figma frames in the git-ignored
 // `Figma screenshots/Project management/` folder. An officer works through the first tasks of
 // plan-making: the timetable, the Project Initiation Documentation (PID) and the notice of
 // intention to commence.
@@ -4867,7 +4924,7 @@ router.post(CR + '/inspector/:repId', (req, res) => {
 // getProjectManagement. Free-text fields are named `_…` so the kit doesn't copy them into
 // session data. Every status is derived from that object by pmStatuses, never stored.
 
-const PM = '/project-management/make-your-plan'
+const PM = '/plan/manage/getting-ready'
 // 2 added scoping activities' starting points and GIS connection.
 const PROJECT_MANAGEMENT_SCHEMA_VERSION = 2
 const PMD = require('./data/project-management.js')
@@ -5108,7 +5165,7 @@ const PM_PID_SECTIONS = [
   {
     slug: 'evidence',
     title: 'Evidence',
-    link: '/evidence',
+    link: '/plan/sources',
     linkText: 'Go to evidence summary',
     // Lives in the Evidence prototype, which records no progress this one can read.
     status: () => 'Not started'
@@ -5340,7 +5397,7 @@ router.get(PM + '/scoping-consultation', (req, res) => {
 
 // --- Scoping activities: the policy starting points wizard ---
 //
-// The same steps, handlers and step body as /policy-writing/:variant/starting-points (see
+// The same steps, handlers and step body as /plan/make/policy-writing/:variant/starting-points (see
 // SCOPING_JOURNEY), inside Make your plan's own page shell and sidebar.
 
 router.get(PM + '/scoping-activities', (req, res) => {
@@ -5965,23 +6022,23 @@ router.post(PM + '/notice/publish', (req, res) => {
 // Built from the Figma frames in `Figma screenshots/Versioning/`. An officer looks back through
 // the plan's published versions, compares two side by side, and publishes or shares the current
 // draft internally, which adds a timestamped entry to the history:
-//   /project-management/publish-plan-versions               - landing page, with a reset
-//   /project-management/publish-plan-versions/history       - step 1: version history and compare
-//   /project-management/publish-plan-versions/versions/:id  - one version, read-only, with its layers
-//   /project-management/publish-plan-versions/documents/:id - a supporting document's latest version
+//   /plan/manage/versions               - landing page, with a reset
+//   /plan/manage/versions/history       - step 1: version history and compare
+//   /plan/manage/versions/versions/:id  - one version, read-only, with its layers
+//   /plan/manage/versions/documents/:id - a supporting document's latest version
 //     .../documents/:id/versions/:version                    - one earlier version of it
 //     .../documents/compare                                  - two versions of one document (?_dv=a&_dv=b)
-//   /project-management/publish-plan-versions/compare       - two versions side by side (?_v=a&_v=b)
-//   /project-management/publish-plan-versions/share         - Share or publish, step 1: what
-//   /project-management/publish-plan-versions/share/how     - step 2: copy a link, invite people, or
+//   /plan/manage/versions/compare       - two versions side by side (?_v=a&_v=b)
+//   /plan/manage/versions/share         - Share or publish, step 1: what
+//   /plan/manage/versions/share/how     - step 2: copy a link, invite people, or
 //                                                             send for approval (with when to publish)
-//   /project-management/publish-plan-versions/share/check   - check, then send for approval
+//   /plan/manage/versions/share/check   - check, then send for approval
 //
 // Everything is one object, req.session.data.planVersions, read only through getPlanVersions.
 // A new version is a snapshot (its content and, when published, the shared GIS layers as they
 // were), so viewing or comparing it later shows what went out, not the current draft.
 
-const PPV = '/project-management/publish-plan-versions'
+const PPV = '/plan/manage/versions'
 const PLAN_VERSIONS_SCHEMA_VERSION = 8
 const PV = require('./data/plan-versions.js')
 
@@ -6195,7 +6252,7 @@ function ppvPreviewView (req, version) {
   return {
     // What the manager is shown and can copy: the address it will have once published.
     display: 'https://' + PV.PUBLIC_SITE + '/preview/' + version.id,
-    href: '/public-view/preview/' + version.id
+    href: '/plan/view/preview/' + version.id
   }
 }
 
@@ -6271,7 +6328,7 @@ router.post(PPV + '/approvals/:id', (req, res) => {
 
 // --- The preview: the public plan site as it will look once published ---
 //
-// Under /public-view so it has the public's header, not the internal nav. It reads the version
+// Under /plan/view so it has the public's header, not the internal nav. It reads the version
 // from the session, as a real preview link would be tied to the version. Marked as a draft (a
 // banner and a watermark) until it is published.
 
@@ -6288,7 +6345,7 @@ function pubPreviewLocals (req, res) {
       number,
       title: chapter.title,
       summary: PV.CHAPTER_SUMMARIES[chapter.id] || '',
-      href: '/public-view/preview/' + version.id + '/chapters/' + chapter.id
+      href: '/plan/view/preview/' + version.id + '/chapters/' + chapter.id
     }))
   return {
     authority: 'City of London Corporation',
@@ -6297,7 +6354,7 @@ function pubPreviewLocals (req, res) {
     publicSite: PV.PUBLIC_SITE,
     // The milestone it publishes at, if it was set to wait for one (one choice covers everything).
     milestone: (version.schedule || []).find(item => item.when === 'milestone') || null,
-    previewHome: '/public-view/preview/' + version.id,
+    previewHome: '/plan/view/preview/' + version.id,
     // The draw-on-a-map search, centred on the City. It has no plan areas, and drawing only comes
     // back to the preview homepage.
     mapJson: JSON.stringify({ centre: { lat: 51.5155, lng: -0.0918, zoom: 15 }, areas: [], chapters: [] }),
@@ -6313,12 +6370,12 @@ function pubPreviewLocals (req, res) {
   }
 }
 
-router.get('/public-view/preview/:id', (req, res) => {
+router.get('/plan/view/preview/:id', (req, res) => {
   const locals = pubPreviewLocals(req, res)
   if (locals) res.render('public-view/preview/index', locals)
 })
 
-router.get('/public-view/preview/:id/chapters/:chapterId', (req, res) => {
+router.get('/plan/view/preview/:id/chapters/:chapterId', (req, res) => {
   const locals = pubPreviewLocals(req, res)
   if (!locals) return
   const chapter = locals.chapters.find(c => c.id === req.params.chapterId)
@@ -6748,14 +6805,14 @@ function exlEvidenceRecords () {
   }
   evidence.forEach((record, index) => {
     record.ref = 'EB-' + String(index + 1).padStart(2, '0')
-    record.href = '/examination-inspector-view/paragraphs/' + record.supports[0].toLowerCase() + '-1'
+    record.href = '/plan/view/examination/paragraphs/' + record.supports[0].toLowerCase() + '-1'
   })
   const policyRecords = policies.map(policy => ({
     kind: 'policy',
     ref: policy.ref,
     title: 'Policy ' + policy.ref + ': ' + policy.title,
     summary: policy.summary,
-    href: '/examination-inspector-view/paragraphs/' + policy.ref.toLowerCase() + '-1',
+    href: '/plan/view/examination/paragraphs/' + policy.ref.toLowerCase() + '-1',
     related: evidence.filter(record => record.supports.includes(policy.ref))
   }))
   return policyRecords.concat(evidence)
@@ -6803,7 +6860,7 @@ function exlPinnedLayers (req, versionId) {
     const inLibrary = live.find(candidate => candidate.id === layer.id)
     const liveVersion = inLibrary ? glLayerView(inLibrary).current.version : null
     return Object.assign(view, {
-      libraryHref: inLibrary ? '/evidence/gis-layers#layer-' + layer.id : null,
+      libraryHref: inLibrary ? '/plan/sources/gis-layers#layer-' + layer.id : null,
       // A layer missing from the library isn't a mismatch: there's nothing newer to confuse it with.
       libraryMatch: !inLibrary || liveVersion === layer.version,
       libraryNote: !inLibrary
@@ -6961,7 +7018,7 @@ router.get(EXL + '/inspectors-report', (req, res) => {
   })
 })
 
-// --- Public view (/public-view) ---
+// --- Public view (/plan/view) ---
 //
 // What a member of the public sees: a local plan being made, and an adopted one. Static
 // content only, from app/data/public-view.js, with Southampton as the example authority. The
@@ -7000,13 +7057,13 @@ function pubMilestoneView (milestone) {
 }
 
 function pubChapterView (chapter) {
-  return Object.assign({}, chapter, { href: '/public-view/adopted-plan/chapters/' + chapter.slug })
+  return Object.assign({}, chapter, { href: '/plan/view/adopted-plan/chapters/' + chapter.slug })
 }
 
-const PUB_POLICIES = '/public-view/adopted-plan/policies/'
+const PUB_POLICIES = '/plan/view/adopted-plan/policies/'
 // The examination library prototype, linked from each policy so people can see how it was
 // examined. It is the City of London example, not Southampton's.
-const PUB_EXAMINATION_LIBRARY = '/project-management/publish-plan-versions/examination-library'
+const PUB_EXAMINATION_LIBRARY = '/plan/manage/versions/examination-library'
 
 function pubPolicyHref (policy) {
   return PUB_POLICIES + policy.slug
@@ -7089,7 +7146,7 @@ function pubLayerLocals (shapes) {
 
 const PUB_ADOPTED_VARIANTS = { index: 'public-view/adopted-plan/index', 'map-first': 'public-view/adopted-plan/map-first' }
 
-router.get('/public-view/plan-making', (req, res) => {
+router.get('/plan/view/plan-making', (req, res) => {
   const current = pubMilestoneView(PUB.getCurrentMilestone())
   res.render('public-view/plan-making', {
     authority: PUB.AUTHORITY,
@@ -7099,20 +7156,20 @@ router.get('/public-view/plan-making', (req, res) => {
   })
 })
 
-router.get('/public-view/adopted-plan', (req, res) => {
+router.get('/plan/view/adopted-plan', (req, res) => {
   res.render(PUB_ADOPTED_VARIANTS.index, Object.assign({ authority: PUB.AUTHORITY, variant: 'index' }, pubAdoptedPlanLocals()))
 })
 
-router.get('/public-view/adopted-plan/map-first', (req, res) => {
+router.get('/plan/view/adopted-plan/map-first', (req, res) => {
   res.render(PUB_ADOPTED_VARIANTS['map-first'], Object.assign({ authority: PUB.AUTHORITY, variant: 'map-first' }, pubAdoptedPlanLocals()))
 })
 
 // One results page for all three ways of searching: words (_q), a postcode (_postcode) or a
 // drawn shape (_area, a JSON array of [lng, lat] points). A postcode that can't be found goes
 // back to the page it came from (_from) with an error, as a GOV.UK form would.
-router.get('/public-view/adopted-plan/results', (req, res) => {
+router.get('/plan/view/adopted-plan/results', (req, res) => {
   const from = PUB_ADOPTED_VARIANTS[req.query._from] ? req.query._from : 'index'
-  const backHref = from === 'index' ? '/public-view/adopted-plan' : '/public-view/adopted-plan/' + from
+  const backHref = from === 'index' ? '/plan/view/adopted-plan' : '/plan/view/adopted-plan/' + from
   const locals = Object.assign({ authority: PUB.AUTHORITY, variant: from, backHref }, pubAdoptedPlanLocals())
 
   if (req.query._postcode !== undefined) {
@@ -7166,9 +7223,9 @@ router.get('/public-view/adopted-plan/results', (req, res) => {
 })
 
 // Chapter pages aren't built yet, beyond listing the chapter's policies.
-router.get('/public-view/adopted-plan/chapters/:slug', (req, res) => {
+router.get('/plan/view/adopted-plan/chapters/:slug', (req, res) => {
   const chapter = PUB.getChapter(req.params.slug)
-  if (!chapter) return res.redirect('/public-view/adopted-plan')
+  if (!chapter) return res.redirect('/plan/view/adopted-plan')
   res.render('public-view/adopted-plan/chapter', Object.assign({
     authority: PUB.AUTHORITY,
     chapter: pubChapterView(chapter),
@@ -7178,14 +7235,14 @@ router.get('/public-view/adopted-plan/chapters/:slug', (req, res) => {
 
 // A policy's page: the policy in the main column, its map, evidence, consultation and examination
 // as previews alongside. Only policies written out in full have a page.
-router.get('/public-view/adopted-plan/policies/:slug', (req, res) => {
+router.get('/plan/view/adopted-plan/policies/:slug', (req, res) => {
   const policy = PUB.getPolicy(req.params.slug)
-  if (!policy || !policy.text) return res.redirect('/public-view/adopted-plan')
+  if (!policy || !policy.text) return res.redirect('/plan/view/adopted-plan')
   const view = pubPolicyView(policy)
   // Back to wherever they came from in the plan (search results, a chapter), else the chapter.
   const referer = req.get('referer') || ''
   const cameFrom = referer.replace(/^https?:\/\/[^/]+/, '')
-  const backHref = cameFrom.startsWith('/public-view/adopted-plan') && !cameFrom.startsWith(PUB_POLICIES)
+  const backHref = cameFrom.startsWith('/plan/view/adopted-plan') && !cameFrom.startsWith(PUB_POLICIES)
     ? cameFrom
     : view.chapterView.href
   res.render('public-view/adopted-plan/policy-sidebar', Object.assign({
@@ -7194,4 +7251,35 @@ router.get('/public-view/adopted-plan/policies/:slug', (req, res) => {
     backHref,
     examinationLibraryHref: PUB_EXAMINATION_LIBRARY
   }, pubAdoptedPlanLocals()))
+})
+
+// --- Not built yet, and moved prototype pages ---
+//
+// These come last, so every route above wins. A feature with no prototype has a page saying so:
+// /plan/<slug> for the plan maker home's own features, /plan/<section>/<slug> for a section's.
+router.get('/plan/:slug', (req, res, next) => {
+  const feature = SITE.getNotBuiltFeature('dashboard', req.params.slug)
+  if (!feature) return next()
+  res.render('plan/not-built', { feature, parent: { title: 'Plan maker home', href: '/plan' } })
+})
+
+router.get('/plan/:section/:slug', (req, res, next) => {
+  const feature = SITE.getNotBuiltFeature(req.params.section, req.params.slug)
+  if (!feature) return next()
+  const section = SITE.getSection(req.params.section)
+  res.render('plan/not-built', { feature, parent: { title: section.title, href: section.href } })
+})
+
+// A moved prototype's page with no route of its own (the kit would have rendered it from the
+// URL): render it from its old view folder. `x` is views/<folder>/x.html or views/<folder>/x/index.html.
+const VIEWS_DIR = path.join(__dirname, 'views')
+router.get('/plan/*', (req, res, next) => {
+  const move = MOVED_VIEWS.find(([prefix]) => startsWithPrefix(req.path, prefix))
+  if (!move) return next()
+  const rest = req.path.slice(move[0].length).replace(/\/$/, '')
+  if (rest.includes('..')) return next()
+  const view = [move[1] + rest, move[1] + rest + '/index']
+    .find(candidate => fs.existsSync(path.join(VIEWS_DIR, candidate + '.html')))
+  if (!view) return next()
+  res.render(view)
 })

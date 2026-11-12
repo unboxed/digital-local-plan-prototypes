@@ -1,0 +1,36 @@
+{% extends "layouts/main.html" %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+
+{% set pageName = ("Error: " if error else "") + "What type of plan are you making?" %}
+
+{#
+  Plan start: choose the type of plan, then on to the plan maker home. The choice is kept in
+  session data (planType) and shown on the plan maker home; nothing else changes with it yet.
+#}
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link govuk-!-margin-top-0" href="/">Back</a>
+    {% if error %}
+      {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: error, href: "#planType" }] }) }}
+    {% endif %}
+    <form method="post" action="/start" novalidate>
+      {% set items = [] %}
+      {% for type in planTypes %}
+        {% set items = (items.push({ value: type.value, text: type.text, hint: { text: type.hint }, checked: type.value == value }), items) %}
+      {% endfor %}
+      {{ govukRadios({
+        idPrefix: "planType",
+        name: "planType",
+        fieldset: { legend: { text: "What type of plan are you making?", isPageHeading: true, classes: "govuk-fieldset__legend--xl" } },
+        hint: { text: "You can change this later." },
+        errorMessage: { text: error } if error,
+        items: items
+      }) }}
+      {{ govukButton({ text: "Continue" }) }}
+    </form>
+  </div>
+</div>
+{% endblock %}

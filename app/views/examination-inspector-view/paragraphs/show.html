@@ -25,7 +25,7 @@
     <nav class="govuk-breadcrumbs" aria-label="Breadcrumb">
       <ol class="govuk-breadcrumbs__list">
         <li class="govuk-breadcrumbs__list-item">
-          <a class="govuk-breadcrumbs__link" href="/examination-inspector-view"
+          <a class="govuk-breadcrumbs__link" href="/plan/view/examination"
             >{{ organisationName }} Local Plan</a
           >
         </li>
@@ -33,7 +33,7 @@
         <li class="govuk-breadcrumbs__list-item">
           <a
             class="govuk-breadcrumbs__link"
-            href="/examination-inspector-view/paragraphs/{{ paragraph.policyRef | lower }}-1"
+            href="/plan/view/examination/paragraphs/{{ paragraph.policyRef | lower }}-1"
             >{{ paragraph.policyRef }} {{ paragraph.policyTitle }}</a
           >
         </li>
@@ -78,10 +78,10 @@
       </div>
     </div>
 
-    {% set previousLink = { href: "/examination-inspector-view/paragraphs/" +
+    {% set previousLink = { href: "/plan/view/examination/paragraphs/" +
     previousParagraph.id, labelText: previousParagraph.policyRef + " " +
     previousParagraph.policyTitle } if previousParagraph else null %} {% set
-    nextLink = { href: "/examination-inspector-view/paragraphs/" +
+    nextLink = { href: "/plan/view/examination/paragraphs/" +
     nextParagraph.id, labelText: nextParagraph.policyRef + " " +
     nextParagraph.policyTitle } if nextParagraph else null %} {% if previousLink
     or nextLink %} {{ govukPagination({ previous: previousLink, next: nextLink

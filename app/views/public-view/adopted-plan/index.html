@@ -28,7 +28,7 @@
 {% endblock %}
 
 {% block content %}
-<a class="govuk-back-link govuk-!-margin-top-0" href="/public-view">Back to Public view</a>
+<a class="govuk-back-link govuk-!-margin-top-0" href="/plan/view">Back to View the plan</a>
 
 {% if postcodeError %}
   {{ govukErrorSummary({ titleText: "There is a problem", errorList: [{ text: postcodeError, href: "#pub-postcode" }] }) }}

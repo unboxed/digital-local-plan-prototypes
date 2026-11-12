@@ -232,7 +232,7 @@ function getHistory (ref, variant) {
   const entries = variant === 'completed' ? data.history : data.history.slice(0, data.draftEntryCount)
 
   return entries.map(entry => Object.assign({}, entry, {
-    documentHref: entry.document ? '/statement-of-compliance/documents/' + encodeURIComponent(entry.document) : null
+    documentHref: entry.document ? '/plan/view/statement-of-compliance/documents/' + encodeURIComponent(entry.document) : null
   }))
 }
 

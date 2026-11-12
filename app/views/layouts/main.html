@@ -13,8 +13,20 @@ shows on every page, including ones using layouts/main-with-sidebar.html — tha
 layout overrides `container` (which `beforeContent` lives inside) but not
 `header`. govukPhaseBanner already wraps itself in govuk-width-container, so it
 sizes itself correctly wherever it's placed. #} {% block header %} {% if
-activeSection %} {{ appServiceHeader({ activeSection: activeSection,
+activeSection %} {{ appServiceHeader({ activeSection: activeSection, sections: siteSections,
 organisationName: organisationName, serviceName: serviceName }) }} {% endif %}
 {{ govukPhaseBanner({ tag: { text: "Prototype" }, text: "This is a prototype –
 it is not a live service. Do not enter live data or use it to support a live
 service" }) }} {% endblock %}
+
+{# Every page ends with a link to the prototypes' feedback form, styled after GOV.UK's
+"Is this page useful?" feedback bar (_feedback.scss). The kit's unbranded layout leaves the
+footer block empty, so nothing else is here. #}
+{% block footer %}
+<div class="govuk-width-container">
+  <div class="app-feedback">
+    <p class="app-feedback__prompt">Help us improve these prototypes</p>
+    <a class="govuk-link app-feedback__link" href="https://forms.gle/JjDbudcNT4gNcn7z6" target="_blank" rel="noreferrer noopener">Give feedback on the prototypes (opens in new tab)</a>
+  </div>
+</div>
+{% endblock %}
