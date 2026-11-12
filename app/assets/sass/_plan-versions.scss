@@ -84,6 +84,41 @@ $dlp-ppv-added-fill: govuk-colour("green", $variant: "tint-95");
   }
 }
 
+// Publishing approvals: both tables share fixed column widths so their columns line up, and
+// every cell is centred vertically so the status tags sit level with the text beside them.
+.dlp-ppv-approvals {
+  table-layout: fixed;
+
+  .govuk-table__header,
+  .govuk-table__cell {
+    vertical-align: middle;
+  }
+}
+
+.dlp-ppv-approvals__what {
+  width: 40%;
+}
+
+.dlp-ppv-approvals__by {
+  width: 16%;
+}
+
+.dlp-ppv-approvals__on {
+  width: 13%;
+}
+
+.dlp-ppv-approvals__status {
+  width: 21%;
+}
+
+.dlp-ppv-approvals__action {
+  width: 10%;
+}
+
+.dlp-ppv-approvals__tag {
+  max-width: none;
+}
+
 .dlp-ppv-select__tick {
   width: 2.5rem;
 
