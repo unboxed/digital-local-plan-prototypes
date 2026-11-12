@@ -6,7 +6,7 @@
 
 {% include "evidence/partials/nav.html" %}
 
-<a class="govuk-back-link" href="/evidence/gis-layers">Back to the library</a>
+<a class="govuk-back-link" href="/plan/sources/gis-layers">Back to the library</a>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
@@ -22,7 +22,7 @@
       neighbouring authority's layer. Upload a file or give the address it is published at.
     </p>
 
-    <form method="post" action="/evidence/gis-layers/{{ tab.slug }}/add/external" novalidate>
+    <form method="post" action="/plan/sources/gis-layers/{{ tab.slug }}/add/external" novalidate>
 
       {{ govukInput({
         id: "name",

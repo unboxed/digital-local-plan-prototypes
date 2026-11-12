@@ -1,21 +1,20 @@
 {#
   Site-wide, non-crown-branded service header (see CLAUDE.md's "No crown branding" rule — this
   is a custom header, not GOV.UK Frontend's branded header/crest). Shows the organisation and
-  service name, plus a nav row linking to each prototype with the current one highlighted.
-  Rendered from layouts/main.html's `header` block, so it appears on every page automatically.
+  service name and, once you're in a plan, a nav row of the plan's sections (app/data/site-map.js)
+  with the current one highlighted. Rendered from layouts/main.html's `header` block.
 
   Usage:
     {% from "partials/service-header/macro.njk" import appServiceHeader %}
-    {{ appServiceHeader({ activeSection: activeSection, organisationName: organisationName, serviceName: serviceName }) }}
+    {{ appServiceHeader({ activeSection: activeSection, sections: siteSections, organisationName: organisationName, serviceName: serviceName }) }}
 
-  Note: organisationName/serviceName must be passed explicitly, not read as bare globals —
-  a Nunjucks macro imported without "with context" (the default, and what we use here) doesn't
-  inherit the calling template's context, only its own explicit parameters.
+  Note: every value must be passed explicitly, not read as bare globals — a Nunjucks macro
+  imported without "with context" (the default, and what we use here) doesn't inherit the
+  calling template's context, only its own explicit parameters.
 
-  params.activeSection: one of "project-management" | "policy-writing" | "evidence" |
-  "consultations" | "pins-view" | "public-view" | "user-stories" | "statement-of-compliance" (optional —
-  set automatically by routes.js middleware based on the request path; omit/leave unmatched for
-  no highlighted item)
+  params.activeSection: 'intro' (home and plan start: no nav) | 'home' (plan maker home) | a
+  section id from site-map.js. Set by routes.js middleware from the URL.
+  params.sections: site-map.js SECTIONS.
   params.organisationName, params.serviceName: string (required) — see app/config.json
 #}
 
@@ -25,44 +24,24 @@
     <p class="app-service-header__org">{{ params.organisationName }}</p>
     <div class="app-service-header__service">
       <p class="app-service-header__service-name">{{ params.serviceName }}</p>
-      <nav class="app-service-header__nav" aria-label="Prototype sections">
+      {% if params.activeSection != "intro" %}
+      <nav class="app-service-header__nav" aria-label="Plan sections">
         <ul class="app-service-header__nav-list">
           <li class="app-service-header__nav-item">
-            <a class="app-service-header__nav-link {%- if params.activeSection == 'project-management' %} app-service-header__nav-link--active{% endif %}"
-               href="/project-management">Project management</a>
+            <a class="app-service-header__nav-link {%- if params.activeSection == 'home' %} app-service-header__nav-link--active{% endif %}"
+               href="/plan" {%- if params.activeSection == 'home' %} aria-current="page"{% endif %}>Plan maker home</a>
           </li>
+          {% for section in params.sections %}
           <li class="app-service-header__nav-item">
-            <a class="app-service-header__nav-link {%- if params.activeSection == 'policy-writing' %} app-service-header__nav-link--active{% endif %}"
-               href="/policy-writing">Policy writing</a>
+            <a class="app-service-header__nav-link {%- if params.activeSection == section.id %} app-service-header__nav-link--active{% endif %}"
+               href="{{ section.href }}" {%- if params.activeSection == section.id %} aria-current="true"{% endif %}>{{ section.title }}</a>
           </li>
-          <li class="app-service-header__nav-item">
-            <a class="app-service-header__nav-link {%- if params.activeSection == 'evidence' %} app-service-header__nav-link--active{% endif %}"
-               href="/evidence">Evidence</a>
-          </li>
-          <li class="app-service-header__nav-item">
-            <a class="app-service-header__nav-link {%- if params.activeSection == 'consultations' %} app-service-header__nav-link--active{% endif %}"
-               href="/consultations">Consultations</a>
-          </li>
-          <li class="app-service-header__nav-item">
-            <a class="app-service-header__nav-link {%- if params.activeSection == 'pins-view' %} app-service-header__nav-link--active{% endif %}"
-               href="/pins-view">PINS view</a>
-          </li>
-          <li class="app-service-header__nav-item">
-            <a class="app-service-header__nav-link {%- if params.activeSection == 'public-view' %} app-service-header__nav-link--active{% endif %}"
-               href="/public-view">Public view</a>
-          </li>
-          <li class="app-service-header__nav-item">
-            <a class="app-service-header__nav-link {%- if params.activeSection == 'user-stories' %} app-service-header__nav-link--active{% endif %}"
-               href="/user-stories">User stories</a>
-          </li>
-          <li class="app-service-header__nav-item">
-            <a class="app-service-header__nav-link {%- if params.activeSection == 'statement-of-compliance' %} app-service-header__nav-link--active{% endif %}"
-               href="/statement-of-compliance">Statement of compliance</a>
-          </li>
+          {% endfor %}
         </ul>
       </nav>
+      {% endif %}
     </div>
-    {# Back to the root "pick a prototype" page, from anywhere (the external header has it too). #}
+    {# Back to the site's home page, from anywhere (the external header has it too). #}
     <a class="app-header-home" href="/">Prototypes home</a>
   </div>
 </header>

@@ -1,6 +1,6 @@
 //
 // Statement of general conformity with the spatial development strategy (SDS), for the Statement
-// of compliance prototype (/statement-of-compliance/spatial-development-strategy). It is the
+// of compliance prototype (/plan/view/statement-of-compliance/spatial-development-strategy). It is the
 // evidence for Regulation 28: the local plan must be in general conformity with the operative SDS
 // for its area.
 //

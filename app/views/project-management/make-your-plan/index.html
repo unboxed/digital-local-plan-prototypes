@@ -1,15 +1,15 @@
 {% extends "layouts/main.html" %}
 
-{% set pageName = "Make your plan" %}
+{% set pageName = "Getting ready" %}
 
 {% block content %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <a class="govuk-back-link" href="/project-management">Back to Project management</a>
+    <a class="govuk-back-link" href="/plan/manage">Back to Manage your plan</a>
 
-    <h1 class="govuk-heading-xl">Make your plan</h1>
+    <h1 class="govuk-heading-xl">Getting ready</h1>
 
     <p class="govuk-body">
       The first tasks of plan-making, seen by a policy officer, Danny Dyer. Create the Local Plan
@@ -26,7 +26,7 @@
     <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m" />
 
     {# Each entry resets the prototype's data to a fitting starting point, so they POST. #}
-    <form method="post" action="/project-management/make-your-plan/reset" class="dlp-pm-start" novalidate>
+    <form method="post" action="/plan/manage/getting-ready/reset" class="dlp-pm-start" novalidate>
       <h2 class="govuk-heading-m">Start from the beginning</h2>
       <p class="govuk-body">Nothing done yet: every task is waiting to be started.</p>
       <button type="submit" name="_stage" value="start" class="govuk-button" data-module="govuk-button">
@@ -34,7 +34,7 @@
       </button>
     </form>
 
-    <form method="post" action="/project-management/make-your-plan/reset" class="dlp-pm-start" novalidate>
+    <form method="post" action="/plan/manage/getting-ready/reset" class="dlp-pm-start" novalidate>
       <h2 class="govuk-heading-m">Pick up part way through</h2>
       <p class="govuk-body">
         The timetable is published, the PID is half written, the starting points due before the

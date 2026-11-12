@@ -7,7 +7,7 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <a class="govuk-back-link" href="/policy-writing">Back to Policy</a>
+    <a class="govuk-back-link" href="/plan/make">Back to Make your plan</a>
 
     <h1 class="govuk-heading-xl">Policy drafting: side by side policy/evidence viewer</h1>
 
@@ -17,25 +17,11 @@
       more room to whichever you need.
     </p>
 
-    {#
-      Read from app/data/user-stories.js by the route, not written out here, so the wording
-      stays identical to the one on /user-stories.
-    #}
-    <h2 class="govuk-heading-m">User stories</h2>
-
-    <dl class="dlp-story-list govuk-!-margin-bottom-6">
-      {% for story in userStories %}
-        <div class="dlp-story-list__item">
-          <dt class="dlp-story-list__ref">{{ story.ref }}</dt>
-          <dd class="dlp-story-list__text">{{ story.text }}</dd>
-        </div>
-      {% endfor %}
-    </dl>
 
     <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m" />
 
     <h2 class="govuk-heading-m">
-      <a class="govuk-link" href="/policy-writing-v2/chapter">Open the drafting workspace</a>
+      <a class="govuk-link" href="/plan/make/policy-side-by-side/chapter">Open the drafting workspace</a>
     </h2>
     <p class="govuk-body">
       Work on the Spatial Strategy chapter: pick a policy, read its sources

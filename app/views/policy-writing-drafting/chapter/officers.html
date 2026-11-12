@@ -14,7 +14,7 @@
 
 <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
 
-<form method="post" action="/policy-writing-drafting/chapters/{{ chapter.id }}/officers">
+<form method="post" action="/plan/make/policy-drafting/chapters/{{ chapter.id }}/officers">
 
   {% if available | length %}
     {% set officerItems = [] %}
@@ -54,7 +54,7 @@
             <td class="govuk-table__cell dlp-pd-muted">{{ officer.role }}</td>
             <td class="govuk-table__cell">
               <button type="submit" class="dlp-link-button dlp-pd-remove"
-                      formaction="/policy-writing-drafting/chapters/{{ chapter.id }}/officers/{{ officer.id }}/remove">
+                      formaction="/plan/make/policy-drafting/chapters/{{ chapter.id }}/officers/{{ officer.id }}/remove">
                 Remove<span class="govuk-visually-hidden"> {{ officer.name }}</span>
               </button>
             </td>
@@ -70,7 +70,7 @@
 
   <div class="govuk-button-group">
     {{ govukButton({ text: "Save and continue", name: "_action", value: "continue" }) }}
-    {{ govukButton({ text: "Back", classes: "govuk-button--secondary", href: "/policy-writing-drafting/chapters" }) }}
+    {{ govukButton({ text: "Back", classes: "govuk-button--secondary", href: "/plan/make/policy-drafting/chapters" }) }}
   </div>
 </form>
 

@@ -3,10 +3,10 @@
 {% from "consultations/managing-responses/partials/macros.html" import crTabs, crSelect, crTag %}
 
 {% set pageName = "Check and send for review" %}
-{% set base = "/consultations/managing-responses/check" %}
+{% set base = "/plan/consultation/managing-responses/check" %}
 {% set breadcrumbs = [
-  { text: "Consultations", href: "/consultations" },
-  { text: "Manage consultation responses", href: "/consultations/managing-responses" },
+  { text: "Consultations", href: "/plan/consultation" },
+  { text: "Manage consultation responses", href: "/plan/consultation/managing-responses" },
   { text: "Check and send for review" }
 ] %}
 
@@ -194,7 +194,7 @@
                 {% endif %}
               </td>
               <td class="govuk-table__cell">
-                <a class="govuk-link govuk-!-font-weight-bold" href="/consultations/managing-responses/consultees/{{ rep.consulteeId }}">{{ rep.consulteeName }}</a>
+                <a class="govuk-link govuk-!-font-weight-bold" href="/plan/consultation/managing-responses/consultees/{{ rep.consulteeId }}">{{ rep.consulteeName }}</a>
                 <span class="govuk-body-s dlp-cr-muted dlp-cr-block">{{ rep.respondentType }} · {{ rep.id }}</span>
                 {{ crTag(rep.commentType, rep.commentColour, "govuk-!-margin-top-1") }}
               </td>
@@ -213,10 +213,10 @@
                 {% endif %}
               </td>
               <td class="govuk-table__cell govuk-body-s">
-                <a class="govuk-link govuk-link--no-visited-state dlp-cr-block" href="/consultations/managing-responses/officer?_rep={{ rep.id }}&amp;crTheme={{ rep.themeId }}&amp;crPolicy={{ rep.policyRef }}&amp;crRespondentType=&amp;crCommentType=">
+                <a class="govuk-link govuk-link--no-visited-state dlp-cr-block" href="/plan/consultation/managing-responses/officer?_rep={{ rep.id }}&amp;crTheme={{ rep.themeId }}&amp;crPolicy={{ rep.policyRef }}&amp;crRespondentType=&amp;crCommentType=">
                   {{ "Edit response" if rep.hasResponse else "Write response" }}<span class="govuk-visually-hidden"> to {{ rep.id }}</span>
                 </a>
-                <a class="govuk-link govuk-link--no-visited-state dlp-cr-block" href="/consultations/managing-responses/consultees/{{ rep.consulteeId }}?_view=responses#assigned-{{ rep.id }}">
+                <a class="govuk-link govuk-link--no-visited-state dlp-cr-block" href="/plan/consultation/managing-responses/consultees/{{ rep.consulteeId }}?_view=responses#assigned-{{ rep.id }}">
                   Review details<span class="govuk-visually-hidden"> of {{ rep.id }}</span>
                 </a>
               </td>

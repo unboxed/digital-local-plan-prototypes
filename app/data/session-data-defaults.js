@@ -246,7 +246,7 @@ module.exports = {
 
   // --- Policy writer v2 prototype ---
   //
-  // A second take on the drafting workspace (/policy-writing-v2), carrying on from the
+  // A second take on the drafting workspace (/plan/make/policy-side-by-side), carrying on from the
   // "Spatial Strategy for Wollington" chapter seeded in policyTopics.prefilled above. It uses
   // its own top-level key rather than extending policyTopics so both prototypes can run side
   // by side in one browser session without touching each other's state. Prefilled only —
@@ -509,7 +509,7 @@ module.exports = {
     ]
   },
 
-  // "Policy drafting with starting points" (/policy-writing-drafting). Read only through
+  // "Policy drafting with starting points" (/plan/make/policy-drafting). Read only through
   // getPolicyDrafting in app/routes.js, which deep-clones this on first touch. Changing its
   // shape means bumping POLICY_DRAFTING_SCHEMA_VERSION there.
   //
@@ -617,7 +617,7 @@ module.exports = {
     ]
   },
 
-  // Managing commissioned evidence (/evidence/commissioned). One commission, part-way through:
+  // Managing commissioned evidence (/plan/sources/commissioned). One commission, part-way through:
   // the consultant has submitted a draft and the officer is reviewing it. Read only through
   // getCommission in app/routes.js, and stamped with COMMISSIONED_EVIDENCE_SCHEMA_VERSION, so
   // bump that when this shape changes. "Start from the beginning" swaps in startingCommission()
@@ -692,12 +692,12 @@ module.exports = {
       { id: 'n3', text: 'Please clarify the source date and confirm whether the data has been updated since the last review.', date: '24 Sep 2025', time: '14:32', by: 'Sarah Mitchell', sentToConsultant: true }
     ],
     history: [
-      { at: '15 Sep 2025, 09:00', actor: 'Danny Dyer', action: 'Created brief and assigned it to Elena Waters', link: { text: 'View brief', href: '/evidence/commissioned/brief' } },
-      { at: '22 Sep 2025, 16:30', actor: 'Elena Waters', action: 'Submitted draft report', link: { text: 'View version', href: '/evidence/commissioned/review' } },
-      { at: '23 Sep 2025, 10:15', actor: 'Danny Dyer', action: 'Added comment on Section 2 — housing target', link: { text: 'View comment', href: '/evidence/commissioned/review#comment-c1' } },
-      { at: '23 Sep 2025, 14:20', actor: 'Elena Waters', action: 'Replied to comment on Section 2', link: { text: 'View comment', href: '/evidence/commissioned/review#comment-c1' } },
-      { at: '24 Sep 2025, 09:30', actor: 'Sarah Mitchell', action: 'Added comment on Section 3 — EIA timeline', link: { text: 'View comment', href: '/evidence/commissioned/review#comment-c2' } },
-      { at: '24 Sep 2025, 11:00', actor: 'David Chen', action: 'Added comment — overall progress note', link: { text: 'View comment', href: '/evidence/commissioned/review#comment-c3' } }
+      { at: '15 Sep 2025, 09:00', actor: 'Danny Dyer', action: 'Created brief and assigned it to Elena Waters', link: { text: 'View brief', href: '/plan/sources/commissioned/brief' } },
+      { at: '22 Sep 2025, 16:30', actor: 'Elena Waters', action: 'Submitted draft report', link: { text: 'View version', href: '/plan/sources/commissioned/review' } },
+      { at: '23 Sep 2025, 10:15', actor: 'Danny Dyer', action: 'Added comment on Section 2 — housing target', link: { text: 'View comment', href: '/plan/sources/commissioned/review#comment-c1' } },
+      { at: '23 Sep 2025, 14:20', actor: 'Elena Waters', action: 'Replied to comment on Section 2', link: { text: 'View comment', href: '/plan/sources/commissioned/review#comment-c1' } },
+      { at: '24 Sep 2025, 09:30', actor: 'Sarah Mitchell', action: 'Added comment on Section 3 — EIA timeline', link: { text: 'View comment', href: '/plan/sources/commissioned/review#comment-c2' } },
+      { at: '24 Sep 2025, 11:00', actor: 'David Chen', action: 'Added comment — overall progress note', link: { text: 'View comment', href: '/plan/sources/commissioned/review#comment-c3' } }
     ],
     tags: [],
     acceptedOn: null,
@@ -722,7 +722,7 @@ module.exports = {
   crTheme: 'heritage',
   crPolicy: 'HE1',
 
-  // Make your plan (/project-management/make-your-plan). Read only through
+  // Make your plan (/plan/manage/getting-ready). Read only through
   // getProjectManagement in routes.js, and stamped with PROJECT_MANAGEMENT_SCHEMA_VERSION, so
   // bump that when this shape changes. Starts with nothing done (the empty-state frame); the
   // landing page can swap in midwayState() instead.

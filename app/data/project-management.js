@@ -1,4 +1,4 @@
-// Static reference content for the Make your plan prototype (/project-management/make-your-plan).
+// Static reference content for the Make your plan prototype (/plan/manage/getting-ready).
 // Everything the user changes lives in session data instead, as `projectManagement`, seeded in
 // session-data-defaults.js from startingState() below.
 //

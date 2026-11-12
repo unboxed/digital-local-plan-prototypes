@@ -25,12 +25,11 @@ npm run dev     # run the prototype locally with hot reload, at http://localhost
 
 ## Structure
 
-- `app/views/index.html` — the landing page. Lists every prototype with a short description and
-  the user need it addresses.
-- `app/views/<slug>/index.html` — one folder per prototype (e.g. `project-management`,
-  `evidence`, `policy-writing`). The kit auto-routes any `app/views/<path>/index.html` to
-  `/<path>` — no entry in `app/routes.js` is needed unless a page requires custom server logic
-  (form handling, session data, etc.).
+- `app/views/index.html`, `start.html` and `plan/` — the site's own pages: the home page, the
+  plan start page and the plan maker home and section pages. See "Site structure" below.
+- `app/views/<slug>/` — one folder per prototype (e.g. `project-management/make-your-plan`,
+  `evidence`, `policy-writing`). The folders keep their old names, but their pages are served
+  under the new section URLs (`/plan/...`), not `/<slug>` — see "Site structure".
 - `app/views/partials/` — shared, non-routable components (e.g. `side-navigation/macro.njk`,
   `service-header/macro.njk`, `icons/status-icon.html`). Nunjucks macros, not pages — this
   folder has no `index.html` so the kit doesn't auto-route it.
@@ -122,29 +121,74 @@ GDS Transport typeface are restricted. Do not:
 GOV.UK Frontend's other components (buttons, forms, layout grid, typography scale, etc.) are
 fine to use as normal — only the crown crest and GDS Transport typeface are restricted.
 
+## Site structure
+
+The site mirrors the proposed service's architecture (plan maker home → sections), so testers
+can find a prototype where its feature would sit in the service.
+
+- `/` (`views/index.html`) — "Digital Local Plans: Alpha prototypes": what the prototypes are,
+  the caveats, and **Get started**.
+- `/start` (`views/start.html`) — choose the type of plan: Local Plan, Joint Local Plan or Spatial
+  Development Strategy (`SITE.PLAN_TYPES`). Kept in session data as `planType` and shown on the
+  plan maker home (`res.locals.planTypeName`); nothing else changes with it yet.
+- `/plan` (`views/plan/index.html`) — the **plan maker home** (personal dashboard): the
+  dashboard's own features (timeline, task tracker, assigned tasks; none built), a dashboard
+  card for Account, then a card per other section.
+- `/plan/<section>` (`views/plan/section.html`) — one page per section: **Manage your plan**
+  (`manage`), **Make your plan** (`make`), **Manage sources** (`sources`), **Consultation**
+  (`consultation`), **View the plan** (`view`) and **Account** (`account`). Each lists its
+  features; a feature links to its prototypes, or to a "not built yet"
+  page (`views/plan/not-built.html`, at `/plan/<section>/<slug>` or `/plan/<slug>`) saying "We
+  haven’t built a prototype for this feature yet."
+- All of this comes from **`app/data/site-map.js`** (`SECTIONS`, `DASHBOARD_FEATURES`). To add
+  a prototype, add it to its feature's `prototypes` there; to add a feature with
+  nothing built, give it a `slug` and no prototypes.
+
+Where the prototypes now live (old URL → new; view folders unchanged):
+
+| Old | New |
+| --- | --- |
+| `/project-management/make-your-plan` ("Getting ready") | `/plan/manage/getting-ready` |
+| `/project-management/publish-plan-versions` | `/plan/manage/versions` |
+| `/project-management/tasks` (side nav demo, not listed) | `/plan/manage/tasks` |
+| `/policy-writing-drafting` | `/plan/make/policy-drafting` |
+| `/policy-writing-v2` | `/plan/make/policy-side-by-side` |
+| `/policy-writing/...` | `/plan/make/policy-writing/...` |
+| `/evidence/...` | `/plan/sources/...` |
+| `/consultations/...` | `/plan/consultation/...` |
+| `/public-view/...` | `/plan/view/...` |
+| `/gateway-2-progress-check` | `/plan/view/gateway-2-progress-check` |
+| `/examination-inspector-view` | `/plan/view/examination` |
+| `/statement-of-compliance` | `/plan/view/statement-of-compliance` |
+
+The old hub pages (`/project-management`, `/evidence`, `/policy-writing`, `/consultations`,
+`/pins-view`, `/public-view`) were replaced by the section pages, and the user stories were
+removed. How it works, all at the top and bottom of `app/routes.js`:
+
+- `MOVED_URLS` redirects any old address (keeping the rest of the path and the query) to its new
+  one, so old bookmarks and shared links still work. `/user-stories` goes to `/`.
+- `MOVED_VIEWS` maps each new URL prefix to its old view folder. A catch-all `router.get('/plan/*')`
+  at the **end** of routes.js renders pages that have no route of their own (the kit's
+  file-based routing would have rendered them from the URL before the move) from that folder.
+  So a new plain page in, say, `views/evidence/foo.html` is at `/plan/sources/foo`.
+- Every URL in routes, views, JavaScript and data uses the new paths. When adding a link, use the
+  `/plan/...` address, not the view folder's name.
+
 ## Service header
 
-Every page *within a prototype flow* gets a site-wide, non-crown-branded header automatically,
-via `layouts/main.html`'s `header` block. It's deliberately hidden on the root `app/views/index.html`
-landing page (no `activeSection` there — see point 2) so that page stays the plain "pick a
-prototype" menu.
+Every page gets a site-wide, non-crown-branded header via `layouts/main.html`'s `header` block,
+unless it overrides that block (the external-facing prototypes under `/plan/view`, the
+consultant's and the inspector's screens use their own headers).
 
-1. `app/views/partials/service-header/macro.njk` (`appServiceHeader({ activeSection })`) renders
-   the organisation name (`app/config.json`'s `organisationName`), the service name
-   (`serviceName`, already a global in every template), and a nav row linking to each prototype.
-   The active nav item is `#1d8feb` (a precise brand blue, not a `govuk-colour()` tint);
-   everything else is white — see `app/assets/sass/_service-header.scss`.
-2. `activeSection` (`"project-management"` | `"policy-writing"` | `"evidence"` |
-   `"consultations"` | `"pins-view"` | `"public-view"` | `"user-stories"` |
-   `"statement-of-compliance"`) is set
-   automatically by a `router.use` middleware at the top of `app/routes.js`, based on the
-   request path — no per-page wiring needed, since that middleware runs for every request
-   (including plain `app/views/*/index.html` pages with no custom route). `"pins-view"` covers
-   only the `/pins-view` hub: the inspector prototypes it lists (`/examination-inspector-view`,
-   `/gateway-2-progress-check`) are seen by someone outside the LPA, so they keep the external
-   header with no internal nav.
-3. Adding a fourth prototype that should appear in the nav: add a nav item to the macro and a
-   branch to the `activeSection` middleware in `app/routes.js`.
+1. `app/views/partials/service-header/macro.njk` (`appServiceHeader({ activeSection, sections })`)
+   renders the organisation name, the service name (`app/config.json`'s `serviceName`, "Digital
+   Local Plans: Alpha prototypes") and a nav row: **Plan maker home**, then each section from
+   `site-map.js`. The active nav item is `#1d8feb` (a precise brand blue, not a `govuk-colour()`
+   tint); everything else is white — see `app/assets/sass/_service-header.scss`.
+2. `activeSection` is set by a `router.use` middleware at the top of `app/routes.js` from the
+   path: `'intro'` for `/` and `/start` (no nav row, as you haven't started a plan yet), `'home'`
+   for `/plan` and its dashboard features, otherwise the section whose `href` the path starts
+   with. The same middleware sets `siteSections`, `planName` and `planTypeName` for every template.
 
 Immediately below it, every page (including the root landing page — unlike the service header
 above, this one is unconditional) shows a GOV.UK "Prototype" phase banner
@@ -156,6 +200,11 @@ already wraps itself in `govuk-width-container`, so it sizes itself correctly wh
 
 Styling lives in `app/assets/sass/_service-header.scss` (`.app-service-header*`).
 
+Every page also ends with a **feedback bar** ("Help us improve these prototypes" and a link to
+the Google Form, https://forms.gle/JjDbudcNT4gNcn7z6, opening in a new tab), after GOV.UK's
+"Is this page useful?" bar. It's in `layouts/main.html`'s `footer` block (the kit's unbranded
+layout leaves that block empty), so every page gets it; styles in `_feedback.scss`.
+
 Both headers, the service header and the external header (`partials/external-header`), end with
 a **"Prototypes home"** link back to `/` (`.app-header-home`, in `_service-header.scss`), so a
 tester can always get back to the list of prototypes. Every page uses one of the two headers, so
@@ -164,17 +213,12 @@ one adding.
 
 ## Adding a new prototype
 
-1. Create `app/views/<slug>/index.html`, extending `layouts/main.html` (see existing prototypes
-   for the pattern: heading, intro paragraph, "User need" statement, back link to `/`).
-2. Add an entry to `app/views/index.html` linking to it, with a short description and a
-   "User need:" line, matching the existing entries' format.
-
-Prototypes that belong to an area (Policy writing, Evidence, Consultations, PINS view) are
-listed on that area's hub page rather than on `/`. Each hub splits them under two headings: **Current
-prototypes** ("These are the most recent prototypes we've developed. We'll be testing these over
-the next few weeks.") and **Previous versions** ("These are prototypes we've tested through
-Design Feedback sessions and other informal tests."). Entries under them are `h3`s. A new
-prototype normally goes under Current; move it to Previous versions when the team says so.
+1. Create its views in a folder under `app/views/` and, if it needs them, routes in
+   `app/routes.js` at its `/plan/<section>/...` URL. If the folder isn't one in `MOVED_VIEWS`,
+   add a mapping there so its plain pages are served.
+2. List it in `app/data/site-map.js` in the `prototypes` of the feature it explores. The team
+   asked for one list per feature, with no separate "Earlier versions" (the section page still
+   supports an `earlier` list, but nothing uses it).
 
 ## Side navigation component
 
@@ -248,13 +292,13 @@ data already filled in) and `blank` (empty, so a user experiences filling it in 
 reusing 100% of the same routes and templates rather than duplicating either. The pattern, if
 another prototype needs the same thing:
 
-1. Add a variant segment to every route in the journey (`/policy-writing/:variant/...`). Guard
+1. Add a variant segment to every route in the journey (`/plan/make/policy-writing/:variant/...`). Guard
    it once with `router.param(<name>, ...)`, redirecting anything not in an allowed list back to
    the prototype's landing page, rather than validating it in every handler. **A second prototype
    doing this must use a different parameter name from any other** — Express's `router.param`
    registers per parameter name across the whole router, not per route, so a second prototype
    reusing `:variant` would also run policy-writing's `PW_VARIANTS` check against its own values
-   and bounce every request back to `/policy-writing`. See `:socVariant` in the Statement of
+   and bounce every request back to `/plan/make`. See `:socVariant` in the Statement of
    compliance prototype for the pattern.
 2. Session-data accessors take `variant` as a parameter and key both the stored data *and* the
    deep-clone-on-first-touch "owned" sentinel by variant (an object, not a single flag) — see
@@ -263,7 +307,7 @@ another prototype needs the same thing:
    Static, never-mutated reference data (like the writer workspace's Sources panel) doesn't
    need variant-scoping — there's nothing for two variants to leak into each other.
 3. Every template link/form action that points elsewhere in the journey needs
-   `/policy-writing/{{ variant }}/...` — the route passes `variant` into every render call so
+   `/plan/make/policy-writing/{{ variant }}/...` — the route passes `variant` into every render call so
    it's available for this.
 4. Link to each variant's entry point separately from the prototype's landing page, with copy
    that says what's different (see `app/views/policy-writing/index.html`).
@@ -307,13 +351,13 @@ changes one declaration rather than restyling either pane. Notes:
 Shown to users as **"Policy drafting: side by side policy/evidence viewer"** (landing pages,
 page titles); "Policy writer v2" survives only in code, comments and this file.
 
-`/policy-writing-v2` (`app/views/policy-writing-v2/`) is a second take on the drafting
+`/plan/make/policy-side-by-side` (`app/views/policy-writing-v2/`) is a second take on the drafting
 workspace, independent of the `policy-writing` prototype and sharing no session state with it.
 
-- **Slug.** It is `/policy-writing-v2`, *not* nested under `/policy-writing/`. Nested, the `v2`
+- **Slug.** It is `/plan/make/policy-side-by-side`, *not* nested under `/plan/make/policy-writing/`. Nested, the `v2`
   segment would be captured by `router.param('variant', ...)` and bounced to the policy-writing
   landing page. As a sibling it is still matched by the `activeSection` middleware's
-  `startsWith('/policy-writing')` branch, which is what we want — v2 sits under "Policy writing"
+  `startsWith('/plan/make')` branch, which is what we want — v2 sits under "Policy writing"
   in the nav rather than adding a fifth nav item, so **no middleware or service-header change
   was needed**.
 - **Session keys** are `policyWriterV2Chapter` / `policyWriterV2ChapterOwned` /
@@ -364,7 +408,7 @@ workspace, independent of the `policy-writing` prototype and sharing no session 
   Every zone is a self-contained macro with its own form posting to its own route, and the JS is
   opted into by `data-dlp-*` attributes rather than by position, so rearranging the workspace
   touches neither routes, data nor JS.
-- **The evidence search modal is shared with `/policy-writing/policy-summary`.**
+- **The evidence search modal is shared with `/plan/make/policy-writing/policy-summary`.**
   `initEvidenceSearchModal` is parameterised, not forked, in two ways. First, the footer: v2
   supplies a `[data-dlp-selected-fields]` container and a `[data-dlp-add-selected]` submit so the
   selection POSTs to the policy's sources, where the policy summary supplies
@@ -464,11 +508,11 @@ workspace, independent of the `policy-writing` prototype and sharing no session 
   out of "not referenced" into "used but not named".
 ## Policy drafting with starting points
 
-`/policy-writing-drafting` (`app/views/policy-writing-drafting/`) is built from Figma frames.
+`/plan/make/policy-drafting` (`app/views/policy-writing-drafting/`) is built from Figma frames.
 The exported PNGs live in the local, git-ignored `Figma screenshots/` folder, so they are not in
 the repo. Ask the user for them if you need to compare against the design.
 
-- **Slug.** Same reasoning as v2: it is a sibling of `/policy-writing`, so `router.param('variant')`
+- **Slug.** Same reasoning as v2: it is a sibling of `/plan/make`, so `router.param('variant')`
   can't capture it, and the `activeSection` middleware still puts it under "Policy writing".
 - **State** is one object, `policyDrafting`, read only through `getPolicyDrafting`. It is
   stamped with `POLICY_DRAFTING_SCHEMA_VERSION`, so **bump that when the seed's shape changes**.
@@ -482,7 +526,7 @@ the repo. Ask the user for them if you need to compare against the design.
   steps under it using the side navigation macro's `children` (one level deep), added for this
   prototype.
   A step may carry its own `href`: "Share and publish" goes to Publish plan versions' Share or
-  publish (`/project-management/publish-plan-versions/share?_new=1`), by request. The chapter's
+  publish (`/plan/manage/versions/share?_new=1`), by request. The chapter's
   own export page is still reached from the draft's "View and export chapter".
 - **Free-text fields are named `_…`** (`_brief`, `_policyDetail` …), so the kit doesn't copy
   them into the top level of session data as well. The sources search's `pd*` query fields are
@@ -515,7 +559,7 @@ the repo. Ask the user for them if you need to compare against the design.
 - **Images are uploaded on their own**, not in the draft form, which is limited to 100kb and
   isn't multipart. The image dialog (outside the draft form, so its fields aren't posted) asks
   for a description, which is required, and an optional caption, then POSTs the file's bytes to
-  `/policy-writing-drafting/images`. The route checks the type from the file's first bytes
+  `/plan/make/policy-drafting/images`. The route checks the type from the file's first bytes
   (PNG, JPG, GIF, WebP; never SVG) and the 5MB limit, writes it to the git-ignored
   `.tmp/policy-drafting-images/`, and returns an id, which is all the draft stores. An image is a
   block of its own: inserting one splits the paragraph at the caret. Dropping or pasting an image
@@ -550,7 +594,7 @@ the repo. Ask the user for them if you need to compare against the design.
 
 ## Evidence review: highlighting tables
 
-`/evidence/review` lets an officer highlight a table of figures as well as text, then reference
+`/plan/sources/review` lets an officer highlight a table of figures as well as text, then reference
 the whole table, a figure, a row or a column. The Local Housing Needs Assessment has two
 invented tables (`DOCUMENT_TABLES` in `app/data/documents.js`, placed by `afterParagraph`):
 Table 3.1 has two header rows and Table 3.2 two header columns.
@@ -582,12 +626,12 @@ Table 3.1 has two header rows and Table 3.2 two header columns.
 
 ## Managing commissioned evidence
 
-`/evidence/commissioned` (`app/views/evidence/commissioned/`) is built from the Figma frames in
+`/plan/sources/commissioned` (`app/views/evidence/commissioned/`) is built from the Figma frames in
 the git-ignored `Figma screenshots/Managing evidence/` folder. An officer (Danny Dyer) briefs an
 external consultant (Elena Waters), the consultant submits a report, and the officer reviews,
 comments, adds notes and accepts it into the library.
 
-- **Slug.** Nested under `/evidence`, so the `activeSection` middleware already puts it under
+- **Slug.** Nested under `/plan/sources`, so the `activeSection` middleware already puts it under
   "Evidence". It is listed on `app/views/evidence/index.html`, not the root landing page.
 - **State** is one object, `commissionedEvidence`, read only through `getCommission` and stamped
   with `COMMISSIONED_EVIDENCE_SCHEMA_VERSION`, so **bump that when the seed's shape changes**.
@@ -602,7 +646,7 @@ comments, adds notes and accepts it into the library.
 - **Screens seen by an external user.** The consultant's pages
   (`consultant/submit-report`, `consultant/submitted`) extend
   `evidence/commissioned/partials/external-layout.html`, which overrides the `header` block
-  **without `super()`**: the URL is under `/evidence`, so `super()` would bring the internal
+  **without `super()`**: the URL is under `/plan/sources`, so `super()` would bring the internal
   service-header nav back. It shows `appExternalHeader` with its optional `organisationName` and
   `user` params instead. Reuse that shape for any other external-user screen inside an internal
   prototype.
@@ -619,7 +663,7 @@ comments, adds notes and accepts it into the library.
   "Download PDF". File uploads keep only the file name (the form isn't multipart and nothing is
   stored).
 
-## Review evidence (`/evidence/review`)
+## Review evidence (`/plan/sources/review`)
 
 - **Full width** (`containerClasses = "dlp-width-container--full"`), so the left panel, the
   document and the tag panel fit. In "View and tag document" the viewer and "Tag the selected
@@ -640,7 +684,7 @@ comments, adds notes and accepts it into the library.
 
 ## Viewing and structuring evidence
 
-`/evidence/viewing-structuring` (`app/views/evidence/viewing-structuring/`) is built from the
+`/plan/sources/viewing-structuring` (`app/views/evidence/viewing-structuring/`) is built from the
 Figma frames `1 document-viewer`, `1b hearing-transcript-viewer`, `2 evidence-report-card`,
 `3 evidence-list` and `4 policy-writer-evidence` in the git-ignored `Figma screenshots/` folder.
 It is listed under **Previous versions** on the Evidence hub.
@@ -656,7 +700,7 @@ It is listed under **Previous versions** on the Evidence hub.
   `panel`. Documents and hearing transcripts share `source.html`. A transcript block has a
   `speaker`.
 - **The policy screen sets `activeSection: 'policy-writing'`** in its render call, because the
-  design shows it under Policy Writer even though the URL is under `/evidence`.
+  design shows it under Policy Writer even though the URL is under `/plan/sources`.
 - **Each evidence type has one colour everywhere** (`TYPES` in the data file, `$dlp-vse-colours`
   in `_viewing-structuring.scss`). The frames varied, for example Expert opinion was yellow in
   one and teal in another. The type is always shown as text, so colour is never the only cue.
@@ -670,9 +714,9 @@ It is listed under **Previous versions** on the Evidence hub.
 
 ## Managing consultation responses
 
-`/consultations/managing-responses` (`app/views/consultations/managing-responses/`) is built from
+`/plan/consultation/managing-responses` (`app/views/consultations/managing-responses/`) is built from
 the Figma frames in the git-ignored `Figma screenshots/Managing consultation responses/` folder.
-It is the first prototype in the Consultations area, which has its own hub at `/consultations`;
+It is the first prototype in the Consultations area, which has its own hub at `/plan/consultation`;
 the header's "Consultations" item, previously a disabled placeholder, now links there.
 
 - **Two pathways.** The main one (frames 1–6 and 9) is Import → View and respond (by consultee
@@ -730,12 +774,12 @@ the header's "Consultations" item, previously a disabled placeholder, now links 
 - **Inert placeholders from the design:** the document viewer's "Download" and "Open in new
   window". Uploads keep only the file name (the form isn't multipart).
 
-## Make your plan (project management)
+## Getting ready (Manage your plan; formerly "Make your plan")
 
-`/project-management/make-your-plan` (`app/views/project-management/make-your-plan/`) is built
+`/plan/manage/getting-ready` (`app/views/project-management/make-your-plan/`) is built
 from the Figma frames in the git-ignored `Figma screenshots/Project management/` folder. A policy
 officer works through the first tasks of plan-making: the timetable, the Project Initiation
-Documentation (PID) and the notice of intention to commence. `/project-management` is now the
+Documentation (PID) and the notice of intention to commence. `/plan/manage` is now the
 area's hub, listing it under Current prototypes.
 
 - **State** is one object, `projectManagement`, read only through `getProjectManagement` and
@@ -765,7 +809,7 @@ area's hub, listing it under Current prototypes.
   link to `/timetable-placeholder` ("Coded prototype is being built for this flow"). The existing
   timetable flow under `/timetable` is still there, reachable by URL.
 - **Scoping activities is the policy starting points wizard** (`/scoping-activities/:step`),
-  the same `STARTING_POINT_STEPS`, handlers and step body as `/policy-writing/:variant/starting-points`.
+  the same `STARTING_POINT_STEPS`, handlers and step body as `/plan/make/policy-writing/:variant/starting-points`.
   The handlers (`spSaveItem`, `spConnect` …) take a *journey*: a policy-writing variant, or
   `SCOPING_JOURNEY` (`'scoping'`), which keeps its items and GIS connection in
   `projectManagement.startingPoints` / `.gisConnection` so its status is derived like every other
@@ -774,7 +818,7 @@ area's hub, listing it under Current prototypes.
   together through that partial. The sidebar nests the steps under Scoping activities only while
   you're on it. The midway reset copies the prefilled variant's "now" steps (layers included);
   every reset first removes the scoping origin from the shared layers.
-- **Linked, not built:** the PID's Evidence section goes to `/evidence`. The Scoping consultation (`/scoping-consultation`, "This section of the prototype has not been
+- **Linked, not built:** the PID's Evidence section goes to `/plan/sources`. The Scoping consultation (`/scoping-consultation`, "This section of the prototype has not been
   built yet"; starting it from the overview still records `scopingConsultationStarted`) and the
   Readiness checker are not built, so their pages say so. They share the `not-designed` template;
   pass `standIn: false` to drop its "This page stands in for it" line.
@@ -789,9 +833,9 @@ area's hub, listing it under Current prototypes.
   the second Approval frame's intro (copied from Risks) rewritten. File uploads keep only the
   file name.
 
-## Publish plan versions (project management)
+## Publish plan versions (Manage your plan)
 
-`/project-management/publish-plan-versions` (`app/views/project-management/publish-plan-versions/`)
+`/plan/manage/versions` (`app/views/project-management/publish-plan-versions/`)
 is built from the Figma frames in the git-ignored `Figma screenshots/Versioning/` folder. It is
 listed under Current prototypes on the Project management hub. An officer browses the plan's
 version history, compares two versions side by side, and publishes the current draft or shares it
@@ -872,7 +916,7 @@ internally for non-public review. The research question is where that sharing fi
   history's "Not published" line names the status. A request has no version page: its history
   row says "View approval", `/versions/:id` redirects to `/approvals/:id`, and the banner after
   "Send for approval" links to "View in publishing approvals".
-- **The preview** (`/public-view/preview/:id`, `.../chapters/:chapterId`; `public-view/preview/`)
+- **The preview** (`/plan/view/preview/:id`, `.../chapters/:chapterId`; `public-view/preview/`)
   is the public plan site as the version will be published: shown to the manager as
   `https://plan.cityoflondon.gov.uk/preview/<id>` (`PV.PUBLIC_SITE`), titled City Plan 2040
   (`PV.PUBLIC_PLAN_TITLE`), with the City of London Corporation as the organisation. It follows
@@ -924,7 +968,7 @@ internally for non-public review. The research question is where that sharing fi
 
 ### Examination library
 
-`/project-management/publish-plan-versions/examination-library` is the second journey from the
+`/plan/manage/versions/examination-library` is the second journey from the
 Publish plan versions landing page. It is built from the rough idea frames "Local Plan
 Examination Library" and "Inspector's report — illustrative reading page" in the same folder.
 It is the public site for the examination, read by the inspector, participants and the public.
@@ -932,7 +976,7 @@ It is the public site for the examination, read by the inspector, participants a
 
 - **External reader, so an external header.** `partials/library-layout.html` overrides `header`
   **without `super()`** and shows `appExternalHeader`, for the same reason as the commissioned
-  evidence consultant screens: the URL is under `/project-management`, so `super()` would bring
+  evidence consultant screens: the URL is under `/plan/manage`, so `super()` would bring
   back the internal nav. The sidebar is wrapped in `.dlp-exl-sidebar`, which takes the side
   navigation's full-height background. Without that, the side navigation's `min-height: 100%`
   pushes the "Viewing …" block below it off screen.
@@ -959,18 +1003,18 @@ It is the public site for the examination, read by the inspector, participants a
      - **LP-02** lists that version's layers, through `PV.getSeedVersion`, which reads the seed
        rather than session data so a reset or a new publish can't change what was examined. It
        compares each with the shared GIS layer library (`exlPinnedLayers`): "Not the examined
-       version" when the library holds a different one, and a link to `/evidence/gis-layers#layer-<id>`.
+       version" when the library holds a different one, and a link to `/plan/sources/gis-layers#layer-<id>`.
 - **Dates are aligned with the version history:** the library is published 3 Oct 2025, 16:45, the
   same time as "Examination: proposed local plan". The report's front matter is aligned to it.
 - **Evidence base records are derived**, from `POLICY_TEXT`'s policies (S3 and HS1 to HS8, which
   the Examination – inspector view covers in full) and the evidence each already lists. Each links
-  to its `/examination-inspector-view/paragraphs/<ref>-1` page, and the section links to the
+  to its `/plan/view/examination/paragraphs/<ref>-1` page, and the section links to the
   examination view itself. It shows S3, EB-01 and HS1. There is one search for the whole library
   (`_q`, a plain GET form), with a section select (`_section`) that narrows the results and the
   type-ahead (`data-dlp-suggest-scope`, matched against each term's `scope`). Evidence base
   records are searched as part of the Evidence base section; it no longer has its own search.
 - **Other cross-links:**
-  - LP-05 and "View all consultation representations" go to `/consultations/managing-responses/inspector`
+  - LP-05 and "View all consultation representations" go to `/plan/consultation/managing-responses/inspector`
   - CS-01 shows the Statement of compliance prototype's completed statement in its record page,
     with the version details beside it. The list is `statement-of-compliance/partials/requirement-list.html`
     (`socRequirementList`), built from `socRequirementRows(variant)` and shared with the checklist,
@@ -978,7 +1022,7 @@ It is the public site for the examination, read by the inspector, participants a
 - **The library search has type-ahead:** `initSuggestSearch` is fed every item and evidence
   record, each with its `href`, so choosing a suggestion opens it. Without JavaScript, or on
   Enter, `_q` runs the full search.
-  - PA-01 Timetable goes to `/project-management/make-your-plan/timetable-placeholder`, like every
+  - PA-01 Timetable goes to `/plan/manage/getting-ready/timetable-placeholder`, like every
     other timetable link in Make your plan. It is shown on its library row through the item's
     `listLink`, as well as on its record page. The frame's timeline illustration was removed by
     request.
@@ -1009,10 +1053,10 @@ It is the public site for the examination, read by the inspector, participants a
 
 ## Public view
 
-`/public-view` is the hub for what **members of the public** see, with Southampton as the example
+`/plan/view` is the hub for what **members of the public** see, with Southampton as the example
 authority. The hub shows the internal nav; the prototypes it lists use
 `public-view/partials/layout.html`, which overrides `header` **without `super()`** (the URLs are
-under `/public-view`, so `super()` would bring the internal nav back) and shows
+under `/plan/view`, so `super()` would bring the internal nav back) and shows
 `appExternalHeader` with the council's name. Its optional `hero` block is a full-width band under
 the header.
 
@@ -1020,16 +1064,16 @@ the header.
   adopted plan's chapters, rough area polygons, and test postcodes. Dates, chapters, areas and
   postcodes are invented, not Southampton's real plan. Search fields are `_`-prefixed (`_q`,
   `_postcode`, `_area`, `_from`), so the kit doesn't store them.
-- **A local plan being made** (`/public-view/plan-making`): a horizontal timeline
+- **A local plan being made** (`/plan/view/plan-making`): a horizontal timeline
   (`public-view/partials/milestone-timeline.njk`) with the current milestone larger, a "You can
   comment now" call to action, and plain English sections. Milestone `status` is
   `completed` | `current` | `upcoming` | `optional`; `pubMilestoneView` in routes.js writes the
   date line. `initPublicTimeline` scrolls the current card into view. Narrow screens stack the
   timeline vertically.
-- **An adopted local plan** has two variants to compare: search-led (`/public-view/adopted-plan`,
-  modelled on the GOV.UK homepage) and map-led (`/public-view/adopted-plan/map-first`). Both
+- **An adopted local plan** has two variants to compare: search-led (`/plan/view/adopted-plan`,
+  modelled on the GOV.UK homepage) and map-led (`/plan/view/adopted-plan/map-first`). Both
   share `adopted-plan/partials/macros.html` and one results route,
-  `/public-view/adopted-plan/results`, for words, a postcode or a drawn shape. A postcode error
+  `/plan/view/adopted-plan/results`, for words, a postcode or a drawn shape. A postcode error
   re-renders the variant named in `_from`.
 - **Search suggestions reuse `initSuggestSearch`**, fed by `searchTerms`: every chapter keyword
   as a Topic (choosing one runs the search) and every chapter with its `href` (choosing one opens
@@ -1049,7 +1093,7 @@ the header.
   `NOT_COVERED` (`findNotCovered`, whole words) and show a grey signpost box on the results page
   explaining why, with a placeholder link to the council page that does. They are also offered in
   the suggestions, labelled "Not in the local plan". Matching chapters, if any, still show below.
-- **Policy pages** (`/public-view/adopted-plan/policies/:slug`, `policy-sidebar.html`): the
+- **Policy pages** (`/plan/view/adopted-plan/policies/:slug`, `policy-sidebar.html`): the
   summary, then why the policy is needed and its wording in an accordion, then what people said
   (bar charts) and related policies; the map, evidence, consultation and examination are previews
   in a sidebar. A one-page layout was tried and dropped. Shared pieces are in
@@ -1059,13 +1103,13 @@ the header.
   for chapter lists and Related policies. Policies show first
   in search results and in the suggestions. The examination link goes to the Publish plan
   versions examination library, which is the City of London example.
-- **Chapter pages aren't built**, beyond listing their policies. `/public-view/adopted-plan/chapters/:slug` says so.
+- **Chapter pages aren't built**, beyond listing their policies. `/plan/view/adopted-plan/chapters/:slug` says so.
 - **Inert placeholders:** "View and comment", email updates, contact, and the plan download
   links.
 
 ## Statement of compliance: general conformity with the SDS
 
-`/statement-of-compliance/spatial-development-strategy` (`app/views/statement-of-compliance/sds/`)
+`/plan/view/statement-of-compliance/spatial-development-strategy` (`app/views/statement-of-compliance/sds/`)
 is the evidence for Regulation 28: every policy of the spatial development strategy, the local
 plan policies linked to it, an authority comment on the linkage and, where a policy isn't
 addressed, evidence that it needn't be. The example SDS is the London Plan 2021, which really is
@@ -1073,7 +1117,7 @@ the City of London's operative SDS. It is listed on the Statement of compliance 
 Regulation 28's requirement page and audit log entry link to it (a history entry's optional `href`
 overrides the placeholder document viewer).
 
-- **Registered before `/statement-of-compliance/:socVariant`**, which would otherwise take
+- **Registered before `/plan/view/statement-of-compliance/:socVariant`**, which would otherwise take
   `spatial-development-strategy` as a variant and redirect it away.
 - **The London Plan's chapters, policy refs and titles are real and complete** (113 policies, in
   `app/data/sds-conformity.js`). Which City Plan policies each is linked to, the comments and the
@@ -1101,7 +1145,7 @@ templates are `partials/gis/macro.njk`.
 
 - **Every layer is tagged Plan or Evidence.** Layers added in the policy-writing starting
   points ("Add existing plan layers") start as Plan layers; layers added in Managing commissioned
-  evidence (its "Add GIS layers" step, `/evidence/commissioned/layers`) start as Evidence layers.
+  evidence (its "Add GIS layers" step, `/plan/sources/commissioned/layers`) start as Evidence layers.
 - **The tag can be switched wherever a layer is listed**: the starting points table, the
   commissioned layers page and Manage source, and a chapter's sources in Policy drafting. All of
   them use `gisLayerTypeSwitch`, posting to the one `/gis-layers/:layerId/type` route, which comes
@@ -1147,7 +1191,7 @@ templates are `partials/gis/macro.njk`.
 
 ### GIS layer library
 
-`/evidence/gis-layers` (`app/views/evidence/gis-layers/`) is built from a hand-drawn sketch (not
+`/plan/sources/gis-layers` (`app/views/evidence/gis-layers/`) is built from a hand-drawn sketch (not
 Figma). It lists every layer in the shared `gisLayers` collection on one page, policy layers (tag
 `plan`) and evidence base layers together, each card carrying its type tag. It is listed on the
 Evidence hub.
@@ -1180,7 +1224,7 @@ Evidence hub.
   (a chapter matches layers connected with it whole or through one of its policies), applied as they
   change via `initAutosubmit`; the Apply button is hidden once JavaScript runs. A hidden
   `_unchecked` input (the kit's convention) lets unticking one type be stored; unticking both
-  makes the kit delete the field, which reads as both. The old `/policy` and `/evidence`
+  makes the kit delete the field, which reads as both. The old `/policy` and `/plan/sources`
   addresses set `glTypes` to that type and redirect to the library. A stored year or policy that
   no layer has any more is ignored.
 - **Adding.** The add pages keep the type in the path (`/:glTab/add/...`, guarded by

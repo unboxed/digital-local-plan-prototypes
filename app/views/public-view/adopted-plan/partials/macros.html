@@ -1,12 +1,12 @@
 {#
   Shared pieces of the adopted plan's pages (Public view). Every form is a plain GET to
-  /public-view/adopted-plan/results, so all of it works without JavaScript. `_from` says which
+  /plan/view/adopted-plan/results, so all of it works without JavaScript. `_from` says which
   variant to go back to, for the back link and for a postcode error.
 #}
 
 {# The keyword search, with chapter suggestions from initSuggestSearch. `large` is the hero's. #}
 {% macro pubSearch(params) %}
-<form method="get" action="/public-view/adopted-plan/results" role="search" class="dlp-pub-search{% if params.large %} dlp-pub-search--large{% endif %}">
+<form method="get" action="/plan/view/adopted-plan/results" role="search" class="dlp-pub-search{% if params.large %} dlp-pub-search--large{% endif %}">
   <input type="hidden" name="_from" value="{{ params.variant }}">
   <label class="govuk-label {% if params.large %}govuk-label--m{% else %}govuk-label--s{% endif %}" for="{{ params.id }}">
     {{ params.label or "Search the local plan" }}
@@ -37,7 +37,7 @@
 
 {# Find a place by postcode, with the GOV.UK error pattern. #}
 {% macro pubPostcodeForm(params) %}
-<form method="get" action="{{ params.action or '/public-view/adopted-plan/results' }}" novalidate>
+<form method="get" action="{{ params.action or '/plan/view/adopted-plan/results' }}" novalidate>
   {% if params.variant %}<input type="hidden" name="_from" value="{{ params.variant }}">{% endif %}
   <div class="govuk-form-group{% if params.error %} govuk-form-group--error{% endif %} govuk-!-margin-bottom-4">
     <label class="govuk-label govuk-label--s" for="pub-postcode">Postcode</label>
@@ -101,7 +101,7 @@
       again, or choose &lsquo;Finish shape&rsquo;, to close it.
     </p>
     <p class="govuk-visually-hidden" role="status" aria-live="polite" data-dlp-pub-map-status></p>
-    <form method="get" action="{{ params.action or '/public-view/adopted-plan/results' }}" class="dlp-pub-map__actions">
+    <form method="get" action="{{ params.action or '/plan/view/adopted-plan/results' }}" class="dlp-pub-map__actions">
       {% if params.variant %}<input type="hidden" name="_from" value="{{ params.variant }}">{% endif %}
       <input type="hidden" name="_area" value="" data-dlp-pub-map-area>
       <div class="govuk-button-group">

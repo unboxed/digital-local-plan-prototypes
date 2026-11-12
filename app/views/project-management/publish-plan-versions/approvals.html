@@ -2,7 +2,7 @@
 
 {% set pageName = "Publishing approvals" %}
 {% set breadcrumbs = [
-  { text: "Home", href: "/project-management" },
+  { text: "Manage your plan", href: "/plan/manage" },
   { text: "Publishing approvals" }
 ] %}
 
@@ -11,15 +11,15 @@
 #}
 {% macro approvalTable(id, caption, rows, statuses) %}
 <div class="dlp-ppv-table-wrap">
-  <table class="govuk-table dlp-ppv-table" id="{{ id }}">
+  <table class="govuk-table dlp-ppv-table dlp-ppv-approvals" id="{{ id }}">
     <caption class="govuk-table__caption govuk-table__caption--m">{{ caption }}</caption>
     <thead class="govuk-table__head">
       <tr class="govuk-table__row">
-        <th scope="col" class="govuk-table__header">What</th>
-        <th scope="col" class="govuk-table__header">Sent by</th>
-        <th scope="col" class="govuk-table__header">Sent on</th>
-        <th scope="col" class="govuk-table__header">Status</th>
-        <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Action</span></th>
+        <th scope="col" class="govuk-table__header dlp-ppv-approvals__what">What</th>
+        <th scope="col" class="govuk-table__header dlp-ppv-approvals__by">Sent by</th>
+        <th scope="col" class="govuk-table__header dlp-ppv-approvals__on">Sent on</th>
+        <th scope="col" class="govuk-table__header dlp-ppv-approvals__status">Status</th>
+        <th scope="col" class="govuk-table__header dlp-ppv-approvals__action"><span class="govuk-visually-hidden">Action</span></th>
       </tr>
     </thead>
     <tbody class="govuk-table__body">
@@ -29,7 +29,7 @@
         <td class="govuk-table__cell">{{ version.included }}</td>
         <td class="govuk-table__cell">{{ version.exportedBy }}</td>
         <td class="govuk-table__cell">{{ version.sharedAt }}</td>
-        <td class="govuk-table__cell"><strong class="govuk-tag {{ status.classes }}">{{ status.text }}</strong></td>
+        <td class="govuk-table__cell"><strong class="govuk-tag {{ status.classes }} dlp-ppv-approvals__tag">{{ status.text }}</strong></td>
         <td class="govuk-table__cell">
           <a class="govuk-link" href="{{ ppv }}/approvals/{{ version.id }}">{{ "Review" if version.status == "awaiting-approval" else "View" }}<span class="govuk-visually-hidden">: {{ version.included }}</span></a>
         </td>

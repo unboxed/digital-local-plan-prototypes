@@ -65,7 +65,7 @@ const REQUIREMENTS = [
     title: 'Conformity with operative spatial development strategy',
     description: 'The authority must demonstrate that the proposed local plan is in general conformity with the operative spatial development strategy for its area.',
     // The statement itself is its own page, policy by policy (see app/data/sds-conformity.js).
-    statement: { text: 'Statement of general conformity with the London Plan', href: '/statement-of-compliance/spatial-development-strategy' }
+    statement: { text: 'Statement of general conformity with the London Plan', href: '/plan/view/statement-of-compliance/spatial-development-strategy' }
   },
   {
     ref: 'Regulation 30',
@@ -169,7 +169,7 @@ const REQUIREMENT_DATA = {
   },
   'Regulation 28': {
     history: [
-      { type: 'Conformity statement prepared', description: 'Statement demonstrating general conformity of the proposed local plan with the operative spatial development strategy prepared.', date: '12 January 2027', actor: 'Daniel Osei', status: 'Done', document: 'Statement of conformity with the spatial development strategy', href: '/statement-of-compliance/spatial-development-strategy' }
+      { type: 'Conformity statement prepared', description: 'Statement demonstrating general conformity of the proposed local plan with the operative spatial development strategy prepared.', date: '12 January 2027', actor: 'Daniel Osei', status: 'Done', document: 'Statement of conformity with the spatial development strategy', href: '/plan/view/statement-of-compliance/spatial-development-strategy' }
     ],
     draftEntryCount: 0,
     plannedActivity: 'Prepare the conformity statement against the operative spatial development strategy alongside the Regulation 27 consultation, planned for January 2027.'
@@ -234,7 +234,7 @@ function getHistory (ref, variant) {
   const entries = variant === 'completed' ? data.history : data.history.slice(0, data.draftEntryCount)
 
   return entries.map(entry => Object.assign({}, entry, {
-    documentHref: entry.document ? (entry.href || '/statement-of-compliance/documents/' + encodeURIComponent(entry.document)) : null
+    documentHref: entry.document ? (entry.href || '/plan/view/statement-of-compliance/documents/' + encodeURIComponent(entry.document)) : null
   }))
 }
 

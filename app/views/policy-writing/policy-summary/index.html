@@ -1,7 +1,7 @@
 {% extends "layouts/main.html" %} {% set pageName = "View policy summary" %} {%
 block content %}
 
-<a class="govuk-back-link" href="/policy-writing">Back to Policy</a>
+<a class="govuk-back-link" href="/plan/make">Back to Make your plan</a>
 
 <h1 class="govuk-heading-xl">View policy summary</h1>
 
@@ -12,7 +12,7 @@ block content %}
       <ul class="dlp-policy-nav__list">
         {% for area in policyAreaLinks %}
         <li>
-          <a class="dlp-policy-nav__link{% if policyArea == area.label %} dlp-policy-nav__link--active{% endif %}" href="/policy-writing/policy-summary?policyArea={{ area.encoded }}">
+          <a class="dlp-policy-nav__link{% if policyArea == area.label %} dlp-policy-nav__link--active{% endif %}" href="/plan/make/policy-writing/policy-summary?policyArea={{ area.encoded }}">
             {{ area.label }}
           </a>
         </li>
@@ -29,7 +29,7 @@ block content %}
 
     {% elif policy %}
     <p class="govuk-body-s">
-      <a class="govuk-link" href="/policy-writing/policy-summary?policyArea={{ policyAreaEncoded }}">
+      <a class="govuk-link" href="/plan/make/policy-writing/policy-summary?policyArea={{ policyAreaEncoded }}">
         Back to {{ policyArea }} policies
       </a>
     </p>
@@ -133,7 +133,7 @@ block content %}
       <li class="dlp-policy-list__item">
         <h3 class="dlp-policy-list__heading">
           {% if item.hasSummary %}
-          <a class="govuk-link" href="/policy-writing/policy-summary?policyArea={{ policyAreaEncoded }}&ref={{ item.ref }}">
+          <a class="govuk-link" href="/plan/make/policy-writing/policy-summary?policyArea={{ policyAreaEncoded }}&ref={{ item.ref }}">
             {{ item.ref }} {{ item.title }}
           </a>
           {% else %}

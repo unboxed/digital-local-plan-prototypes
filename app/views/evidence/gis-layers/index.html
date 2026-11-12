@@ -4,7 +4,7 @@ library" %} {# Removes one connection (`chapter:<area>` or `policy:<ref>`) from 
   <form
     class="dlp-inline-form"
     method="post"
-    action="/evidence/gis-layers/layers/{{ layer.id }}/links/remove"
+    action="/plan/sources/gis-layers/layers/{{ layer.id }}/links/remove"
   >
     <input type="hidden" name="_link" value="{{ link }}" />
     <button type="submit" class="dlp-link-button">
@@ -14,10 +14,10 @@ library" %} {# Removes one connection (`chapter:<area>` or `policy:<ref>`) from 
     </button>
   </form>
   {% endmacro %} {% set clearHref =
-  "/evidence/gis-layers?glTypes=plan&glTypes=evidence&glYear=&glPublished=&glPolicy="
+  "/plan/sources/gis-layers?glTypes=plan&glTypes=evidence&glYear=&glPublished=&glPolicy="
   %} {% block content %} {% include "evidence/partials/nav.html" %}
 
-  <a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+  <a class="govuk-back-link" href="/plan/sources">Back to Manage sources</a>
 
   <h1 class="govuk-heading-xl">GIS layer library</h1>
 
@@ -31,12 +31,12 @@ library" %} {# Removes one connection (`chapter:<area>` or `policy:<ref>`) from 
     <div class="dlp-gl-add">
       <a
         class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
-        href="/evidence/gis-layers/{{ addTab.slug }}/add/external"
+        href="/plan/sources/gis-layers/{{ addTab.slug }}/add/external"
         >Add new data from external source</a
       >
       <a
         class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
-        href="/evidence/gis-layers/{{ addTab.slug }}/add/gis"
+        href="/plan/sources/gis-layers/{{ addTab.slug }}/add/gis"
         >Add new data from GIS database</a
       >
     </div>
@@ -48,7 +48,7 @@ library" %} {# Removes one connection (`chapter:<area>` or `policy:<ref>`) from 
   <form
     class="dlp-gl-filters"
     method="get"
-    action="/evidence/gis-layers"
+    action="/plan/sources/gis-layers"
     data-dlp-autosubmit
     novalidate
   >
@@ -210,7 +210,7 @@ library" %} {# Removes one connection (`chapter:<area>` or `policy:<ref>`) from 
     <div class="dlp-gl-card__manage">
       <h4 class="govuk-heading-s govuk-!-margin-bottom-2">Manage this layer</h4>
       <div class="dlp-gl-card__actions govuk-body govuk-!-margin-bottom-0">
-        <a class="govuk-link" href="/evidence/gis-layers/layers/{{ layer.id }}/policy"
+        <a class="govuk-link" href="/plan/sources/gis-layers/layers/{{ layer.id }}/policy"
           >Add to policy or chapter<span class="govuk-visually-hidden">: {{ layer.name }}</span></a>
         {# Inert placeholders from the sketch, awaiting functionality. They link to their own
         card, so following one goes nowhere. #}

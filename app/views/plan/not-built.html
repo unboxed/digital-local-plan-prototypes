@@ -1,0 +1,16 @@
+{% extends "layouts/main.html" %}
+{% set pageName = feature.title %}
+
+{# A feature of the service with no prototype yet (app/data/site-map.js). #}
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link govuk-!-margin-top-0" href="{{ parent.href }}">Back to {{ parent.title }}</a>
+    <span class="govuk-caption-l">{{ parent.title }}</span>
+    <h1 class="govuk-heading-xl">{{ feature.title }}</h1>
+    <p class="govuk-body-l">{{ feature.description }}</p>
+    <div class="govuk-inset-text">We haven’t built a prototype for this feature yet.</div>
+    <p class="govuk-body"><a class="govuk-link" href="{{ parent.href }}">Go to {{ parent.title }}</a></p>
+  </div>
+</div>
+{% endblock %}

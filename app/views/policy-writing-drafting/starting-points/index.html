@@ -6,7 +6,7 @@
 
 {{ govukBreadcrumbs({
   items: [
-    { text: "Home", href: "/policy-writing-drafting" },
+    { text: "Home", href: "/plan/make/policy-drafting" },
     { text: "Review starting points" }
   ]
 }) }}
@@ -41,7 +41,7 @@
           {% endif %}
         </td>
         <td class="govuk-table__cell">
-          <form class="dlp-inline-form" method="post" action="/policy-writing-drafting/starting-points/{{ point.id }}/toggle">
+          <form class="dlp-inline-form" method="post" action="/plan/make/policy-drafting/starting-points/{{ point.id }}/toggle">
             {% if point.included %}
               <button type="submit" class="dlp-link-button dlp-pd-remove">Remove<span class="govuk-visually-hidden"> {{ point.name }}</span></button>
             {% else %}
@@ -54,10 +54,10 @@
   </tbody>
 </table>
 
-<form method="post" action="/policy-writing-drafting/starting-points">
+<form method="post" action="/plan/make/policy-drafting/starting-points">
   <div class="govuk-button-group">
     {{ govukButton({ text: "Save and continue" }) }}
-    <a class="govuk-link" href="/policy-writing-drafting/starting-points/new">+ Add a starting point</a>
+    <a class="govuk-link" href="/plan/make/policy-drafting/starting-points/new">+ Add a starting point</a>
   </div>
 </form>
 

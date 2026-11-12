@@ -4,7 +4,7 @@
 
 {% include "evidence/partials/nav.html" %}
 
-<a class="govuk-back-link" href="/evidence">Back to Evidence</a>
+<a class="govuk-back-link" href="/plan/sources">Back to Manage sources</a>
 
 <h1 class="govuk-heading-xl">Evidence library</h1>
 
@@ -14,7 +14,7 @@
 </p>
 
 <p class="govuk-body">
-  <a class="govuk-link" href="/evidence/document-tagging">Tag evidence from a document</a>
+  <a class="govuk-link" href="/plan/sources/document-tagging">Tag evidence from a document</a>
 </p>
 
 <div class="govuk-grid-row">
@@ -23,13 +23,13 @@
       <h2 class="dlp-policy-nav__heading">Policy areas</h2>
       <ul class="dlp-policy-nav__list">
         <li>
-          <a class="dlp-policy-nav__link{% if not filters.policyArea %} dlp-policy-nav__link--active{% endif %}" href="/evidence/library">
+          <a class="dlp-policy-nav__link{% if not filters.policyArea %} dlp-policy-nav__link--active{% endif %}" href="/plan/sources/library">
             All evidence
           </a>
         </li>
         {% for area in policyAreaLinks %}
         <li>
-          <a class="dlp-policy-nav__link{% if filters.policyArea == area.label %} dlp-policy-nav__link--active{% endif %}" href="/evidence/library?evidencePolicyAreaFilter={{ area.encoded }}">
+          <a class="dlp-policy-nav__link{% if filters.policyArea == area.label %} dlp-policy-nav__link--active{% endif %}" href="/plan/sources/library?evidencePolicyAreaFilter={{ area.encoded }}">
             {{ area.label }}
           </a>
         </li>
@@ -39,7 +39,7 @@
   </div>
 
   <div class="govuk-grid-column-two-thirds">
-    <form class="dlp-horizontal-filters" action="/evidence/library" method="get">
+    <form class="dlp-horizontal-filters" action="/plan/sources/library" method="get">
       <input type="hidden" name="applied" value="1">
 
       <div class="dlp-horizontal-filters__row">
@@ -71,7 +71,7 @@
 
       <div class="govuk-button-group">
         <button type="submit" class="govuk-button">Apply filters</button>
-        <a class="govuk-link" href="/evidence/library?evidenceSearch=&evidenceTagFilter=_unchecked&evidencePolicyReferenceFilter=&evidencePolicyAreaFilter={{ filters.policyAreaEncoded }}">Clear filters</a>
+        <a class="govuk-link" href="/plan/sources/library?evidenceSearch=&evidenceTagFilter=_unchecked&evidencePolicyReferenceFilter=&evidencePolicyAreaFilter={{ filters.policyAreaEncoded }}">Clear filters</a>
       </div>
     </form>
 
@@ -90,10 +90,10 @@
           </p>
         </div>
         <div class="dlp-document-list__actions">
-          <a class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button" href="/evidence/review?source={{ document.encoded }}">
+          <a class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button" href="/plan/sources/review?source={{ document.encoded }}">
             Review
           </a>
-          <a class="govuk-link" href="/evidence/document-view?source={{ document.encoded }}" target="_blank" rel="noopener noreferrer">
+          <a class="govuk-link" href="/plan/sources/document-view?source={{ document.encoded }}" target="_blank" rel="noopener noreferrer">
             Open in new window
           </a>
         </div>
@@ -119,7 +119,7 @@
     </ul>
 
     <p class="govuk-body">
-      <a class="govuk-link" href="/evidence/results">View filtered results and export</a>
+      <a class="govuk-link" href="/plan/sources/results">View filtered results and export</a>
     </p>
     {% else %}
     <p class="govuk-body">No evidence matches the current filters.</p>

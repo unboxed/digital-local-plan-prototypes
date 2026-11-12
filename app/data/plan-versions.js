@@ -1,5 +1,5 @@
 // Static content for the "Publish plan versions" prototype
-// (/project-management/publish-plan-versions). Built from the Figma frames in the git-ignored
+// (/plan/manage/versions). Built from the Figma frames in the git-ignored
 // `Figma screenshots/Versioning/` folder.
 //
 // Version names, dates, people and layer dates are as drawn in the frames, by design request,
@@ -299,7 +299,7 @@ const DOCUMENT_SOURCES = [
   {
     id: 'timetable',
     heading: 'Local plan timetable',
-    link: { href: '/project-management/make-your-plan/timetable-placeholder', text: 'Open in Make your plan' },
+    link: { href: '/plan/manage/getting-ready/timetable-placeholder', text: 'Open in Make your plan' },
     base: [
       'This timetable sets out the key stages for preparing the City Plan 2040 under the new plan-making system, and when each is expected.',
       'Scoping consultation will run for six weeks from July 2025. Gateway 1 is expected in August 2025.',
@@ -322,7 +322,7 @@ const DOCUMENT_SOURCES = [
   {
     id: 'pid',
     heading: 'Project initiation document',
-    link: { href: '/project-management/make-your-plan/pid', text: 'Open in Make your plan' },
+    link: { href: '/plan/manage/getting-ready/pid', text: 'Open in Make your plan' },
     base: [
       'The City Plan 2040 sets out how the City will grow and change. This document sets out how the plan will be prepared, governed and resourced.',
       'The project is led by the Planning Policy team, reporting to the Planning and Transportation Committee.',
@@ -352,7 +352,7 @@ const DOCUMENT_SOURCES = [
   {
     id: 'notice',
     heading: 'Notice of intention to commence',
-    link: { href: '/project-management/make-your-plan/notice', text: 'Open in Make your plan' },
+    link: { href: '/plan/manage/getting-ready/notice', text: 'Open in Make your plan' },
     base: [
       'The City of London Corporation gives notice that it intends to begin preparing a new local plan, the City Plan 2040.',
       'The plan will cover the whole of the City of London and set out planning policies to 2040.',
@@ -387,7 +387,7 @@ const DOCUMENT_SOURCES = [
   {
     id: 'statement-of-compliance',
     heading: 'Statement of compliance',
-    link: { href: '/statement-of-compliance', text: 'Open in Statement of compliance' },
+    link: { href: '/plan/view/statement-of-compliance', text: 'Open in Statement of compliance' },
     base: [
       'This statement sets out how the City Plan 2040 has been prepared in line with the legal and procedural requirements.',
       'Consultation has followed the Statement of Community Involvement.',
@@ -544,7 +544,7 @@ const APPROVERS = [
 ]
 
 // The public plan site a version is published to, and the plan's name there. The preview of a
-// version awaiting approval shows as if at this address (it's really /public-view/preview/:id).
+// version awaiting approval shows as if at this address (it's really /plan/view/preview/:id).
 const PUBLIC_SITE = 'plan.cityoflondon.gov.uk'
 const PUBLIC_PLAN_TITLE = 'City Plan 2040'
 

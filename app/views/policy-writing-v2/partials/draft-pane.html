@@ -33,9 +33,9 @@
        data-dlp-terms-source="#pw2-search-terms"
        data-dlp-sources-source="#pw2-policy-sources"
        data-dlp-current-policy="{{ policy.ref }}"
-       data-dlp-add-source-action="/policy-writing-v2/chapter/{{ policy.id }}/sources">
+       data-dlp-add-source-action="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/sources">
 
-    <form class="dlp-pw2-draft__form" id="pw2-draft-form" action="/policy-writing-v2/chapter/{{ policy.id }}/draft" method="post">
+    <form class="dlp-pw2-draft__form" id="pw2-draft-form" action="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/draft" method="post">
 
       <div class="govuk-form-group govuk-!-margin-bottom-2 dlp-pw2-draft__identity">
         <div>
@@ -133,7 +133,7 @@
           </ul>
 
           <button type="submit"
-                  formaction="/policy-writing-v2/chapter/{{ policy.id }}/template"
+                  formaction="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/template"
                   class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0"
                   data-module="govuk-button">
             Insert template into draft

@@ -1,183 +1,42 @@
-{% extends "layouts/main.html" %} {% set pageName="Home" %} {% block content %}
+{% extends "layouts/main.html" %}
+{% set pageName = "Home" %}
 
+{#
+  The site's front door: what the prototypes are, how to use them, then on to the plan start
+  page (/start). See CLAUDE.md, "Site structure".
+#}
+{% block content %}
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <h1 class="govuk-heading-xl">{{ serviceName }}</h1>
+    <h1 class="govuk-heading-xl">Digital Local Plans: Alpha prototypes</h1>
+
+    <p class="govuk-body-l">Welcome to the Digital Local Plans prototype site.</p>
 
     <p class="govuk-body">
-      Coded prototypes exploring how Local Planning Authorities (LPAs) in
-      England could create Digital Local Plans. Each prototype below explores a
-      different part of the plan-making process — pick one to try it out.
+      This project is funded by the Ministry of Housing, Communities and Local Government (MHCLG)
+      and delivered by Unboxed and the City of London Corporation. We’ve developed and tested
+      conceptual prototypes across the plan-making journey. These are based on the
+      <a class="govuk-link" href="https://www.gov.uk/government/publications/rollout-of-the-new-local-plan-making-system/rollout-of-the-new-local-plan-making-system" rel="noreferrer noopener" target="_blank">new 30 month plan-making process (opens in new tab)</a>.
     </p>
 
-    <hr
-      class="govuk-section-break govuk-section-break--visible govuk-section-break--m"
-    />
+    <p class="govuk-body">
+      You can try these out and share them with your colleagues. Please do not share them beyond
+      your own team.
+    </p>
 
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">
-        <a class="govuk-link" href="/project-management">Project management</a>
-      </h2>
-      <p class="govuk-body">
-        How planners can manage a local plan-making process.
-      </p>
-      <div class="govuk-inset-text">
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">User need:</span>
-          As a planner, I need to manage a local plan-making process.
-        </p>
-      </div>
-    </div>
+    <h2 class="govuk-heading-m">Before you start</h2>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>these are highly conceptual prototypes – they do not represent what a live service will look like</li>
+      <li>we’ve tested ideas across different workflows, but these do not all join up (yet)</li>
+      <li>you’ll find lots of buttons and links that do not work – they are not broken, we just did not need them to work to test our ideas</li>
+    </ul>
 
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">
-        <a class="govuk-link" href="/evidence">Evidence</a>
-      </h2>
-      <p class="govuk-body">
-        How planners can identify, gather, analyse and use evidence in the
-        plan-making process.
-      </p>
-      <h3 class="govuk-heading-s">User stories</h3>
-      <div class="govuk-inset-text">
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">E1US1</span>
-          As a policy officer I need to procure evidence in a standard format so
-          that I can spend less time analysing it
-        </p>
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">E1US2</span>
-          As a policy officer I need to know if we already have or are procuring
-          evidence I need so that I can avoid duplicating effort
-        </p>
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">E1US3</span>
-          As a policy officer I need to see all the needs for evidence across
-          the team so that I can effectively procure responses
-        </p>
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">E1US4</span>
-          As a policy officer I need to directly view and use the latest most
-          relevant sections of the NPPF
-        </p>
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">E1US5</span>
-          As a policy officer I need to store all my evidence in one place so I
-          can access, export and track it
-        </p>
-      </div>
-    </div>
-
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">
-        <a class="govuk-link" href="/policy-writing">Policy writing</a>
-      </h2>
-      <p class="govuk-body">
-        How planners can write policy that is connected to evidence,
-        consultation inputs and tracked over time.
-      </p>
-      <div class="govuk-inset-text">
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">User need:</span>
-          As a planner, I need to write policy that is connected to evidence,
-          consultation inputs and tracked over time.
-        </p>
-      </div>
-    </div>
-
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">
-        <a class="govuk-link" href="/consultations">Consultations</a>
-      </h2>
-      <p class="govuk-body">
-        How officers can sort, respond to and check the representations made
-        to a consultation on the plan.
-      </p>
-      <div class="govuk-inset-text">
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">User need:</span>
-          As a policy officer, I need to respond to every representation
-          consistently and efficiently, so that the authority's response to
-          each issue is clear and defensible.
-        </p>
-      </div>
-    </div>
-
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">
-        <a class="govuk-link" href="/pins-view">PINS view</a>
-      </h2>
-      <p class="govuk-body">
-        What the Planning Inspectorate sees of a local plan: checking its
-        progress at Gateway 2, and examining it once submitted.
-      </p>
-      <div class="govuk-inset-text">
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">User need:</span>
-          As a planning inspector, I need to check a local plan's progress and
-          examine it once submitted, to assess whether it is sound and legally
-          compliant.
-        </p>
-      </div>
-    </div>
-
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">
-        <a class="govuk-link" href="/public-view">Public view</a>
-      </h2>
-      <p class="govuk-body">
-        What members of the public see of a local plan: where it is up to while
-        it is being made, and how to find the policies that matter to them once
-        it is adopted.
-      </p>
-      <div class="govuk-inset-text">
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">User need:</span>
-          As a member of the public, I need to know when I can have my say on
-          the local plan and what it says about the places I care about.
-        </p>
-      </div>
-    </div>
-
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">
-        <a class="govuk-link" href="/policy-writing-v2">Policy drafting: side by side policy/evidence viewer</a>
-      </h2>
-      <p class="govuk-body">
-        A second take on the drafting workspace, on a wider screen: evidence and
-        the policy draft side by side, with a divider you can drag to give more
-        room to whichever you need.
-      </p>
-      <div class="govuk-inset-text">
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">User need:</span>
-          As a policy officer, I need to draft a policy while reading the
-          evidence behind it, so I can check my wording against my sources as I
-          write.
-        </p>
-      </div>
-    </div>
-
-    <div class="govuk-!-margin-bottom-6">
-      <h2 class="govuk-heading-m">
-        <a class="govuk-link" href="/statement-of-compliance"
-          >Statement of compliance</a
-        >
-      </h2>
-      <p class="govuk-body">
-        How a local planning authority can show which legal and procedural
-        requirements it has met during plan preparation, and the evidence that
-        justifies each one.
-      </p>
-      <div class="govuk-inset-text">
-        <p class="govuk-body">
-          <span class="govuk-!-font-weight-bold">User need:</span>
-          As a local planning authority, I need to show which legislative
-          requirements I have met during plan preparation, and the evidence that
-          justifies each one.
-        </p>
-      </div>
-    </div>
+    <a href="/start" role="button" draggable="false" class="govuk-button govuk-button--start govuk-!-margin-top-4" data-module="govuk-button">
+      Get started
+      <svg class="govuk-button__start-icon" xmlns="http://www.w3.org/2000/svg" width="17.5" height="19" viewBox="0 0 33 40" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M0 0h13l20 20-20 20H0l20-20z" />
+      </svg>
+    </a>
   </div>
 </div>
-
 {% endblock %}

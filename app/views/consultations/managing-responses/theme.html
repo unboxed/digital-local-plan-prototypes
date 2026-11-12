@@ -5,10 +5,10 @@
 
 {% set pageName = "Theme: " + theme.title %}
 {% set breadcrumbs = [
-  { text: "Consultations", href: "/consultations" },
-  { text: "Manage consultation responses", href: "/consultations/managing-responses" },
-  { text: "View and respond", href: "/consultations/managing-responses/view" },
-  { text: "By theme", href: "/consultations/managing-responses/view/themes" },
+  { text: "Consultations", href: "/plan/consultation" },
+  { text: "Manage consultation responses", href: "/plan/consultation/managing-responses" },
+  { text: "View and respond", href: "/plan/consultation/managing-responses/view" },
+  { text: "By theme", href: "/plan/consultation/managing-responses/view/themes" },
   { text: theme.title }
 ] %}
 
@@ -46,12 +46,12 @@
   <p class="govuk-body-s dlp-cr-muted govuk-!-margin-bottom-2">Select a consultee to view response history</p>
   <ul class="govuk-list dlp-cr-columns">
     {% for consultee in consultees %}
-      <li><a class="govuk-link" href="/consultations/managing-responses/consultees/{{ consultee.id }}">{{ consultee.name }}</a></li>
+      <li><a class="govuk-link" href="/plan/consultation/managing-responses/consultees/{{ consultee.id }}">{{ consultee.name }}</a></li>
     {% endfor %}
   </ul>
 </div>
 
-<form method="post" action="/consultations/managing-responses/themes/{{ theme.id }}" class="dlp-cr-measure govuk-!-margin-top-8" id="standard-response" novalidate>
+<form method="post" action="/plan/consultation/managing-responses/themes/{{ theme.id }}" class="dlp-cr-measure govuk-!-margin-top-8" id="standard-response" novalidate>
   <div class="dlp-cr-title-row">
     <h2 class="govuk-heading-l govuk-!-margin-bottom-0">Standard response</h2>
     {% if template %}

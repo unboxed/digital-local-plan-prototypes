@@ -43,7 +43,7 @@
         </{{ tag }}>
       {%- elif block.type == "image" -%}
         <figure class="dlp-rich-text__figure" data-dlp-rich-image="{{ block.id }}"{% if params and params.editable %} contenteditable="false"{% endif %}>
-          <img class="dlp-rich-text__image" src="/policy-writing-drafting/images/{{ block.id }}" alt="{{ block.alt }}">
+          <img class="dlp-rich-text__image" src="/plan/make/policy-drafting/images/{{ block.id }}" alt="{{ block.alt }}">
           {%- if block.caption -%}<figcaption class="dlp-rich-text__caption">{{ block.caption }}</figcaption>{%- endif -%}
         </figure>
       {%- endif -%}

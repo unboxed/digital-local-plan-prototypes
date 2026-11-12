@@ -1,6 +1,6 @@
 {
   "organisationName": "City of London",
-  "serviceName": "Digital Local Plan prototypes",
+  "serviceName": "Digital Local Plans: Alpha prototypes",
   "useServiceNavigation": true,
   "plugins": {
     "govuk-frontend": {

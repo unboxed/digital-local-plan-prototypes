@@ -13,7 +13,7 @@
 <div class="dlp-document-viewer"
      id="review-document-viewer"
      data-dlp-highlights="#review-passages-data"
-     data-dlp-remove-action="/evidence/review/remove-tag" data-dlp-tag-colours="{{ tagColours | dump }}"
+     data-dlp-remove-action="/plan/sources/review/remove-tag" data-dlp-tag-colours="{{ tagColours | dump }}"
      data-dlp-return="{{ returnTo }}#view-and-tag"
      data-dlp-evidence-tables="#review-tables-data">
   {% if doc.chapter %}<p class="dlp-document-viewer__chapter">{{ doc.chapter }}</p>{% endif %}
@@ -47,7 +47,7 @@
     </div>
   </div>
 
-  <form action="/evidence/review" method="post" class="govuk-!-margin-top-4" data-dlp-form>
+  <form action="/plan/sources/review" method="post" class="govuk-!-margin-top-4" data-dlp-form>
     <input type="hidden" name="source" value="{{ doc.source }}">
     <input type="hidden" name="_returnTo" value="{{ returnTo }}#view-and-tag">
     <input type="hidden" name="entryType" value="passage">

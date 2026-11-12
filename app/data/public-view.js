@@ -1,4 +1,4 @@
-// Static content for the Public view prototypes (/public-view), seen by members of the public
+// Static content for the Public view prototypes (/plan/view), seen by members of the public
 // rather than LPA staff. Southampton is the example authority. The dates, chapters, areas and
 // postcodes are invented for the prototype and are not taken from Southampton's real local plan.
 // Nothing here is stored in session data.

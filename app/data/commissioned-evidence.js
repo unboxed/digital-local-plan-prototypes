@@ -1,5 +1,5 @@
 // Static reference content for the Managing commissioned evidence prototype
-// (/evidence/commissioned). Everything the user changes lives in session data instead, as
+// (/plan/sources/commissioned). Everything the user changes lives in session data instead, as
 // `commissionedEvidence`, seeded in session-data-defaults.js.
 
 // In the order the design lays them out, read across its two columns row by row.

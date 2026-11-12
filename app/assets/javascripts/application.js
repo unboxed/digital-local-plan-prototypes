@@ -515,7 +515,7 @@ function initSavedHighlights (viewer) {
   if (!dataScript) return
 
   const options = {
-    action: viewer.dataset.dlpRemoveAction || '/evidence/document-tagging/remove-tag',
+    action: viewer.dataset.dlpRemoveAction || '/plan/sources/document-tagging/remove-tag',
     returnTo: viewer.dataset.dlpReturn || '',
     tagColours: {}
   }
@@ -630,7 +630,7 @@ function createRemovableTagChip (itemId, tag, kind, options) {
   const form = document.createElement('form')
   form.className = 'dlp-chip-form'
   form.method = 'post'
-  form.action = options.action || '/evidence/document-tagging/remove-tag'
+  form.action = options.action || '/plan/sources/document-tagging/remove-tag'
 
   form.appendChild(hiddenField('itemId', itemId))
   form.appendChild(hiddenField('tag', tag))
@@ -2898,7 +2898,7 @@ function initGisPreview (root) {
 
 // --- Public view ----------------------------------------------------------------------------
 //
-// The public's local plan pages (/public-view). See public-view.js for the data.
+// The public's local plan pages (/plan/view). See public-view.js for the data.
 
 // The plan-making timeline scrolls sideways on wide screens. Start it with the current
 // milestone in view, without moving the page (so not scrollIntoView).

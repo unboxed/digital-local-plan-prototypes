@@ -38,7 +38,7 @@
     <div class="dlp-pw2-sidebar-add">
       <button type="submit" class="dlp-pw2-rail__action"
               form="pw2-draft-form"
-              formaction="/policy-writing-v2/chapter/{{ policy.id }}/policies">
+              formaction="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/policies">
         + Add new policy
       </button>
     </div>
@@ -63,8 +63,8 @@
 {{ govukBreadcrumbs({
   classes: "dlp-pw2-breadcrumbs",
   items: [
-    { text: "Policy", href: "/policy-writing" },
-    { text: "Chapters", href: "/policy-writing-v2" },
+    { text: "Make your plan", href: "/plan/make" },
+    { text: "Chapters", href: "/plan/make/policy-side-by-side" },
     { text: chapter.title }
   ]
 }) }}

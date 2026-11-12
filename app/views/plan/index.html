@@ -1,0 +1,36 @@
+{% extends "layouts/main.html" %}
+{% set pageName = "Plan maker home" %}
+
+{#
+  The plan maker home (personal dashboard): the dashboard's own features (none built yet) and a link to
+  Account, then every other section of the service with its features. From app/data/site-map.js.
+#}
+{% block content %}
+<span class="govuk-caption-l">{{ planName }} · {{ planTypeName }}</span>
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-4">Plan maker home</h1>
+<p class="govuk-body"><a class="govuk-link" href="/start">Change the type of plan</a></p>
+
+<h2 class="govuk-heading-l govuk-!-margin-top-7">Your dashboard</h2>
+<ul class="dlp-site-cards">
+  {% for feature in dashboardFeatures %}
+  <li class="dlp-site-card">
+    <h3 class="govuk-heading-s govuk-!-margin-bottom-1"><a class="govuk-link" href="{{ feature.href }}">{{ feature.title }}</a></h3>
+    <p class="govuk-body-s govuk-!-margin-bottom-2">{{ feature.description }}</p>
+    {% if not feature.isSection %}<strong class="govuk-tag govuk-tag--grey">Not built yet</strong>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+
+<h2 class="govuk-heading-l govuk-!-margin-top-7">Your plan</h2>
+<ul class="dlp-site-cards dlp-site-cards--sections">
+  {% for section in siteSections %}{% if section.id != "account" %}
+  <li class="dlp-site-card">
+    <h3 class="govuk-heading-m govuk-!-margin-bottom-2"><a class="govuk-link" href="{{ section.href }}">{{ section.title }}</a></h3>
+    <p class="govuk-body-s">{{ section.summary }}</p>
+    <ul class="govuk-list govuk-list--bullet govuk-body-s govuk-!-margin-bottom-0">
+      {% for feature in section.features %}<li>{{ feature.title }}</li>{% endfor %}
+    </ul>
+  </li>
+  {% endif %}{% endfor %}
+</ul>
+{% endblock %}

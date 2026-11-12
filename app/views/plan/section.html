@@ -1,0 +1,53 @@
+{% extends "layouts/main.html" %}
+{% set pageName = section.title %}
+
+{#
+  A section of the service (app/data/site-map.js): each of its features, with the prototypes that
+  explore it, or a link to its "not built yet" page.
+#}
+{% macro prototypeList(items) %}
+<ul class="govuk-list dlp-site-prototypes">
+  {% for item in items %}
+  <li class="dlp-site-prototypes__item">
+    <a class="govuk-link govuk-!-font-weight-bold" href="{{ item.href }}">{{ item.title }}</a>
+    <p class="govuk-body-s govuk-!-margin-top-1 govuk-!-margin-bottom-0">{{ item.description }}</p>
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{% block content %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <nav class="govuk-breadcrumbs govuk-!-margin-top-0" aria-label="Breadcrumb">
+      <ol class="govuk-breadcrumbs__list">
+        <li class="govuk-breadcrumbs__list-item"><a class="govuk-breadcrumbs__link" href="/plan">Plan maker home</a></li>
+        <li class="govuk-breadcrumbs__list-item">{{ section.title }}</li>
+      </ol>
+    </nav>
+    <span class="govuk-caption-l">{{ planName }}</span>
+    <h1 class="govuk-heading-xl">{{ section.title }}</h1>
+    <p class="govuk-body-l">{{ section.summary }}</p>
+    {% if section.note %}<p class="govuk-body dlp-site-muted">{{ section.note }}</p>{% endif %}
+
+    {% for feature in section.features %}
+    <div class="dlp-site-feature">
+      <h2 class="govuk-heading-m govuk-!-margin-bottom-2">
+        {% if feature.href %}<a class="govuk-link" href="{{ feature.href }}">{{ feature.title }}</a>{% else %}{{ feature.title }}{% endif %}
+      </h2>
+      <p class="govuk-body">{{ feature.description }}</p>
+      {% if feature.prototypes %}
+        {{ prototypeList(feature.prototypes) }}
+      {% elif not feature.earlier %}
+        <p class="govuk-body"><strong class="govuk-tag govuk-tag--grey">Not built yet</strong></p>
+      {% endif %}
+      {% if feature.earlier %}
+        <h3 class="govuk-heading-s govuk-!-margin-top-4 govuk-!-margin-bottom-2">Earlier versions</h3>
+        <p class="govuk-body-s dlp-site-muted">Prototypes we’ve tested through design feedback sessions and other informal tests.</p>
+        {{ prototypeList(feature.earlier) }}
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

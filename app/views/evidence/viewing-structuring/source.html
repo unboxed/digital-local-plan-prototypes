@@ -6,8 +6,8 @@
 {% set isHearing = source.kind == "hearing" %}
 {% set panelLabel = "Tagged passages" %}
 {% set breadcrumbs = [
-  { text: "Home", href: "/" },
-  { text: "Evidence", href: "/evidence" },
+  { text: "Plan maker home", href: "/plan" },
+  { text: "Manage sources", href: "/plan/sources" },
   { text: "Offices", href: vse },
   { text: "Hearings" if isHearing else "Documents", href: vse },
   { text: source.shortTitle }

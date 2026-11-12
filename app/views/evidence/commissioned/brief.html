@@ -8,7 +8,7 @@
 {% block content %}
 
 {{ govukBreadcrumbs({ items: [
-  { text: "Home", href: "/evidence/commissioned" },
+  { text: "Home", href: "/plan/sources/commissioned" },
   { text: "Brief" }
 ] }) }}
 
@@ -41,7 +41,7 @@
     { key: { text: "Sent from" }, value: { text: brief.sentBy } }
   ] }) }}
 
-  <form method="post" action="/evidence/commissioned/reset" novalidate>
+  <form method="post" action="/plan/sources/commissioned/reset" novalidate>
     <p class="govuk-body">To try writing and sending a brief yourself, start the prototype again with an empty brief.</p>
     <button type="submit" name="_stage" value="start" class="govuk-button govuk-button--secondary" data-module="govuk-button">Start a new brief</button>
   </form>

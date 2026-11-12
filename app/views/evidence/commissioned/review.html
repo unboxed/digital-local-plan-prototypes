@@ -14,7 +14,7 @@
 <div class="dlp-ce-page">
 
 {{ govukBreadcrumbs({ items: [
-  { text: "Home", href: "/evidence/commissioned" },
+  { text: "Home", href: "/plan/sources/commissioned" },
   { text: "Review and comment" }
 ] }) }}
 
@@ -37,7 +37,7 @@
   {% if commission.stage == "submitted" %}
     <ul class="dlp-ce-page-links">
       <li><a class="govuk-link" href="#comments">View all comments</a></li>
-      <li><a class="govuk-link" href="/evidence/commissioned/notes">Add or view notes</a></li>
+      <li><a class="govuk-link" href="/plan/sources/commissioned/notes">Add or view notes</a></li>
       <li><a class="govuk-link" href="#document-history">Document history</a></li>
     </ul>
   {% endif %}
@@ -50,12 +50,12 @@
       Waiting for {{ commission.brief.consultant.name }} to submit a draft of
       <strong>{{ commission.brief.title }}</strong>. The brief was sent on {{ commission.brief.commencedOn }}.
     </p>
-    <p class="govuk-body">You can still <a class="govuk-link" href="/evidence/commissioned/notes">add or view notes</a> while you wait.</p>
+    <p class="govuk-body">You can still <a class="govuk-link" href="/plan/sources/commissioned/notes">add or view notes</a> while you wait.</p>
 
     {{ ceHandoff({
       text: "Nothing to review until the consultant submits. Switch to them to submit a report.",
       linkText: "Switch to " + commission.brief.consultant.name + " (consultant)",
-      href: "/evidence/commissioned/consultant/submit-report"
+      href: "/plan/sources/commissioned/consultant/submit-report"
     }) }}
 
     <h2 class="govuk-heading-m" id="document-history">Document history</h2>
@@ -106,7 +106,7 @@
       <div class="dlp-ce-comments__head">
         <h2 class="govuk-heading-m govuk-!-margin-bottom-0" id="comments-title">Comments ({{ openCount }} open)</h2>
         {% if openCount > 1 %}
-          <form method="post" action="/evidence/commissioned/review/resolve-all" class="dlp-ce-inline-form" novalidate>
+          <form method="post" action="/plan/sources/commissioned/review/resolve-all" class="dlp-ce-inline-form" novalidate>
             <button type="submit" class="dlp-ce-link-button">Resolve all</button>
           </form>
         {% endif %}
@@ -134,7 +134,7 @@
         </details>
       {% endif %}
 
-      <form method="post" action="/evidence/commissioned/review/comments" class="dlp-ce-add-comment" id="add-comment" tabindex="-1" novalidate>
+      <form method="post" action="/plan/sources/commissioned/review/comments" class="dlp-ce-add-comment" id="add-comment" tabindex="-1" novalidate>
         <h3 class="govuk-heading-s">Add a comment</h3>
         {% set anchorItems = [{ value: "", text: "General comment, on the whole report" }] %}
         {% for paragraph in paragraphs %}
@@ -165,11 +165,11 @@
 
   <div class="govuk-button-group govuk-!-margin-top-6">
     {% if commission.status == "accepted" %}
-      {{ govukButton({ text: "Go to Manage source", href: "/evidence/commissioned/source" }) }}
+      {{ govukButton({ text: "Go to Manage source", href: "/plan/sources/commissioned/source" }) }}
     {% else %}
-      {{ govukButton({ text: "Continue to accept and save", href: "/evidence/commissioned/accept" }) }}
+      {{ govukButton({ text: "Continue to accept and save", href: "/plan/sources/commissioned/accept" }) }}
     {% endif %}
-    <a class="govuk-link" href="/evidence/commissioned/notes">Add or view notes</a>
+    <a class="govuk-link" href="/plan/sources/commissioned/notes">Add or view notes</a>
   </div>
 
   <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />

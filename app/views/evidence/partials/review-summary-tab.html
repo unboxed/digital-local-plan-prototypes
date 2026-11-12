@@ -12,7 +12,7 @@
     nothing is added to your evidence until you accept it.
   </p>
 
-  <form action="/evidence/review/generate-summary" method="post">
+  <form action="/plan/sources/review/generate-summary" method="post">
     <input type="hidden" name="source" value="{{ doc.source }}">
     <input type="hidden" name="_returnTo" value="{{ returnTo }}#auto-summarise">
     <button type="submit" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">
@@ -71,13 +71,13 @@
     </p>
     {% else %}
     <div class="dlp-summary__actions">
-      <form action="/evidence/review/accept-suggestion" method="post">
+      <form action="/plan/sources/review/accept-suggestion" method="post">
         <input type="hidden" name="source" value="{{ doc.source }}">
         <input type="hidden" name="sectionId" value="{{ section.id }}">
         <input type="hidden" name="_returnTo" value="{{ returnTo }}#auto-summarise">
         <button type="submit" class="govuk-button govuk-!-margin-bottom-0" data-module="govuk-button">Accept tags</button>
       </form>
-      <form action="/evidence/review/dismiss-suggestion" method="post">
+      <form action="/plan/sources/review/dismiss-suggestion" method="post">
         <input type="hidden" name="source" value="{{ doc.source }}">
         <input type="hidden" name="sectionId" value="{{ section.id }}">
         <input type="hidden" name="_returnTo" value="{{ returnTo }}#auto-summarise">

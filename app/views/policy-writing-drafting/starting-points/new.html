@@ -9,8 +9,8 @@
 
 {{ govukBreadcrumbs({
   items: [
-    { text: "Home", href: "/policy-writing-drafting" },
-    { text: "Review starting points", href: "/policy-writing-drafting/starting-points" },
+    { text: "Home", href: "/plan/make/policy-drafting" },
+    { text: "Review starting points", href: "/plan/make/policy-drafting/starting-points" },
     { text: "Add a starting point" }
   ]
 }) }}
@@ -18,7 +18,7 @@
 <div class="dlp-pd-measure">
   <h1 class="govuk-heading-xl">Add a starting point</h1>
 
-  <form method="post" action="/policy-writing-drafting/starting-points/new">
+  <form method="post" action="/plan/make/policy-drafting/starting-points/new">
     {{ govukInput({
       label: { text: "Starting point", classes: "govuk-label--m" },
       hint: { text: "An area this local plan needs to address, for example Climate Resilience." },
@@ -38,7 +38,7 @@
 
     <div class="govuk-button-group">
       {{ govukButton({ text: "Add starting point" }) }}
-      <a class="govuk-link" href="/policy-writing-drafting/starting-points">Cancel</a>
+      <a class="govuk-link" href="/plan/make/policy-drafting/starting-points">Cancel</a>
     </div>
   </form>
 </div>

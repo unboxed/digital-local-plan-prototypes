@@ -1,7 +1,7 @@
 {#
   The inspector's screen. The inspector is outside the LPA, so this shows the external header
   rather than the service header and its internal nav. The `header` block is overridden WITHOUT
-  super() on purpose: the URL sits under /consultations, so `activeSection` is set and super()
+  super() on purpose: the URL sits under /plan/consultation, so `activeSection` is set and super()
   would bring the internal nav back (as evidence/commissioned/partials/external-layout.html).
 #}
 
@@ -29,7 +29,7 @@
     {{ appSideNavigation({
       title: "Manage consultation responses",
       ariaLabel: "Inspector tasks",
-      sections: [{ items: [{ text: "Review consultation responses", href: "/consultations/managing-responses/inspector", active: true }] }]
+      sections: [{ items: [{ text: "Review consultation responses", href: "/plan/consultation/managing-responses/inspector", active: true }] }]
     }) }}
     <div class="dlp-cr-sidebar-panels">
       {{ crConsultationCard(consultation) }}

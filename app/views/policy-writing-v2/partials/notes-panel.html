@@ -17,7 +17,7 @@
         <li class="dlp-pw2-note">
           <p class="dlp-pw2-note__meta">{{ note.author }} &middot; {{ note.date }}</p>
           <p class="dlp-pw2-note__text">{{ note.text }}</p>
-          <form class="dlp-pw2-note__form" action="/policy-writing-v2/chapter/{{ policy.id }}/notes/{{ note.id }}/remove" method="post">
+          <form class="dlp-pw2-note__form" action="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/notes/{{ note.id }}/remove" method="post">
             <button type="submit" class="dlp-pw2-note__remove">Remove<span class="govuk-visually-hidden"> this note</span></button>
           </form>
         </li>
@@ -29,7 +29,7 @@
 
   <details class="dlp-pw2-note-add">
     <summary class="dlp-pw2-rail__action">+ Add note</summary>
-    <form action="/policy-writing-v2/chapter/{{ policy.id }}/notes" method="post">
+    <form action="/plan/make/policy-side-by-side/chapter/{{ policy.id }}/notes" method="post">
       <label class="govuk-visually-hidden" for="pw2-note-text">Note</label>
       <textarea class="dlp-pw2-note-add__input" id="pw2-note-text" name="noteText" rows="4"></textarea>
       <button type="submit" class="dlp-pw2-note-add__submit">Add note</button>

@@ -22,7 +22,7 @@
   </dl>
 
   <p class="govuk-body-s govuk-!-margin-bottom-0">
-    <a class="govuk-link" href="/evidence/document-view?source={{ sourceEncoded }}" target="_blank" rel="noopener noreferrer">
+    <a class="govuk-link" href="/plan/sources/document-view?source={{ sourceEncoded }}" target="_blank" rel="noopener noreferrer">
       Open in new window
     </a>
   </p>
@@ -48,7 +48,7 @@
 <section class="dlp-side-panel govuk-!-margin-top-6" data-dlp-tagger data-dlp-mode="note">
   <h2 class="dlp-side-panel__heading">Add and tag a note</h2>
 
-  <form action="/evidence/review" method="post" data-dlp-form>
+  <form action="/plan/sources/review" method="post" data-dlp-form>
     <input type="hidden" name="source" value="{{ doc.source }}">
     <input type="hidden" name="_returnTo" value="{{ returnTo }}">
     <input type="hidden" name="entryType" value="note">
