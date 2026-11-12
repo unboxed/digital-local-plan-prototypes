@@ -20,6 +20,12 @@
 
     <p class="govuk-body">{{ requirement.description }}</p>
 
+    {% if requirement.statement %}
+    <p class="govuk-body">
+      <a class="govuk-link" href="{{ requirement.statement.href }}">{{ requirement.statement.text }}</a>
+    </p>
+    {% endif %}
+
     {% if variant == "draft" %}
     <h2 class="govuk-heading-m govuk-!-margin-top-6">Planned activities</h2>
     {% if plannedActivity %}

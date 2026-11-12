@@ -1107,6 +1107,35 @@ the header.
 - **Inert placeholders:** "View and comment", email updates, contact, and the plan download
   links.
 
+## Statement of compliance: general conformity with the SDS
+
+`/plan/view/statement-of-compliance/spatial-development-strategy` (`app/views/statement-of-compliance/sds/`)
+is the evidence for Regulation 28: every policy of the spatial development strategy, the local
+plan policies linked to it, an authority comment on the linkage and, where a policy isn't
+addressed, evidence that it needn't be. The example SDS is the London Plan 2021, which really is
+the City of London's operative SDS. It is listed on the Statement of compliance landing page, and
+Regulation 28's requirement page and audit log entry link to it (a history entry's optional `href`
+overrides the placeholder document viewer).
+
+- **Registered before `/plan/view/statement-of-compliance/:socVariant`**, which would otherwise take
+  `spatial-development-strategy` as a variant and redirect it away.
+- **The London Plan's chapters, policy refs and titles are real and complete** (113 policies, in
+  `app/data/sds-conformity.js`). Which City Plan policies each is linked to, the comments and the
+  evidence extracts are invented, and the pages say so. There are no policy summaries: each page
+  links to the London Plan itself.
+- **State** is one object, `sdsConformity` (`{policies: {<ref>: {links, comment, evidence}},
+  flash}`), read only through `getSdsConformity` and stamped with
+  `SDS_CONFORMITY_SCHEMA_VERSION`, so **bump that when the seed's shape changes**. The seed is
+  `startingState()`; "Reset to the example statement" rebuilds it.
+- **Statuses are derived** (`getStatus`): Addressed (links and a comment), Not addressed:
+  justified (no links, but a comment and evidence), In progress (anything short of those, with
+  `getNextStep` saying what's missing) and Not started.
+- **One form per policy page.** `_action` is `save`, `next`, `add-link`, `remove-link:<ref>`,
+  `add-evidence` or `remove-evidence:<id>`, and every action saves `_comment` first, so adding a
+  link doesn't lose typing. A visually hidden Save comes first, so Enter doesn't press a Remove.
+- **Filters** are sticky kit fields `sdsChapter` and `sdsStatus`, applied on change by
+  `initAutosubmit`; the status tiles link to their filter.
+
 ## GIS layers
 
 GIS layers are **one shared collection across the application**, `gisLayers` in session data,

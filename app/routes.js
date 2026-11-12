@@ -3344,6 +3344,207 @@ router.get('/plan/view/statement-of-compliance', (req, res) => {
   res.render('statement-of-compliance/index.html')
 })
 
+// --- Statement of compliance: general conformity with the spatial development strategy ---
+//
+// Every policy of the SDS (the London Plan 2021, for the City of London's City Plan 2040), with
+// the local plan policies it is linked to, an authority comment on the linkage and, where a
+// policy isn't addressed, evidence that it needn't be. Content and the seed are in
+// app/data/sds-conformity.js. What the authority records is one session object, `sdsConformity`
+// ({ policies: { <SDS ref>: { links, comment, evidence } }, flash }), read only through
+// getSdsConformity. Statuses are derived (SDSC.getStatus), never stored.
+//
+// These routes are registered before /plan/view/statement-of-compliance/:socVariant, which would
+// otherwise take "spatial-development-strategy" as a variant and redirect it away.
+const SDSC = require('./data/sds-conformity.js')
+const SDS_BASE = '/plan/view/statement-of-compliance/spatial-development-strategy'
+const SDS_CONFORMITY_SCHEMA_VERSION = 1
+
+function getSdsConformity (req) {
+  if (req.session.data.sdsConformitySchemaVersion !== SDS_CONFORMITY_SCHEMA_VERSION) {
+    req.session.data.sdsConformity = SDSC.startingState()
+    req.session.data.sdsConformitySchemaVersion = SDS_CONFORMITY_SCHEMA_VERSION
+  }
+  return req.session.data.sdsConformity
+}
+
+// "T6.1" is a valid id, but a full stop in an id has to be escaped in a CSS selector.
+function sdsAnchor (ref) {
+  return 'sds-' + ref.replace(/\./g, '-')
+}
+
+function sdsPolicyHref (ref) {
+  return SDS_BASE + '/policies/' + encodeURIComponent(ref)
+}
+
+function sdsLocalPolicy (ref) {
+  const policy = POLICIES.find(candidate => candidate.ref === ref)
+  if (!policy) return null
+  return {
+    ref,
+    title: policy.title,
+    policyArea: policy.policyArea,
+    href: getPolicy(ref) ? '/plan/make/policy-writing/policy-summary?ref=' + encodeURIComponent(ref) : null
+  }
+}
+
+function sdsEvidenceView (id) {
+  const item = SDSC.getEvidence(id)
+  return item ? Object.assign({ href: SDS_BASE + '/evidence/' + encodeURIComponent(id) }, item) : null
+}
+
+// One SDS policy joined with what the authority has recorded against it.
+function sdsPolicyView (policy, state) {
+  const entry = state.policies[policy.ref] || { links: [], comment: '', evidence: [] }
+  return {
+    ref: policy.ref,
+    title: policy.title,
+    chapter: policy.chapter,
+    anchor: sdsAnchor(policy.ref),
+    href: sdsPolicyHref(policy.ref),
+    links: entry.links.map(sdsLocalPolicy).filter(Boolean),
+    comment: entry.comment,
+    evidence: entry.evidence.map(sdsEvidenceView).filter(Boolean),
+    status: SDSC.getStatus(entry),
+    nextStep: SDSC.getNextStep(entry)
+  }
+}
+
+router.get(SDS_BASE, (req, res) => {
+  const state = getSdsConformity(req)
+  const flash = state.flash ? SDSC.getSdsPolicy(state.flash) : null
+  delete state.flash
+
+  // Sticky filters, stored by the kit. A stored value that no longer matches anything is ignored.
+  const chapterFilter = SDSC.getChapter(req.session.data.sdsChapter) ? String(req.session.data.sdsChapter) : ''
+  const statusFilter = SDSC.STATUSES.includes(req.session.data.sdsStatus) ? req.session.data.sdsStatus : ''
+
+  const all = SDSC.SDS_POLICIES.map(policy => sdsPolicyView(policy, state))
+  const counts = SDSC.STATUSES.map(status => ({
+    status,
+    count: all.filter(policy => policy.status === status).length
+  }))
+
+  const chapters = SDSC.CHAPTERS
+    .filter(chapter => !chapterFilter || String(chapter.number) === chapterFilter)
+    .map(chapter => ({
+      number: chapter.number,
+      title: chapter.title,
+      policies: all.filter(policy => policy.chapter === chapter.number && (!statusFilter || policy.status === statusFilter))
+    }))
+    .filter(chapter => chapter.policies.length)
+
+  res.render('statement-of-compliance/sds/index.html', {
+    sds: SDSC.SDS,
+    total: all.length,
+    counts,
+    chapters,
+    chapterOptions: SDSC.CHAPTERS.map(chapter => ({ value: String(chapter.number), text: chapter.number + '. ' + chapter.title })),
+    statuses: SDSC.STATUSES,
+    filters: { chapter: chapterFilter, status: statusFilter },
+    statusColours: SDSC.STATUS_COLOURS,
+    flash: flash ? { ref: flash.ref, title: flash.title, anchor: sdsAnchor(flash.ref) } : null
+  })
+})
+
+router.post(SDS_BASE + '/reset', (req, res) => {
+  req.session.data.sdsConformity = SDSC.startingState()
+  req.session.data.sdsConformitySchemaVersion = SDS_CONFORMITY_SCHEMA_VERSION
+  res.redirect(SDS_BASE)
+})
+
+router.get(SDS_BASE + '/policies/:ref', (req, res) => {
+  const policy = SDSC.getSdsPolicy(req.params.ref)
+  if (!policy) return res.redirect(SDS_BASE)
+
+  const state = getSdsConformity(req)
+  const view = sdsPolicyView(policy, state)
+  const index = SDSC.SDS_POLICIES.indexOf(policy)
+  const neighbour = offset => {
+    const other = SDSC.SDS_POLICIES[index + offset]
+    return other ? { ref: other.ref, title: other.title, href: sdsPolicyHref(other.ref) } : null
+  }
+
+  // Local plan policies not yet linked, grouped by policy area for the select's optgroups.
+  const linked = view.links.map(link => link.ref)
+  const localPolicyGroups = []
+  POLICIES.filter(candidate => !linked.includes(candidate.ref)).forEach(candidate => {
+    let group = localPolicyGroups.find(existing => existing.label === candidate.policyArea)
+    if (!group) {
+      group = { label: candidate.policyArea, options: [] }
+      localPolicyGroups.push(group)
+    }
+    group.options.push({ value: candidate.ref, text: candidate.ref + ': ' + candidate.title })
+  })
+
+  res.render('statement-of-compliance/sds/policy.html', {
+    sds: SDSC.SDS,
+    chapter: SDSC.getChapter(policy.chapter),
+    policy: view,
+    statusColours: SDSC.STATUS_COLOURS,
+    localPolicyGroups,
+    evidenceOptions: SDSC.EVIDENCE
+      .filter(item => !state.policies[policy.ref] || !state.policies[policy.ref].evidence.includes(item.id))
+      .map(item => ({ value: item.id, text: item.title + ', ' + item.ref })),
+    previous: neighbour(-1),
+    next: neighbour(1),
+    backHref: SDS_BASE + '#' + view.anchor
+  })
+})
+
+// One form, so typing a comment and then adding a link doesn't lose the comment. `_action` is
+// save | next | add-link | remove-link:<ref> | add-evidence | remove-evidence:<id>; every one
+// saves the comment first.
+router.post(SDS_BASE + '/policies/:ref', (req, res) => {
+  const policy = SDSC.getSdsPolicy(req.params.ref)
+  if (!policy) return res.redirect(SDS_BASE)
+
+  const state = getSdsConformity(req)
+  const entry = state.policies[policy.ref] || (state.policies[policy.ref] = { links: [], comment: '', evidence: [] })
+  const action = String(req.body._action || 'save')
+  const here = sdsPolicyHref(policy.ref)
+
+  entry.comment = String(req.body._comment || '').trim()
+
+  if (action === 'add-link') {
+    const ref = String(req.body._link || '')
+    if (sdsLocalPolicy(ref) && !entry.links.includes(ref)) entry.links.push(ref)
+    return res.redirect(here + '#sds-links')
+  }
+  if (action.startsWith('remove-link:')) {
+    entry.links = entry.links.filter(ref => ref !== action.slice('remove-link:'.length))
+    return res.redirect(here + '#sds-links')
+  }
+  if (action === 'add-evidence') {
+    const id = String(req.body._evidence || '')
+    if (SDSC.getEvidence(id) && !entry.evidence.includes(id)) entry.evidence.push(id)
+    return res.redirect(here + '#sds-evidence')
+  }
+  if (action.startsWith('remove-evidence:')) {
+    entry.evidence = entry.evidence.filter(id => id !== action.slice('remove-evidence:'.length))
+    return res.redirect(here + '#sds-evidence')
+  }
+  if (action === 'next') {
+    const next = SDSC.SDS_POLICIES[SDSC.SDS_POLICIES.indexOf(policy) + 1]
+    // With its own fragment, or the browser keeps the one from the last add or remove.
+    if (next) return res.redirect(sdsPolicyHref(next.ref) + '#main-content')
+  }
+
+  state.flash = policy.ref
+  res.redirect(SDS_BASE + '#' + sdsAnchor(policy.ref))
+})
+
+router.get(SDS_BASE + '/evidence/:id', (req, res) => {
+  const item = SDSC.getEvidence(req.params.id)
+  if (!item) return res.redirect(SDS_BASE)
+
+  const state = getSdsConformity(req)
+  const citedBy = SDSC.SDS_POLICIES
+    .filter(policy => state.policies[policy.ref] && state.policies[policy.ref].evidence.includes(item.id))
+    .map(policy => ({ ref: policy.ref, title: policy.title, href: sdsPolicyHref(policy.ref) }))
+
+  res.render('statement-of-compliance/sds/evidence.html', { sds: SDSC.SDS, item, citedBy })
+})
+
 // The statement's requirements for one variant, as listed by the checklist and by the
 // Examination library's Statement of compliance record.
 function socRequirementRows (variant) {

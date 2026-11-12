@@ -148,6 +148,21 @@
   }
 }
 
+// A select is as wide as its longest option ("HS5: Short term residential letting (Assigned to
+// …)"), and a flex item won't shrink below its content, so without this the policy select
+// overflows the draft pane into the evidence viewer. It takes the pane's width instead, and the
+// buttons wrap underneath when there isn't room beside it.
+.dlp-pd-policy-picker .govuk-form-group {
+  flex: 1 1 18em;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dlp-pd-policy-picker .govuk-select {
+  max-width: 100%;
+  width: 100%;
+}
+
 // With JavaScript the policy loads as soon as it's chosen, so "Change" is only the fallback.
 .govuk-frontend-supported .dlp-pd-policy-picker__change {
   display: none;
