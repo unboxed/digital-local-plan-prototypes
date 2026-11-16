@@ -1,0 +1,70 @@
+{#
+  Need 1: all the evidence and representations for the question's policies in one place, so the
+  officer can tell the story of the policy. Then the hearing statements made on this question.
+#}
+{% from "miqs/partials/macros.html" import miqInsertButton %}
+
+{% if not evidence | length and not representations.total %}
+  <p class="govuk-body">This question is not about a particular policy, so there is no policy evidence or representations for it. See <a class="govuk-link" href="/plan/make/miqs/responses/{{ question.id }}?_tab=soundness#support">legal compliance and soundness</a>.</p>
+{% endif %}
+
+{% if evidence | length %}
+  <h3 class="govuk-heading-s">Evidence ({{ evidence | length }})</h3>
+  <ul class="govuk-list dlp-miq-cards">
+    {% for item in evidence %}
+      <li class="dlp-miq-card">
+        <p class="govuk-body-s dlp-miq-card__title"><strong>{{ item.source }}</strong>, {{ item.ref }}</p>
+        <p class="govuk-body-s">{{ item.text }}</p>
+        <p class="govuk-body-s dlp-miq-card__foot">
+          <span class="dlp-miq-muted">Supports {{ item.policyRefs | join(", ") }}</span>
+          {{ miqInsertButton("ev:" + loop.index0, item.citation, "Reference in response", state.sent) }}
+        </p>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+{% if representations.total %}
+  <h3 class="govuk-heading-s">Consultation representations ({{ representations.total }})</h3>
+  <p class="govuk-body-s">
+    On the consultation on the proposed local plan: {{ representations.counts.Objection }} objections,
+    {{ representations.counts.Support }} in support and {{ representations.counts.Neutral }} neutral.
+  </p>
+  {% for theme in themes %}
+    <p class="govuk-body-s">
+      <a class="govuk-link" href="{{ theme.href }}">{{ theme.title }}</a> ({{ theme.respondents }} respondents):
+      {{ theme.summary }}
+    </p>
+  {% endfor %}
+  <ul class="govuk-list dlp-miq-cards">
+    {% for rep in representations.listed %}
+      <li class="dlp-miq-card">
+        <p class="govuk-body-s dlp-miq-card__title">
+          <strong>{{ rep.consulteeName }}</strong> on {{ rep.policyRef }}
+          <strong class="govuk-tag govuk-tag--{{ 'red' if rep.commentType == 'Objection' else ('green' if rep.commentType == 'Support' else 'grey') }} dlp-miq-card__tag">{{ rep.commentType }}</strong>
+        </p>
+        <p class="govuk-body-s govuk-!-margin-bottom-0">{{ rep.text }}</p>
+      </li>
+    {% endfor %}
+  </ul>
+  {% if representations.total > representations.listed | length %}
+    <p class="govuk-body-s">Showing {{ representations.listed | length }} of {{ representations.total }}, objections first. See every representation by theme in <a class="govuk-link" href="/plan/consultation/managing-responses/view-themes">managing consultation responses</a>.</p>
+  {% endif %}
+{% endif %}
+
+<h3 class="govuk-heading-s" id="statements">Hearing statements on this question ({{ statements | length }})</h3>
+{% if statements | length %}
+  <ul class="govuk-list dlp-miq-cards">
+    {% for statement in statements %}
+      <li class="dlp-miq-card">
+        <p class="govuk-body-s dlp-miq-card__title"><strong>{{ statement.consulteeName }}</strong> <span class="dlp-miq-muted">{{ statement.respondentType }}, received {{ statement.received }}</span></p>
+        <p class="govuk-body-s dlp-miq-card__foot">
+          <a class="govuk-link" href="/plan/make/miqs/statements/{{ statement.id }}">{{ statement.fileName }}</a>
+          {{ miqInsertButton("st:" + statement.id, "(" + statement.consulteeName + ", hearing statement)", "Reference in response", state.sent) }}
+        </p>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="govuk-body-s">No participant has sent a hearing statement on this question{% if not state.published %} yet. The MIQs have not been published{% endif %}.</p>
+{% endif %}

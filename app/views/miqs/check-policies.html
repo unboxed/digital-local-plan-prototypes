@@ -1,0 +1,72 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+
+{% set pageName = "Policies for question " + question.id %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/plan/make/miqs/check#question-{{ question.id | replace('.', '-') }}">Back to check what we found</a>
+
+    <span class="govuk-caption-l">Matter {{ matter.id }}: {{ matter.title }}</span>
+    <h1 class="govuk-heading-l">Policies for question {{ question.id }}</h1>
+
+    <div class="govuk-inset-text">{{ question.text }}</div>
+
+    <form method="post" action="/plan/make/miqs/check/{{ question.id }}" novalidate>
+      {# Pressing Enter submits with the first button in the form: make that "Add", not a Remove. #}
+      <button type="submit" name="_action" value="add" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Add</button>
+
+      {% if policies | length %}
+        <table class="govuk-table">
+          <caption class="govuk-table__caption govuk-table__caption--s">Linked policies</caption>
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th scope="col" class="govuk-table__header">Policy</th>
+              <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Action</span></th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {% for policy in policies %}
+              <tr class="govuk-table__row">
+                <td class="govuk-table__cell"><strong>{{ policy.ref }}</strong> {{ policy.title }}</td>
+                <td class="govuk-table__cell govuk-table__cell--numeric">
+                  <button type="submit" name="_action" value="remove:{{ policy.ref }}" class="dlp-link-button">
+                    Remove<span class="govuk-visually-hidden"> {{ policy.ref }}</span>
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="govuk-body">This question is not linked to any policy. That is right for a question about the process, such as legal compliance.</p>
+      {% endif %}
+
+      {% set options = [{ value: "", text: "Choose a policy" }] %}
+      {% for policy in candidates %}
+        {% set options = (options.push({ value: policy.ref, text: policy.ref + " " + policy.title + " (" + policy.policyArea + ")" }), options) %}
+      {% endfor %}
+      {{ govukSelect({
+        id: "miq-policy",
+        name: "_policy",
+        label: { text: "Add a policy", classes: "govuk-label--s" },
+        items: options,
+        errorMessage: { text: errors["miq-policy"] } if errors["miq-policy"]
+      }) }}
+
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Add policy", name: "_action", value: "add", classes: "govuk-button--secondary" }) }}
+        {% if changed %}
+          <button type="submit" name="_action" value="reset" class="dlp-link-button">Go back to the policies we found</button>
+        {% endif %}
+      </div>
+
+      {{ govukButton({ text: "Done", name: "_action", value: "done" }) }}
+    </form>
+
+  </div>
+</div>
+{% endblock %}

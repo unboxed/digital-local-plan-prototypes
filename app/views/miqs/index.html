@@ -1,0 +1,71 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Responding to the inspector’s MIQs" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/plan/make">Back to Make your plan</a>
+
+    <h1 class="govuk-heading-xl">Responding to the inspector’s matters, issues and questions</h1>
+
+    <p class="govuk-body">
+      Before the examination hearings, the inspector sends the council their matters, issues and
+      questions (MIQs). The council publishes them, receives hearing statements from participants,
+      and writes its own statement answering every question. It then sends all the statements to
+      the programme officer, who passes them to the inspector.
+    </p>
+
+    <p class="govuk-body">
+      You are a policy officer, Priya Shah, at the City of London Corporation. You will only see
+      the council’s screens. Where the inspector or a participant would do something, a panel
+      marked <strong>Prototype only</strong> does it for you.
+    </p>
+
+    <p class="govuk-body">
+      When you write a response, the evidence, consultation representations and legal compliance
+      for the question’s policies are alongside it.
+    </p>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m" />
+
+    {# Each entry resets the prototype's data to a fitting starting point, so they POST. #}
+    <form method="post" action="/plan/make/miqs/reset" class="dlp-ce-start" novalidate>
+      <h2 class="govuk-heading-m">The MIQs have just arrived</h2>
+      <p class="govuk-body">
+        Start from the beginning. The inspector’s document has arrived: check what was read
+        from it, then publish it.
+      </p>
+      <button type="submit" name="_stage" value="received" class="govuk-button" data-module="govuk-button">
+        Start from the beginning
+      </button>
+    </form>
+
+    <form method="post" action="/plan/make/miqs/reset" class="dlp-ce-start" novalidate>
+      <h2 class="govuk-heading-m">Prepare the council’s responses</h2>
+      <p class="govuk-body">
+        The MIQs are published and the participants’ hearing statements are in. Housing is part
+        answered. Write responses with the evidence alongside.
+      </p>
+      <button type="submit" name="_stage" value="drafting" class="govuk-button govuk-button--secondary" data-module="govuk-button">
+        Go to prepare responses
+      </button>
+    </form>
+
+    <form method="post" action="/plan/make/miqs/reset" class="dlp-ce-start" novalidate>
+      <h2 class="govuk-heading-m">Send the statements</h2>
+      <p class="govuk-body">
+        Every question has a response. Check the council’s statements, then send everything to
+        the programme officer.
+      </p>
+      <button type="submit" name="_stage" value="ready" class="govuk-button govuk-button--secondary" data-module="govuk-button">
+        Go to view and send hearing statements
+      </button>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

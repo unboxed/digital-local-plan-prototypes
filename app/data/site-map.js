@@ -108,9 +108,15 @@ const SECTIONS = [
         description: 'Work on the plan with others, including seeing comments from the Planning Inspectorate (PINS).'
       },
       {
-        slug: 'mods-and-miqs',
         title: 'Manage MODs and MIQs',
-        description: 'Manage main modifications (MODs) and the inspector’s matters, issues and questions (MIQs).'
+        description: 'Manage main modifications (MODs) and the inspector’s matters, issues and questions (MIQs). Only MIQs have a prototype so far.',
+        prototypes: [
+          {
+            title: 'Responding to the inspector’s MIQs',
+            href: '/plan/make/miqs',
+            description: 'Receive the inspector’s matters, issues and questions and publish them, collect hearing statements, prepare a response to each question with its evidence, representations and compliance alongside, then send every statement to the programme officer.'
+          }
+        ]
       }
     ]
   },

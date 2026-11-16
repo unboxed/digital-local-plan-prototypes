@@ -774,6 +774,78 @@ the header's "Consultations" item, previously a disabled placeholder, now links 
 - **Inert placeholders from the design:** the document viewer's "Download" and "Open in new
   window". Uploads keep only the file name (the form isn't multipart).
 
+## Responding to the inspector's MIQs (Make your plan)
+
+`/plan/make/miqs` (`app/views/miqs/`) is the authority's side of the examination's matters,
+issues and questions (MIQs), built from a workshop workflow diagram (no Figma). It fills the
+"Manage MODs and MIQs" feature in `site-map.js`; MODs are not built. Only the authority's screens
+exist: the inspector and participants appear in "Prototype only" panels.
+
+- **Five steps:** check the hearing document (each question's policies can be corrected); publish it
+  with a deadline for hearing statements; hearing statements received; prepare responses (all
+  matters, one matter, then the question workspace); View and send hearing statements (to the
+  programme officer). Publishing
+  all the statements afterwards was removed by request.
+  There is also a History page. A sibling of `/plan/make`, like Policy drafting, so
+  `router.param('variant')` can't capture it.
+- **Static content** is in `app/data/miqs.js`: three matters, seven issues and twelve questions
+  about City Plan 2040 policies that already have rich data (S3, HS1, S12, S13, HE1), the seeded
+  hearing statements (from `CONSULTEES` in `consultation-responses.js`), the canned summaries and
+  `startingState(stage)`. All of it is invented, and dates follow the consultation responses
+  prototype (MIQs issued November 2026), not the examination library's 2025 dates.
+- **State** is one object, `miqs`, read only through `getMiqs` and stamped with
+  `MIQS_SCHEMA_VERSION`, so **bump that when the shape changes**. It isn't in
+  `session-data-defaults.js`: `getMiqs` builds it from `startingState('drafting')`, so there is no
+  shared reference to deep-clone. The landing page's three entry points POST to `/reset` with
+  `_stage` (`received`, `drafting`, `ready`). Every status and count is derived (`miqStatuses`,
+  `miqQuestionStatus`, `miqMatterProgress`). A step that needs an earlier one has no status
+  (`null`), so the sidebar shows no icon for it: no lock, by design request.
+- **Hearing statements received is a plain list**, by request: who sent it, the file name (a
+  link to `/statements/:id`, which stands in for the PDF with who sent it and when; there are no
+  summaries of statements, by request, as the council wouldn't know what they say), when it arrived and Remove. No matter filter and no "responds to" column; the
+  questions a statement answers are still stored, and are what puts it beside those questions
+  in the workspace. "Add another statement" adds one by hand.
+- **View and send hearing statements is a progress tracker**, after Gateway 2 progress check: one table
+  row each for the published MIQs, the participants' hearing statements and the council's
+  statement for each matter, with a status tag in the standard words (`miqStatusTag`: grey Not
+  started, light blue In progress, green Completed) and a link. A matter's link goes to its
+  questions until it is complete, then to its statement. The questions themselves are not
+  listed there, by request.
+- **The hearing document** is "City Plan 2040: Main matters, issues and questions and hearing
+  programme" (`MIQ_DOCUMENT`): the MIQs and the hearing programme (`HEARING_PROGRAMME`, invented
+  days, times and venue) in one document. `/document` shows the whole of it, standing in for the
+  PDF; the check page's Document row links to it and to its `#hearing-programme` section.
+- **The document is assumed to have been received**, by request: every starting state has it
+  (`upload` in the seed), and there is no upload screen. `/receive`, where the upload used to be,
+  redirects to `/check`. What's being tested is checking what was read from the document.
+  A question's policies are the document's unless `linkOverrides` has a correction. Look policies
+  up with `miqFindPolicy`, not `getPolicy`, which returns only policies with a full summary page.
+- **The question workspace** is a `.dlp-split` (the v2 pane chrome): the response on the left,
+  and on the right three tabs, as links (`crTabs`, `?_tab=`):
+  - Evidence and representations: `miqEvidence`, built from `POLICY_RESOURCES` and
+    `EVIDENCE_EXCERPTS`, plus the consultation representations and the hearing statements on
+    the question
+  - Summary: canned, with the "AI generated" caveat
+  - Legal compliance and soundness: the soundness tests, Statement of compliance requirements
+    and the SDS conformity statement
+
+  An Objections tab (common objections from the consultation themes, with ones pressed again in
+  hearing statements flagged as significant) was removed by request. An old `?_tab=objections`
+  link shows the evidence tab.
+- **One form for the whole workspace**, `#miq-response-form`. Tab buttons and checkboxes join it
+  with `form="miq-response-form"`, so every action saves the typing first. `_action` is `save`,
+  `complete`, `reopen` or `insert:<key>` (`ev:<n>`, `st:<id>`, `summary`). The soundness ticks
+  are replaced only when their tab was on the page (`_testsShown`). Switching tabs is a
+  link, so unsaved typing is lost: save first.
+- **Insert buttons** use `initInsertText` (`data-dlp-insert-text`, `data-dlp-insert-target`), a
+  generic component: with JavaScript the text goes in at the cursor, and without it the button
+  submits and the server appends the same text (`miqInsertText`).
+- **Once sent, responses are read-only** (the POST route ignores changes), and statements can no
+  longer be added or removed.
+- **The "Prototype only" panel is now shared**: `partials/handoff/macro.njk` (`appHandoff`), which
+  takes a link (`href`) or a POST form (`action`, `buttonText`). Commissioned evidence's
+  `ceHandoff` is a thin wrapper round it.
+
 ## Getting ready (Manage your plan; formerly "Make your plan")
 
 `/plan/manage/getting-ready` (`app/views/project-management/make-your-plan/`) is built

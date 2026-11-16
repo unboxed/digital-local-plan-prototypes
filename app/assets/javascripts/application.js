@@ -86,6 +86,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-pub-policy-map]').forEach(safeInit(initPublicPolicyMap))
   document.querySelectorAll('[data-dlp-copy-link]').forEach(safeInit(initCopyLink))
   document.querySelectorAll('[data-dlp-rich-text]').forEach(safeInit(initRichText))
+  document.querySelectorAll('[data-dlp-insert-text]').forEach(safeInit(initInsertText))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2469,6 +2470,44 @@ function initAutosubmit (root) {
     else form.submit()
   })
 }
+
+// --- Insert text into a textarea ---------------------------------------------------------------
+//
+// A button with data-dlp-insert-text puts that text into the textarea named by
+// data-dlp-insert-target, at the cursor (or at the end, if the box hasn't been used), rather
+// than submitting. Without JavaScript the button submits its form and the server appends the
+// same text, so the button has to say exactly what it inserts. An optional
+// [data-dlp-insert-status] in the textarea's form says what happened, for screen readers too.
+function initInsertText (button) {
+  button.addEventListener('click', event => {
+    const target = document.querySelector(button.getAttribute('data-dlp-insert-target'))
+    if (!target || target.disabled || target.readOnly) return
+    event.preventDefault()
+    const text = button.getAttribute('data-dlp-insert-text') || ''
+    const value = target.value
+    const used = target.dataset.dlpInsertUsed === 'true'
+    const start = used ? target.selectionStart : value.length
+    const end = used ? target.selectionEnd : value.length
+    const before = value.slice(0, start)
+    const after = value.slice(end)
+    const spaceBefore = before && !/\s$/.test(before) ? ' ' : ''
+    const spaceAfter = after && !/^\s/.test(after) ? ' ' : ''
+    target.value = before + spaceBefore + text + spaceAfter + after
+    const caret = (before + spaceBefore + text).length
+    target.focus()
+    target.setSelectionRange(caret, caret)
+    target.dataset.dlpInsertUsed = 'true'
+    target.dispatchEvent(new Event('input', { bubbles: true }))
+    const status = target.form && target.form.querySelector('[data-dlp-insert-status]')
+    if (status) status.textContent = 'Added to your response. Save it to keep the change.'
+  })
+}
+
+// The cursor position only counts once someone has been in the box; before that, insert at
+// the end rather than at position 0.
+document.addEventListener('focusin', event => {
+  if (event.target && event.target.tagName === 'TEXTAREA') event.target.dataset.dlpInsertUsed = 'true'
+})
 
 // --- Select all, with a running count ------------------------------------------------------
 //

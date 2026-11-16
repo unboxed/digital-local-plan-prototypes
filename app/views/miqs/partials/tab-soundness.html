@@ -1,0 +1,62 @@
+{#
+  Need 3: how the policy meets the legal requirements, is sound and is in general conformity.
+  The tests ticked here are saved with the response (_testsShown says the boxes were on the page,
+  so unticking them all is saved too).
+#}
+{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
+
+<input type="hidden" name="_testsShown" value="1" form="miq-response-form">
+
+{% set testItems = [] %}
+{% for test in compliance.tests %}
+  {% set testItems = (testItems.push({
+    value: test.id,
+    html: test.title + (' <strong class="govuk-tag govuk-tag--blue dlp-miq-card__tag">Raised by this question</strong>' if test.raised else ''),
+    hint: { text: test.description },
+    checked: test.addressed,
+    disabled: state.sent,
+    attributes: { form: "miq-response-form" }
+  }), testItems) %}
+{% endfor %}
+{{ govukCheckboxes({
+  idPrefix: "miq-tests",
+  name: "_tests",
+  classes: "govuk-checkboxes--small",
+  fieldset: { legend: { text: "Tests of soundness your response shows the plan meets", classes: "govuk-fieldset__legend--s" } },
+  hint: { text: "Tick each test your response deals with." },
+  items: testItems
+}) }}
+
+{% if compliance.requirements | length %}
+  <h3 class="govuk-heading-s">Legal requirements</h3>
+  <p class="govuk-body-s">From the Statement of compliance.</p>
+  <ul class="govuk-list dlp-miq-cards">
+    {% for requirement in compliance.requirements %}
+      <li class="dlp-miq-card">
+        <p class="govuk-body-s dlp-miq-card__title"><strong>{{ requirement.ref }}</strong> {{ requirement.title }}
+          <strong class="govuk-tag govuk-tag--green dlp-miq-card__tag">{{ requirement.status }}</strong></p>
+        <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link" href="{{ requirement.href }}">See the evidence<span class="govuk-visually-hidden"> for {{ requirement.ref }}</span></a></p>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+{% if compliance.sds | length %}
+  <h3 class="govuk-heading-s">General conformity with the London Plan</h3>
+  <p class="govuk-body-s">From the statement of general conformity with the spatial development strategy.</p>
+  <ul class="govuk-list dlp-miq-cards">
+    {% for policy in compliance.sds %}
+      <li class="dlp-miq-card">
+        <p class="govuk-body-s dlp-miq-card__title"><strong>{{ policy.ref }}</strong> {{ policy.title }}
+          <strong class="govuk-tag govuk-tag--{{ 'green' if policy.status == 'Addressed' else 'yellow' }} dlp-miq-card__tag">{{ policy.status }}</strong></p>
+        {% if policy.links | length %}<p class="govuk-body-s">Met by {{ policy.links | join(", ") }}</p>{% endif %}
+        {% if policy.comment %}<p class="govuk-body-s">{{ policy.comment }}</p>{% endif %}
+        <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link" href="{{ policy.href }}">See the conformity statement<span class="govuk-visually-hidden"> for {{ policy.ref }}</span></a></p>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+{% if not state.sent %}
+  {{ govukButton({ text: "Save", name: "_action", value: "save", classes: "govuk-button--secondary", attributes: { form: "miq-response-form" } }) }}
+{% endif %}

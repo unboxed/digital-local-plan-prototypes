@@ -1,0 +1,34 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% set pageName = "Council statement: Matter " + matter.id %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/plan/make/miqs/send">Back</a>
+
+    <div class="dlp-miq-preview">
+      <p class="dlp-miq-preview__label">The council’s hearing statement{% if not state.sent %}, as it will be sent{% endif %}</p>
+      <p class="govuk-caption-m">City Plan 2040 examination &middot; Response to {{ document.ref }}</p>
+      <h1 class="govuk-heading-l">City of London Corporation: hearing statement for Matter {{ matter.id }}, {{ matter.title }}</h1>
+      <p class="govuk-body">{{ matter.intro }}</p>
+
+      {% for issue in matter.issues %}
+        <h2 class="govuk-heading-m">Issue: {{ issue.title }}</h2>
+        {% for question in issue.questions %}
+          <h3 class="govuk-heading-s">Question {{ question.id }}</h3>
+          <p class="govuk-body dlp-miq-quote">{{ question.text }}</p>
+          {% if question.response.text %}
+            <div class="dlp-miq-response-text">{{ question.response.text }}</div>
+          {% else %}
+            <p class="govuk-body dlp-miq-muted">No response yet. <a class="govuk-link" href="{{ question.href }}">Write the response to question {{ question.id }}</a></p>
+          {% endif %}
+          {% if question.status == "In progress" %}
+            <p class="govuk-body-s dlp-miq-muted">This response is not marked as complete. <a class="govuk-link" href="{{ question.href }}">Finish question {{ question.id }}</a></p>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

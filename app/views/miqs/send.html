@@ -1,0 +1,72 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% set pageName = "View and send hearing statements" %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">Step 5 of 5</span>
+    <h1 class="govuk-heading-l">View and send hearing statements</h1>
+
+    {% if state.sent %}
+      <div class="govuk-panel govuk-panel--confirmation dlp-miq-panel">
+        <h2 class="govuk-panel__title govuk-!-font-size-27">Statements sent</h2>
+        <div class="govuk-panel__body govuk-!-font-size-19">Sent to {{ programmeOfficer }} on {{ state.sent.at }}</div>
+      </div>
+      {{ appHandoff({
+        text: "The programme officer passes the statements to " + inspector + ", who reads them before the hearings start on " + document.hearingsFrom + "."
+      }) }}
+    {% else %}
+      <p class="govuk-body">
+        The council’s statement for each matter goes to the programme officer, {{ programmeOfficer }},
+        with every participant’s hearing statement. You can send them when everything below is
+        complete. Once they are sent you cannot change them.
+      </p>
+    {% endif %}
+
+  </div>
+</div>
+
+{# The progress tracker, after Gateway 2 progress check: one row per part, with a status tag. #}
+<h2 class="govuk-heading-m">Progress</h2>
+<table class="govuk-table">
+  <caption class="govuk-table__caption govuk-visually-hidden">Progress towards sending the statements</caption>
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th class="govuk-table__header" scope="col">What is sent</th>
+      <th class="govuk-table__header" scope="col">Progress</th>
+      <th class="govuk-table__header" scope="col">Status</th>
+      <th class="govuk-table__header" scope="col"><span class="govuk-visually-hidden">Action</span></th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for row in rows %}
+      <tr class="govuk-table__row">
+        <td class="govuk-table__cell">{{ row.name }}</td>
+        <td class="govuk-table__cell govuk-body-s">{{ row.progress }}</td>
+        <td class="govuk-table__cell">{{ miqStatusTag(row.status) }}</td>
+        <td class="govuk-table__cell">
+          <a class="govuk-link" href="{{ row.href }}">{{ row.action }}<span class="govuk-visually-hidden">: {{ row.name }}</span></a>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if not state.sent %}
+  {% if allComplete and state.published %}
+    <form method="post" action="/plan/make/miqs/send" novalidate>
+      {{ govukButton({ text: "Send all statements" }) }}
+    </form>
+  {% else %}
+    <div class="govuk-grid-row">
+      <div class="govuk-grid-column-two-thirds">
+        <div class="govuk-inset-text">
+          You can send the statements once the MIQs are published and every matter’s statement is complete.
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

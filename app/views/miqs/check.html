@@ -1,0 +1,66 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% from "miqs/partials/macros.html" import miqDocument %}
+
+{% set pageName = "Check the hearing document" %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">Step 1 of 5</span>
+    <h1 class="govuk-heading-l">Check the hearing document</h1>
+
+    <dl class="govuk-summary-list">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Document</dt>
+        <dd class="govuk-summary-list__value">
+          {{ document.ref }} {{ document.title }}
+          <span class="govuk-body-s dlp-miq-muted govuk-!-display-block govuk-!-margin-bottom-1">{{ state.upload.fileName }}</span>
+          <ul class="govuk-list govuk-body-s govuk-!-margin-bottom-0">
+            <li><a class="govuk-link" href="/plan/make/miqs/document">View the whole document</a></li>
+            <li><a class="govuk-link" href="/plan/make/miqs/document#hearing-programme">View the hearing programme</a></li>
+          </ul>
+        </dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">From</dt>
+        <dd class="govuk-summary-list__value">{{ inspector }}, through the programme officer</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Received</dt>
+        <dd class="govuk-summary-list__value">{{ state.upload.at }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Hearings start</dt>
+        <dd class="govuk-summary-list__value">{{ document.hearingsFrom }}</dd>
+      </div>
+    </dl>
+
+    <p class="govuk-body">
+      We read <strong>{{ matters | length }} matters</strong>, <strong>{{ issueCount }} issues</strong> and
+      <strong>{{ questionCount }} questions</strong> from the document. Check the summary and which
+      policies have been linked to each question.
+    </p>
+
+    <div class="govuk-warning-text">
+      <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+      <strong class="govuk-warning-text__text">
+        <span class="govuk-visually-hidden">Warning</span>
+        AI generated: check the questions and their policies against the inspector’s document.
+      </strong>
+    </div>
+
+    {{ miqDocument(matters, { policies: true, changeHref: "/plan/make/miqs/check" }) }}
+
+    <form method="post" action="/plan/make/miqs/check" novalidate>
+      {% if state.confirmed %}
+        {{ govukButton({ text: "Continue" }) }}
+      {% else %}
+        {{ govukButton({ text: "Confirm and continue" }) }}
+      {% endif %}
+    </form>
+
+  </div>
+</div>
+{% endblock %}

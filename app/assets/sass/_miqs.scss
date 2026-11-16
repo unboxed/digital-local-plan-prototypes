@@ -1,0 +1,160 @@
+// Responding to the inspector's MIQs (app/views/miqs). See CLAUDE.md, "MIQs".
+
+.dlp-miq-muted {
+  color: $dlp-muted-text;
+}
+
+// --- The document: matters, issues and questions ------------------------------------------
+
+.dlp-miq-matter {
+  border-top: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+  padding-top: govuk-spacing(4);
+}
+
+.dlp-miq-matter__head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 govuk-spacing(4);
+  justify-content: space-between;
+}
+
+.dlp-miq-issue {
+  margin-top: govuk-spacing(4);
+}
+
+.dlp-miq-questions {
+  list-style: none;
+  margin: 0 0 govuk-spacing(4);
+  padding: 0;
+}
+
+.dlp-miq-questions__item {
+  border-left: 4px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(3);
+  padding-left: govuk-spacing(3);
+}
+
+.dlp-miq-questions__text {
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-miq-questions__number {
+  font-weight: $govuk-font-weight-bold;
+  margin-right: govuk-spacing(1);
+}
+
+.dlp-miq-questions__meta {
+  color: $dlp-muted-text;
+  margin-bottom: 0;
+}
+
+.dlp-miq-table__question {
+  width: 55%;
+}
+
+// --- As published: a framed page standing for the examination website ---------------------
+
+.dlp-miq-preview {
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(4);
+}
+
+.dlp-miq-preview__label {
+  @include govuk-font($size: 16, $weight: bold);
+  color: $dlp-muted-text;
+  margin: 0 0 govuk-spacing(3);
+  text-transform: uppercase;
+}
+
+.dlp-miq-quote {
+  border-left: 4px solid $dlp-border-grey;
+  font-style: italic;
+  padding-left: govuk-spacing(3);
+}
+
+// A response as written: keep the officer's paragraphs.
+.dlp-miq-response-text {
+  @include govuk-font($size: 19);
+  margin-bottom: govuk-spacing(4);
+  white-space: pre-wrap;
+}
+
+.dlp-miq-doc-list > li {
+  border-bottom: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(2) 0;
+}
+
+.dlp-miq-panel {
+  margin-bottom: govuk-spacing(4);
+}
+
+// --- The question workspace ------------------------------------------------------------------
+
+.dlp-miq-question-head {
+  align-items: flex-start;
+  display: flex;
+  gap: govuk-spacing(4);
+  justify-content: space-between;
+}
+
+.dlp-miq-question-text {
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-miq-split {
+  margin-top: govuk-spacing(4);
+}
+
+.dlp-miq-pane .govuk-textarea {
+  width: 100%;
+}
+
+.dlp-miq-pager {
+  display: flex;
+  gap: govuk-spacing(4);
+  justify-content: space-between;
+  margin-top: govuk-spacing(4);
+}
+
+.dlp-miq-cards {
+  margin-bottom: govuk-spacing(6);
+}
+
+.dlp-miq-card {
+  border: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(2);
+  padding: govuk-spacing(3);
+
+  .govuk-body-s:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.dlp-miq-card__title {
+  margin-bottom: govuk-spacing(1);
+}
+
+.dlp-miq-card__foot {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(1) govuk-spacing(3);
+  justify-content: space-between;
+}
+
+.dlp-miq-card__tag {
+  margin-left: govuk-spacing(1);
+  vertical-align: middle;
+}
+
+.dlp-miq-insert {
+  @include govuk-font($size: 16, $weight: bold);
+}
+
+.dlp-miq-theme {
+  border-top: 1px solid $dlp-border-grey;
+  padding-top: govuk-spacing(3);
+}

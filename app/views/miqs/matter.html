@@ -1,0 +1,20 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% set pageName = "Matter " + matter.id + ": " + matter.title %}
+
+{% block main %}
+<a class="govuk-back-link" href="/plan/make/miqs/responses">All matters</a>
+
+<span class="govuk-caption-l">Prepare the council’s responses</span>
+<h1 class="govuk-heading-l">Matter {{ matter.id }}: {{ matter.title }}</h1>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">{{ matter.intro }}</p>
+    <p class="govuk-body"><strong>{{ matter.progress.complete }} of {{ matter.progress.total }}</strong> questions answered.
+      <a class="govuk-link" href="/plan/make/miqs/statement/{{ matter.id }}">Preview the council’s statement for this matter</a></p>
+  </div>
+</div>
+
+{% include "miqs/partials/question-table.html" %}
+{% endblock %}
