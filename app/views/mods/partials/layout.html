@@ -1,0 +1,31 @@
+{#
+  Every page in the MODs prototype after the landing page: the sidebar layout, filled with the
+  sidebar the route builds (buildModsSidebar in app/routes.js), then the confirmation banner and
+  error summary when there is one. Pages extend this and fill in `main`.
+#}
+
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "partials/handoff/macro.njk" import appHandoff %}
+{% from "partials/tracked-text/macro.njk" import appTrackedText, appTrackedKey %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "mods/partials/macros.html" import modStatusTag, modTypeTag %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ title: "Manage modifications", sections: sidebarSections, ariaLabel: "Manage modifications" }) }}
+{% endblock %}
+
+{% block content %}
+  <div class="dlp-miq dlp-mods">
+    {% if errorList | length %}
+      {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+    {% endif %}
+    {% if flash %}
+      {{ govukNotificationBanner({ type: "success", text: flash }) }}
+    {% endif %}
+    {% block main %}{% endblock %}
+  </div>
+{% endblock %}

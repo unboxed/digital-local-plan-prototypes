@@ -1,0 +1,29 @@
+{# The plan's logged versions, in the Publish plan versions history table's format, oldest first. #}
+<div class="dlp-ppv-table-wrap">
+  <table class="govuk-table dlp-ppv-table">
+    <caption class="govuk-visually-hidden">Versions of the tracked changes plan, oldest first</caption>
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header">Version title</th>
+        <th scope="col" class="govuk-table__header">Version date</th>
+        <th scope="col" class="govuk-table__header">Published date</th>
+        <th scope="col" class="govuk-table__header">Exported by</th>
+        <th scope="col" class="govuk-table__header">Action</th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for version in versions %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">{{ version.title }}</td>
+          <td class="govuk-table__cell">{{ version.versionDate }}</td>
+          <td class="govuk-table__cell">
+            {% if version.published %}{{ version.published }}{% if version.closes %}<br><span class="dlp-ppv-muted">Consultation closed {{ version.closes }}</span>{% endif %}
+            {% else %}Not published<br><span class="dlp-ppv-muted">Shared internally {{ version.sharedAt }}</span>{% endif %}
+          </td>
+          <td class="govuk-table__cell">{{ version.exportedBy }}</td>
+          <td class="govuk-table__cell"><a class="govuk-link" href="/plan/make/mods/versions/{{ version.id }}">View version<span class="govuk-visually-hidden">: {{ version.title }}</span></a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

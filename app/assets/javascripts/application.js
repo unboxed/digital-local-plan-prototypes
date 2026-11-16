@@ -87,6 +87,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-copy-link]').forEach(safeInit(initCopyLink))
   document.querySelectorAll('[data-dlp-rich-text]').forEach(safeInit(initRichText))
   document.querySelectorAll('[data-dlp-insert-text]').forEach(safeInit(initInsertText))
+  document.querySelectorAll('[data-dlp-mod-preview]').forEach(safeInit(initModPreview))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2508,6 +2509,78 @@ function initInsertText (button) {
 document.addEventListener('focusin', event => {
   if (event.target && event.target.tagName === 'TEXTAREA') event.target.dataset.dlpInsertUsed = 'true'
 })
+
+// --- Tracked change preview (MODs drafting workspace) ----------------------------------------
+//
+// Redraws the tracked change under the proposed wording as it is typed. modDiff is the same
+// word-level comparison as modDiff in app/routes.js, which renders the preview on save, so the
+// two must change together; the markup matches partials/tracked-text/macro.njk. Built with
+// createElement and textContent only: the wording is user input.
+function modDiff (before, after) {
+  const tokens = text => (text || '').match(/\S+\s*/g) || []
+  const a = tokens(before)
+  const b = tokens(after)
+  const word = token => token.trim()
+  const table = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0))
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let j = b.length - 1; j >= 0; j--) {
+      table[i][j] = word(a[i]) === word(b[j]) ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1])
+    }
+  }
+  const segments = []
+  const push = (kind, text) => {
+    const last = segments[segments.length - 1]
+    if (last && last.kind === kind) last.text += text
+    else segments.push({ kind, text })
+  }
+  let i = 0
+  let j = 0
+  while (i < a.length && j < b.length) {
+    if (word(a[i]) === word(b[j])) { push('same', b[j]); i++; j++ } else if (table[i + 1][j] >= table[i][j + 1]) { push('del', a[i]); i++ } else { push('ins', b[j]); j++ }
+  }
+  while (i < a.length) { push('del', a[i]); i++ }
+  while (j < b.length) { push('ins', b[j]); j++ }
+  return segments
+}
+
+function initModPreview (root) {
+  const input = document.querySelector(root.getAttribute('data-dlp-mod-preview-input'))
+  const output = root.querySelector('[data-dlp-mod-preview-text]')
+  if (!input || !output) return
+  const note = root.querySelector('[data-dlp-mod-preview-note]')
+  const before = root.getAttribute('data-dlp-mod-before') || ''
+  const type = root.getAttribute('data-dlp-mod-type') || 'mm'
+  const ref = root.getAttribute('data-dlp-mod-ref') || ''
+  const typeName = root.getAttribute('data-dlp-mod-type-name') || ''
+  const hidden = text => {
+    const span = document.createElement('span')
+    span.className = 'govuk-visually-hidden'
+    span.textContent = text
+    return span
+  }
+  const render = () => {
+    output.textContent = ''
+    modDiff(before, input.value.replace(/\s+/g, ' ').trim()).forEach(segment => {
+      if (segment.kind === 'same') {
+        output.appendChild(document.createTextNode(segment.text))
+        return
+      }
+      const mark = document.createElement(segment.kind === 'ins' ? 'ins' : 'del')
+      mark.className = 'dlp-mod dlp-mod--' + type
+      mark.appendChild(hidden(ref + (segment.kind === 'ins' ? ' inserted: ' : ' deleted: ')))
+      mark.appendChild(document.createTextNode(segment.text))
+      output.appendChild(mark)
+    })
+    output.appendChild(document.createTextNode(' '))
+    const label = document.createElement('span')
+    label.className = 'dlp-mod-label dlp-mod-label--' + type
+    label.appendChild(hidden(typeName + ' '))
+    label.appendChild(document.createTextNode(ref))
+    output.appendChild(label)
+  }
+  if (note) note.textContent = 'Updates as you type.'
+  input.addEventListener('input', render)
+}
 
 // --- Select all, with a running count ------------------------------------------------------
 //

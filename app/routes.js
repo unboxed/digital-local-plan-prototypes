@@ -52,6 +52,7 @@ const MOVED_VIEWS = [
   ['/plan/make/policy-side-by-side', 'policy-writing-v2'],
   ['/plan/make/policy-writing', 'policy-writing'],
   ['/plan/make/miqs', 'miqs'],
+  ['/plan/make/mods', 'mods'],
   ['/plan/sources', 'evidence'],
   ['/plan/consultation', 'consultations'],
   ['/plan/view/gateway-2-progress-check', 'gateway-2-progress-check'],
@@ -138,7 +139,7 @@ const {
   getPolicyRefsForSource
 } = require('./data/policies.js')
 const { EVIDENCE_EXCERPTS } = require('./data/evidence-excerpts.js')
-const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES, POLICY_RESOURCES, POLICY_TEXT } = require('./data/plan-paragraphs.js')
+const { getParagraphsForPolicy, NATIONAL_POLICY_REFERENCES, POLICY_PARAGRAPHS, POLICY_RESOURCES, POLICY_TEXT } = require('./data/plan-paragraphs.js')
 const { POLICY_TEMPLATES, getPolicyTemplate } = require('./data/policy-templates.js')
 const { getEvidenceDocument } = require('./data/evidence-documents.js')
 const {
@@ -7573,7 +7574,7 @@ function miqStatuses (state) {
 
 function buildMiqSidebar (state, active, activeMatterId) {
   const statuses = miqStatuses(state)
-  const step = (key, text, href) => ({ text, href, status: statuses[key], active: active === key })
+  const step = (key, text, href) => ({ text, href, active: active === key })
   const responses = step('responses', 'Prepare responses', MIQ + '/responses')
   if (state.confirmed) {
     responses.children = MIQD.MATTERS.map(matter => ({
@@ -8108,6 +8109,590 @@ router.post(MIQ + '/send', (req, res) => {
 router.get(MIQ + '/history', (req, res) => {
   const state = getMiqs(req)
   renderMiq(req, res, 'history', 'history', {
+    entries: state.history.slice().reverse()
+  })
+})
+
+// --- MODs: managing main modifications (Make your plan) ---
+//
+// The authority's side of the main modifications: the inspector's post-hearing letter, drafting
+// each modification as a team, the schedule of modifications, a tracked changes version of the
+// plan with its versions (one published for consultation), then the consultation's comments and
+// sending them to the inspector.
+// The inspector and consultees only appear in "Prototype only" panels. See CLAUDE.md, "MODs".
+//
+// Everything is one object, req.session.data.mods, read only through getMods. A modification
+// stores only its proposed wording: the current wording is always read from POLICY_TEXT, and the
+// tracked change, the MM/AM numbers and every status and count are derived.
+
+const MODS = '/plan/make/mods'
+const MODS_SCHEMA_VERSION = 3
+const MODD = require('./data/mods.js')
+
+const MOD_TABS = [
+  { id: 'request', text: 'Inspector’s request' },
+  { id: 'comments', text: 'Comments' },
+  { id: 'evidence', text: 'Evidence' }
+]
+const MOD_STATUS_TEXT = { draft: 'Draft', review: 'Ready for review', agreed: 'Agreed' }
+const MOD_STATUS_ORDER = ['Not started', 'Draft', 'Ready for review', 'Agreed']
+const MOD_TYPE_NAMES = { MM: 'Main modification', AM: 'Additional modification' }
+const MOD_SHOW = ['all', 'mm', 'am', 'clean']
+
+function getMods (req) {
+  if (req.session.data.modsSchemaVersion !== MODS_SCHEMA_VERSION || !req.session.data.mods) {
+    req.session.data.mods = MODD.startingState()
+    req.session.data.modsSchemaVersion = MODS_SCHEMA_VERSION
+  }
+  return req.session.data.mods
+}
+
+function modsLog (state, action) {
+  state.history.push({ at: MODD.TODAY, actor: MODD.OFFICER, action })
+}
+
+function modsSetFlash (req, flash) { req.session.data.modsFlash = flash }
+
+// Every part of a policy that can be modified, in plan order: the supporting text, the
+// introduction, each clause and each lettered item. Keys read "S3.exp", "S3.intro", "S3.2",
+// "S3.2a". Built once, on first use, from POLICY_TEXT and POLICY_PARAGRAPHS.
+let MOD_PARTS = null
+function modParts () {
+  if (MOD_PARTS) return MOD_PARTS
+  const parts = []
+  MODD.POLICY_REFS.forEach(ref => {
+    const body = POLICY_TEXT[ref]
+    if (!body) return
+    const policy = miqFindPolicy(ref)
+    const add = (key, label, text) => parts.push({ key, ref, policyTitle: policy ? policy.title : ref, label, name: ref + ' ' + label, text, order: parts.length })
+    const paragraphs = POLICY_PARAGRAPHS[ref]
+    const supporting = paragraphs && paragraphs[0] && paragraphs[0].explanatoryText
+    if (supporting) add(ref + '.exp', 'supporting text', supporting)
+    if (body.intro) add(ref + '.intro', 'introduction', body.intro)
+    body.clauses.forEach((clause, index) => {
+      const number = index + 1
+      add(ref + '.' + number, 'clause ' + number, clause.text)
+      ;(clause.items || []).forEach((item, itemIndex) => {
+        const letter = String.fromCharCode(97 + itemIndex)
+        add(ref + '.' + number + letter, 'clause ' + number + '(' + letter + ')', item)
+      })
+    })
+  })
+  MOD_PARTS = parts
+  return parts
+}
+
+function modPart (key) {
+  return modParts().find(part => part.key === key) || null
+}
+
+// A word-level tracked change: the longest common run of words is kept, everything else is
+// deleted or inserted. Each word keeps the space after it. The same algorithm runs in the
+// browser for the live preview (modDiff in application.js): change the two together.
+function modTokens (text) {
+  return (text || '').match(/\S+\s*/g) || []
+}
+
+function modDiff (before, after) {
+  const a = modTokens(before)
+  const b = modTokens(after)
+  const word = token => token.trim()
+  const table = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0))
+  for (let i = a.length - 1; i >= 0; i--) {
+    for (let j = b.length - 1; j >= 0; j--) {
+      table[i][j] = word(a[i]) === word(b[j]) ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1])
+    }
+  }
+  const segments = []
+  const push = (kind, text) => {
+    const last = segments[segments.length - 1]
+    if (last && last.kind === kind) last.text += text
+    else segments.push({ kind, text })
+  }
+  let i = 0
+  let j = 0
+  while (i < a.length && j < b.length) {
+    if (word(a[i]) === word(b[j])) { push('same', b[j]); i++; j++ } else if (table[i + 1][j] >= table[i][j + 1]) { push('del', a[i]); i++ } else { push('ins', b[j]); j++ }
+  }
+  while (i < a.length) { push('del', a[i]); i++ }
+  while (j < b.length) { push('ins', b[j]); j++ }
+  return segments
+}
+
+function modChanged (segments) {
+  return segments.some(segment => segment.kind !== 'same')
+}
+
+function modFor (state, id) {
+  return state.modifications.find(item => item.id === id) || null
+}
+
+function modForTarget (state, target) {
+  return state.modifications.find(item => item.target === target) || null
+}
+
+function modForRequest (state, requestId) {
+  return state.modifications.find(item => item.requestId === requestId) || null
+}
+
+function modRequest (id) {
+  return MODD.REQUESTS.find(request => request.id === id) || null
+}
+
+// The schedule: every modification, plus each of the inspector's requests not drafted yet (so
+// the team can see what's missing), in plan order, numbered MM1… and AM1… in that order. Numbers
+// are never stored, so adding a modification to an earlier policy renumbers the ones after it,
+// as a real schedule is renumbered.
+function modsSchedule (state) {
+  const entries = state.modifications.map(item => ({ mod: item, request: item.requestId ? modRequest(item.requestId) : null, target: item.target, type: item.type }))
+  MODD.REQUESTS.forEach(request => {
+    if (!modForRequest(state, request.id)) entries.push({ mod: null, request, target: request.target, type: 'MM' })
+  })
+  entries.sort((x, y) => (modPart(x.target) || { order: 999 }).order - (modPart(y.target) || { order: 999 }).order)
+  const counters = { MM: 0, AM: 0 }
+  return entries.map(entry => {
+    counters[entry.type] += 1
+    const part = modPart(entry.target)
+    const before = part ? part.text : ''
+    const item = entry.mod
+    const segments = item ? modDiff(before, item.after) : [{ kind: 'same', text: before }]
+    const assignee = item ? MODD.teamMember(item.assignee) : null
+    return {
+      ref: entry.type + counters[entry.type],
+      type: entry.type,
+      typeName: MOD_TYPE_NAMES[entry.type],
+      part,
+      mod: item,
+      request: entry.request,
+      status: item ? MOD_STATUS_TEXT[item.status] : 'Not started',
+      segments,
+      changed: modChanged(segments),
+      reason: item ? item.reason : '',
+      assignee: assignee ? assignee.name : '',
+      openComments: item ? item.comments.filter(entryComment => !entryComment.resolved).length : 0,
+      href: item ? MODS + '/drafts/' + item.id : MODS + '/drafts/new?_request=' + entry.request.id
+    }
+  })
+}
+
+function buildModsSidebar (state, active) {
+  const step = (key, text, href) => ({ text, href, active: active === key })
+  return [
+    {
+      items: [
+        step('letter', 'Inspector’s suggested modifications', MODS + '/letter'),
+        step('drafts', 'Draft modifications', MODS + '/drafts'),
+        step('schedule', 'Schedule of modifications', MODS + '/schedule'),
+        step('plan', 'View and publish changes', MODS + '/plan'),
+        step('comments', 'View comments', MODS + '/comments')
+      ]
+    },
+    {
+      items: [{ text: 'History', href: MODS + '/history', active: active === 'history' }]
+    }
+  ]
+}
+
+function renderMods (req, res, view, active, locals) {
+  const state = getMods(req)
+  const errors = miqTake(req, 'modsErrors') || {}
+  res.render('mods/' + view, Object.assign({
+    state,
+    letter: MODD.LETTER,
+    officer: MODD.OFFICER,
+    errors,
+    errorList: Object.keys(errors).map(id => ({ text: errors[id], href: '#' + id })),
+    flash: miqTake(req, 'modsFlash'),
+    sidebarSections: buildModsSidebar(state, active)
+  }, locals))
+}
+
+function modsTouch (state, item) {
+  item.updatedAt = MODD.TODAY
+  item.updatedBy = MODD.OFFICER
+  state.lastChange = { at: MODD.TODAY, by: MODD.OFFICER }
+}
+
+// The schedule entry for a modification (for its MM/AM number), or null.
+function modsEntry (state, item) {
+  return modsSchedule(state).find(entry => entry.mod === item) || null
+}
+
+// --- Routes ---
+
+router.get(MODS, (req, res) => {
+  res.render('mods/index', { letter: MODD.LETTER })
+})
+
+// Start: reset to the examples.
+router.post(MODS + '/reset', (req, res) => {
+  getMods(req)
+  req.session.data.mods = MODD.startingState()
+  delete req.session.data.modsErrors
+  delete req.session.data.modsFlash
+  res.redirect(MODS + '/drafts')
+})
+
+// 1. The inspector's letter, with each request's state.
+router.get(MODS + '/letter', (req, res) => {
+  const state = getMods(req)
+  const schedule = modsSchedule(state)
+  const requests = MODD.REQUESTS.map(request => {
+    const entry = schedule.find(candidate => candidate.request === request)
+    const question = request.questionId ? MIQD.getQuestion(request.questionId) : null
+    return Object.assign({}, request, {
+      entry,
+      part: modPart(request.target),
+      matter: MIQD.getMatter(request.matterId),
+      question,
+      questionHref: question ? MIQ + '/responses/' + question.id : null
+    })
+  })
+  renderMods(req, res, 'letter', 'letter', { requests, inspector: MODD.INSPECTOR })
+})
+
+// 2. Draft modifications: the list, a new one, and the drafting workspace.
+router.get(MODS + '/drafts', (req, res) => {
+  const state = getMods(req)
+  const schedule = modsSchedule(state)
+  renderMods(req, res, 'drafts', 'drafts', {
+    drafts: schedule.filter(entry => entry.mod),
+    waiting: schedule.filter(entry => !entry.mod)
+  })
+})
+
+function modTargetGroups (state) {
+  const groups = []
+  modParts().forEach(part => {
+    let group = groups.find(candidate => candidate.ref === part.ref)
+    if (!group) {
+      group = { ref: part.ref, title: part.policyTitle, parts: [] }
+      groups.push(group)
+    }
+    const existing = modForTarget(state, part.key)
+    group.parts.push({ key: part.key, label: part.label, taken: Boolean(existing) })
+  })
+  return groups
+}
+
+function modFirstFreeTarget (state) {
+  const free = modParts().find(part => !modForTarget(state, part.key))
+  return (free || modParts()[0]).key
+}
+
+router.get(MODS + '/drafts/new', (req, res) => {
+  const state = getMods(req)
+  const request = modRequest(req.query._request)
+  if (request) {
+    const existing = modForRequest(state, request.id)
+    if (existing) return res.redirect(MODS + '/drafts/' + existing.id)
+  }
+  renderMods(req, res, 'new', 'drafts', {
+    request,
+    requestPart: request ? modPart(request.target) : null,
+    groups: modTargetGroups(state),
+    team: MODD.TEAM,
+    values: Object.assign({ target: modFirstFreeTarget(state), type: 'AM' }, miqTake(req, 'modsValues') || {})
+  })
+})
+
+router.post(MODS + '/drafts/new', (req, res) => {
+  const state = getMods(req)
+  let request = modRequest(req.body._request)
+  // Nothing is required: a missing choice falls back to the first free part and an additional
+  // modification, so the prototype never stops on a blank field.
+  let target = request ? request.target : miqText(req.body._target)
+  if (!modPart(target)) target = modFirstFreeTarget(state)
+  const type = request ? 'MM' : (req.body._type === 'MM' ? 'MM' : 'AM')
+  const assignee = MODD.teamMember(req.body._assignee) ? req.body._assignee : 'priya-shah'
+  const existing = modForTarget(state, target)
+  if (existing) {
+    modsSetFlash(req, 'There is already a modification to ' + modPart(target).name + ', so you can work on it here.')
+    return res.redirect(MODS + '/drafts/' + existing.id)
+  }
+  // A modification to a part the inspector asked about answers that request, so it is a main one.
+  if (!request) request = MODD.REQUESTS.find(candidate => candidate.target === target && !modForRequest(state, candidate.id)) || null
+  const part = modPart(target)
+  const created = {
+    id: 'm' + state.nextId,
+    type: request ? 'MM' : type,
+    requestId: request ? request.id : null,
+    target,
+    after: part.text,
+    reason: '',
+    status: 'draft',
+    assignee,
+    updatedAt: MODD.TODAY,
+    updatedBy: MODD.OFFICER,
+    comments: []
+  }
+  state.nextId += 1
+  state.modifications.push(created)
+  state.lastChange = { at: MODD.TODAY, by: MODD.OFFICER }
+  modsLog(state, 'Started ' + MOD_TYPE_NAMES[created.type].toLowerCase() + ' to ' + part.name)
+  res.redirect(MODS + '/drafts/' + created.id)
+})
+
+router.get(MODS + '/drafts/:modId', (req, res) => {
+  const state = getMods(req)
+  const item = modFor(state, req.params.modId)
+  if (!item) return res.redirect(MODS + '/drafts')
+  const tab = MOD_TABS.some(candidate => candidate.id === req.query._tab) ? req.query._tab : (item.requestId ? 'request' : 'comments')
+  const base = MODS + '/drafts/' + item.id
+  const part = modPart(item.target)
+  const entry = modsEntry(state, item)
+  const request = item.requestId ? modRequest(item.requestId) : null
+  const question = request && request.questionId ? MIQD.getQuestion(request.questionId) : null
+  const values = miqTake(req, 'modsValues') || {}
+  const after = values.after !== undefined ? values.after : item.after
+  const assignee = MODD.teamMember(item.assignee)
+  renderMods(req, res, 'draft', 'drafts', {
+    item,
+    entry,
+    part,
+    after,
+    reason: values.reason !== undefined ? values.reason : item.reason,
+    segments: modDiff(part.text, after),
+    statusText: MOD_STATUS_TEXT[item.status],
+    assigneeName: assignee ? assignee.name : '',
+    team: MODD.TEAM,
+    request,
+    matter: request ? MIQD.getMatter(request.matterId) : null,
+    question,
+    questionHref: question ? MIQ + '/responses/' + question.id : null,
+    evidence: miqEvidence([part.ref]),
+    tab,
+    base,
+    tabs: MOD_TABS.map(candidate => ({
+      text: candidate.id === 'comments' ? 'Comments (' + item.comments.filter(entryComment => !entryComment.resolved).length + ')' : candidate.text,
+      href: base + '?_tab=' + candidate.id + '#support',
+      active: candidate.id === tab
+    }))
+  })
+})
+
+router.post(MODS + '/drafts/:modId', (req, res) => {
+  const state = getMods(req)
+  const item = modFor(state, req.params.modId)
+  if (!item) return res.redirect(MODS + '/drafts')
+  const tab = MOD_TABS.some(candidate => candidate.id === req.body._tab) ? req.body._tab : 'request'
+  const back = MODS + '/drafts/' + item.id + '?_tab=' + tab
+  const part = modPart(item.target)
+  const action = typeof req.body._action === 'string' ? req.body._action : 'save'
+
+  if (action === 'remove') {
+    if (item.requestId) return res.redirect(back)
+    state.modifications = state.modifications.filter(candidate => candidate !== item)
+    state.lastChange = { at: MODD.TODAY, by: MODD.OFFICER }
+    modsLog(state, 'Removed the ' + MOD_TYPE_NAMES[item.type].toLowerCase() + ' to ' + part.name)
+    modsSetFlash(req, 'The modification to ' + part.name + ' has been removed')
+    return res.redirect(MODS + '/drafts')
+  }
+
+  // Every action saves what has been typed first.
+  const after = typeof req.body._after === 'string' ? req.body._after.replace(/\s+/g, ' ').trim() : item.after
+  const reason = typeof req.body._reason === 'string' ? req.body._reason.trim() : item.reason
+  const type = item.requestId ? 'MM' : (req.body._type === 'AM' || req.body._type === 'MM' ? req.body._type : item.type)
+  const assignee = MODD.teamMember(req.body._assignee) ? req.body._assignee : item.assignee
+  const edited = after !== item.after || reason !== item.reason || type !== item.type || assignee !== item.assignee
+  if (edited) {
+    item.after = after
+    item.reason = reason
+    item.type = type
+    item.assignee = assignee
+    modsTouch(state, item)
+  }
+
+  const label = MOD_TYPE_NAMES[item.type].toLowerCase() + ' to ' + part.name
+  if (action === 'ready' && item.status === 'draft') {
+    item.status = 'review'
+    modsTouch(state, item)
+    modsLog(state, 'Sent the ' + label + ' for review')
+    modsSetFlash(req, 'Sent for review')
+  } else if (action === 'agree' && item.status === 'review') {
+    item.status = 'agreed'
+    modsTouch(state, item)
+    modsLog(state, 'Agreed the ' + label)
+    modsSetFlash(req, 'The ' + label + ' is agreed')
+  } else if (action === 'reopen' && item.status !== 'draft') {
+    item.status = 'draft'
+    modsTouch(state, item)
+    modsLog(state, 'Reopened the ' + label)
+  } else if (action === 'comment') {
+    const text = miqText(req.body._comment)
+    if (!text) return res.redirect(MODS + '/drafts/' + item.id + '?_tab=comments')
+    item.comments.unshift({ id: 'c' + Date.now(), author: MODD.OFFICER, at: MODD.TODAY, text, resolved: false, replies: [] })
+    modsLog(state, 'Commented on the ' + label)
+    return res.redirect(MODS + '/drafts/' + item.id + '?_tab=comments#support')
+  } else if (action.startsWith('reply:')) {
+    const target = item.comments.find(candidate => candidate.id === action.slice(6))
+    const text = miqText(req.body['_reply-' + action.slice(6)])
+    if (target && text) {
+      target.replies.push({ author: MODD.OFFICER, at: MODD.TODAY, text })
+      modsLog(state, 'Replied to a comment on the ' + label)
+    }
+    return res.redirect(MODS + '/drafts/' + item.id + '?_tab=comments#comment-' + (target ? target.id : ''))
+  } else if (action.startsWith('resolve:')) {
+    const target = item.comments.find(candidate => candidate.id === action.slice(8))
+    if (target) {
+      target.resolved = true
+      modsLog(state, 'Resolved a comment on the ' + label)
+    }
+    return res.redirect(MODS + '/drafts/' + item.id + '?_tab=comments#support')
+  } else if (edited) {
+    modsSetFlash(req, 'Your changes have been saved')
+  }
+  res.redirect(back)
+})
+
+// 3. The schedule of modifications, with sticky filters.
+router.get(MODS + '/schedule', (req, res) => {
+  const state = getMods(req)
+  const schedule = modsSchedule(state)
+  const data = req.session.data
+  const filters = {
+    type: ['MM', 'AM'].includes(data.modType) ? data.modType : '',
+    policy: MODD.POLICY_REFS.includes(data.modPolicy) ? data.modPolicy : '',
+    status: MOD_STATUS_ORDER.includes(data.modStatus) ? data.modStatus : ''
+  }
+  const rows = schedule.filter(entry =>
+    (!filters.type || entry.type === filters.type) &&
+    (!filters.policy || (entry.part && entry.part.ref === filters.policy)) &&
+    (!filters.status || entry.status === filters.status))
+  renderMods(req, res, 'schedule', 'schedule', {
+    rows,
+    total: schedule.length,
+    filters,
+    counts: MOD_STATUS_ORDER.map(status => ({ status, count: schedule.filter(entry => entry.status === status).length })),
+    typeCounts: { MM: schedule.filter(entry => entry.type === 'MM').length, AM: schedule.filter(entry => entry.type === 'AM').length },
+    policies: MODD.POLICY_REFS.map(ref => ({ ref, title: (miqFindPolicy(ref) || {}).title || ref })),
+    statusOrder: MOD_STATUS_ORDER
+  })
+})
+
+// The plan's policies with full wording, each part shown with its modification marked, applied
+// without marks, or not at all, according to "Show". `modifications` is the working copy's or
+// a version's own copy; only the working copy's labels link to the drafts.
+function modsPlanPolicies (modifications, show, linked) {
+  const schedule = modsSchedule({ modifications })
+  const byTarget = {}
+  schedule.forEach(entry => { if (entry.mod) byTarget[entry.mod.target] = entry })
+  const policies = []
+  modParts().forEach(part => {
+    let policy = policies.find(candidate => candidate.ref === part.ref)
+    if (!policy) {
+      policy = { ref: part.ref, title: part.policyTitle, body: POLICY_TEXT[part.ref], parts: {}, counts: { MM: 0, AM: 0 } }
+      policies.push(policy)
+    }
+    const entry = byTarget[part.key]
+    const segments = entry ? entry.segments : [{ kind: 'same', text: part.text }]
+    const marked = Boolean(entry) && entry.changed && (show === 'all' || show === entry.type.toLowerCase())
+    if (entry && entry.changed) policy.counts[entry.type] += 1
+    policy.parts[part.key] = {
+      segments,
+      marked,
+      change: entry ? { ref: entry.ref, type: entry.type, typeName: entry.typeName, href: linked ? entry.href : null, agreed: entry.mod.status === 'agreed' } : null
+    }
+  })
+  return policies
+}
+
+function modsShow (req) {
+  return MOD_SHOW.includes(req.session.data.modShow) ? req.session.data.modShow : 'all'
+}
+
+function modVersion (state, id) {
+  return state.versions.find(item => item.id === id) || null
+}
+
+// 4. View and publish changes: the versions (as in Publish plan versions), then the current version of
+// the plan with the latest tracked changes. Publishing isn't built: the button is inert.
+router.get(MODS + '/plan', (req, res) => {
+  const state = getMods(req)
+  const show = modsShow(req)
+  renderMods(req, res, 'plan', 'plan', {
+    policies: modsPlanPolicies(state.modifications, show, true),
+    show,
+    versions: state.versions
+  })
+})
+
+// A logged version: the plan with that version's own modifications, read only.
+router.get(MODS + '/versions/:versionId', (req, res, next) => {
+  const state = getMods(req)
+  const version = modVersion(state, req.params.versionId)
+  if (!version) return next()
+  const show = modsShow(req)
+  renderMods(req, res, 'version', 'plan', {
+    version,
+    policies: modsPlanPolicies(version.modifications, show, false),
+    show
+  })
+})
+
+// The old step pages now live in View and publish changes and View comments.
+router.get(MODS + '/consult', (req, res) => res.redirect(MODS + '/plan'))
+router.get(MODS + '/responses', (req, res) => res.redirect(MODS + '/comments'))
+
+// 5. View comments: everyone who responded to the consultation version, then sending the
+// comments to the inspector (with a preview first). Viewing a response isn't built.
+function modsConsultation (state) {
+  const version = state.versions.find(item => item.published && item.closes) || null
+  if (!version) return null
+  const schedule = modsSchedule({ modifications: version.modifications }).filter(entry => entry.type === 'MM')
+  const respondents = []
+  schedule.forEach(entry => {
+    (MODD.RESPONSES[entry.part.key] || []).forEach(response => {
+      let respondent = respondents.find(candidate => candidate.id === response.consulteeId)
+      if (!respondent) {
+        const consultee = getCrConsultee(response.consulteeId)
+        respondent = { id: response.consulteeId, name: consultee ? consultee.name : response.consulteeId, refs: [] }
+        respondents.push(respondent)
+      }
+      respondent.refs.push(entry.ref)
+    })
+  })
+  respondents.sort((x, y) => x.name.localeCompare(y.name))
+  const rows = schedule.map(entry => {
+    const responses = MODD.RESPONSES[entry.part.key] || []
+    const counts = { Support: 0, Objection: 0, Neutral: 0 }
+    responses.forEach(response => { counts[response.type] += 1 })
+    return { ref: entry.ref, type: entry.type, part: entry.part, total: responses.length, counts }
+  })
+  return { version, respondents, rows, total: rows.reduce((sum, row) => sum + row.total, 0) }
+}
+
+router.get(MODS + '/comments', (req, res) => {
+  const state = getMods(req)
+  renderMods(req, res, 'comments', 'comments', {
+    consultation: modsConsultation(state),
+    inspector: MODD.INSPECTOR
+  })
+})
+
+router.get(MODS + '/comments/preview', (req, res) => {
+  const state = getMods(req)
+  const consultation = modsConsultation(state)
+  if (!consultation) return res.redirect(MODS + '/comments')
+  renderMods(req, res, 'comments-preview', 'comments', {
+    consultation,
+    inspector: MODD.INSPECTOR,
+    programmeOfficer: MODD.PROGRAMME_OFFICER
+  })
+})
+
+router.post(MODS + '/comments/send', (req, res) => {
+  const state = getMods(req)
+  if (!modsConsultation(state) || state.sent) return res.redirect(MODS + '/comments')
+  state.sent = { at: MODD.TODAY }
+  modsLog(state, 'Sent the consultation comments to the inspector')
+  modsSetFlash(req, 'The comments have been sent to the inspector')
+  res.redirect(MODS + '/comments#send')
+})
+
+router.get(MODS + '/history', (req, res) => {
+  const state = getMods(req)
+  renderMods(req, res, 'history', 'history', {
     entries: state.history.slice().reverse()
   })
 })

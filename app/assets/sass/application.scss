@@ -1424,5 +1424,8 @@ $dlp-confidence-low: govuk-colour("orange");
 // Responding to the inspector's MIQs. Uses the variables above, and policy-writing-v2's pane styles.
 @import "miqs";
 
+// Managing main modifications (app/views/mods)
+@import "mods";
+
 // The site's own pages: plan maker home and section pages.
 @import "site-structure";

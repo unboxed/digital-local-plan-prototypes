@@ -1,0 +1,165 @@
+{% extends "mods/partials/layout.html" %}
+
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+{% from "consultations/managing-responses/partials/macros.html" import crTabs %}
+
+{% set pageName = entry.ref + ": " + part.name %}
+{% set typeName = "Main modification" if item.type == "MM" else "Additional modification" %}
+{% set change = { ref: entry.ref, type: item.type, typeName: typeName } %}
+
+{#
+  The drafting workspace, after Policy drafting's draft page: the draft on the left and the
+  inspector's request, comments and evidence on the right, in the shared split pane. Everything
+  that changes the modification belongs to one form, #mod-form, in the draft pane. Buttons and
+  fields in the right-hand pane join it through form="mod-form", so pressing any of them also
+  saves what has been typed.
+#}
+
+{% block main %}
+
+<a class="govuk-back-link" href="/plan/make/mods/drafts">Draft modifications</a>
+
+<div class="dlp-miq-question-head">
+  <div>
+    <span class="govuk-caption-l">{{ typeName }} {{ entry.ref }}</span>
+    <h1 class="govuk-heading-l govuk-!-margin-bottom-2">{{ part.name }}</h1>
+    <p class="govuk-body-s dlp-miq-muted">{{ part.policyTitle }} &middot; Assigned to {{ assigneeName }} &middot; Last edited by {{ item.updatedBy }} on {{ item.updatedAt }}</p>
+  </div>
+  <div>{{ modStatusTag(statusText) }}</div>
+</div>
+
+<div class="dlp-split dlp-pd-split dlp-mod-split"
+     data-dlp-split
+     data-dlp-split-key="mod-draft-support"
+     data-dlp-split-min="30"
+     data-dlp-split-max="70"
+     data-dlp-split-default="55">
+
+  {# --- The draft --- #}
+  <section class="dlp-pw2-pane dlp-pd-pane" aria-labelledby="draft-heading" data-dlp-split-pane="draft">
+    <div class="dlp-pw2-pane__heading">
+      <h2 class="govuk-heading-s dlp-pw2-pane__title" id="draft-heading">Draft</h2>
+      <span class="dlp-pw2-pane__actions">
+        {# Inert, as in Policy drafting: a placeholder for inviting others into the draft. #}
+        <button type="button" class="dlp-pw2-pane__link" aria-disabled="true">Invite collaborators</button>
+        <button type="button" class="dlp-pw2-pane__link dlp-pw2-pane__reopen" data-dlp-split-reopen="support" hidden>
+          Show request and comments
+        </button>
+      </span>
+    </div>
+    <div class="dlp-pw2-pane__body">
+      <form method="post" action="{{ base }}" id="mod-form" novalidate>
+        <input type="hidden" name="_tab" value="{{ tab }}">
+        {# Enter in a field presses the first button in the form, so make that Save. #}
+        <button type="submit" name="_action" value="save" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Save</button>
+
+        <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Current wording</h3>
+        <p class="govuk-body dlp-mod-current">{{ part.text }}</p>
+
+          {{ govukTextarea({
+            id: "after",
+            name: "_after",
+            rows: 6,
+            value: after,
+            label: { text: "Proposed wording", classes: "govuk-label--s" },
+            hint: { text: "Edit the wording in place. Insertions and deletions are tracked for you." },
+            errorMessage: { text: errors.after } if errors.after
+          }) }}
+
+          <div class="dlp-mod-preview" data-dlp-mod-preview data-dlp-mod-preview-input="#after"
+               data-dlp-mod-before="{{ part.text }}" data-dlp-mod-type="{{ item.type | lower }}"
+               data-dlp-mod-ref="{{ entry.ref }}" data-dlp-mod-type-name="{{ typeName }}">
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Tracked change</h3>
+            <p class="govuk-body-s dlp-miq-muted govuk-!-margin-bottom-1" data-dlp-mod-preview-note>As last saved. Save to update it.</p>
+            <p class="govuk-body dlp-mod-preview__text" data-dlp-mod-preview-text>{{ appTrackedText(segments, { marked: true, change: change }) }}</p>
+          </div>
+
+          {% if not item.requestId %}
+            {{ govukRadios({
+              idPrefix: "type",
+              name: "_type",
+              classes: "govuk-radios--small govuk-radios--inline",
+              fieldset: { legend: { text: "Kind of modification", classes: "govuk-fieldset__legend--s" } },
+              items: [
+                { value: "AM", text: "Additional modification", checked: item.type == "AM" },
+                { value: "MM", text: "Main modification", checked: item.type == "MM" }
+              ]
+            }) }}
+          {% endif %}
+
+          {{ govukTextarea({
+            id: "reason",
+            name: "_reason",
+            rows: 2,
+            value: reason,
+            label: { text: "Reason for the change", classes: "govuk-label--s" },
+            hint: { text: "Shown in the schedule. For a main modification, say which test of soundness it meets." },
+            errorMessage: { text: errors.reason } if errors.reason
+          }) }}
+
+          <div class="govuk-form-group">
+            <label class="govuk-label govuk-label--s" for="assignee">Assigned to</label>
+            <select class="govuk-select" id="assignee" name="_assignee">
+              {% for member in team %}
+                <option value="{{ member.id }}" {%- if item.assignee == member.id %} selected{% endif %}>{{ member.name }}{% if loop.first %} (you){% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="govuk-button-group">
+            {% if item.status == "draft" %}
+              {{ govukButton({ text: "Save", name: "_action", value: "save", classes: "govuk-button--secondary" }) }}
+              {{ govukButton({ text: "Send for review", name: "_action", value: "ready" }) }}
+            {% elif item.status == "review" %}
+              {{ govukButton({ text: "Save", name: "_action", value: "save", classes: "govuk-button--secondary" }) }}
+              {{ govukButton({ text: "Mark as agreed", name: "_action", value: "agree" }) }}
+              {{ govukButton({ text: "Back to draft", name: "_action", value: "reopen", classes: "govuk-button--secondary" }) }}
+            {% else %}
+              {{ govukButton({ text: "Save", name: "_action", value: "save" }) }}
+              {{ govukButton({ text: "Reopen", name: "_action", value: "reopen", classes: "govuk-button--secondary" }) }}
+            {% endif %}
+          </div>
+          {% if not item.requestId %}
+            <p class="govuk-body-s"><button type="submit" name="_action" value="remove" class="dlp-link-button">Remove this modification</button></p>
+          {% endif %}
+      </form>
+    </div>
+  </section>
+
+  <div class="dlp-split__divider"
+       role="separator"
+       tabindex="0"
+       aria-orientation="vertical"
+       aria-label="Resize the draft and the request and comments panels"
+       aria-valuemin="30"
+       aria-valuemax="70"
+       aria-valuenow="55"
+       data-dlp-split-divider></div>
+
+  {# --- The request, comments and evidence --- #}
+  <section class="dlp-pw2-pane dlp-pd-pane" aria-labelledby="support-heading" data-dlp-split-pane="support" id="support">
+    <div class="dlp-pw2-pane__heading">
+      <h2 class="govuk-heading-s dlp-pw2-pane__title" id="support-heading">Request and comments</h2>
+      <span class="dlp-pw2-pane__actions">
+        <button type="button" class="dlp-pw2-pane__close" data-dlp-split-close="support">
+          <span aria-hidden="true">&#10005;</span>
+          <span class="govuk-visually-hidden">Close the request and comments panel</span>
+        </button>
+      </span>
+    </div>
+    <div class="dlp-pw2-pane__body">
+      {{ crTabs("About " + entry.ref, tabs) }}
+
+      {% if tab == "request" %}
+        {% include "mods/partials/tab-request.html" %}
+      {% elif tab == "comments" %}
+        {% include "mods/partials/tab-comments.html" %}
+      {% else %}
+        {% include "mods/partials/tab-evidence.html" %}
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+{% endblock %}

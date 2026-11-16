@@ -1,0 +1,66 @@
+{% extends "mods/partials/layout.html" %}
+
+{% set pageName = "Preview: comments for the inspector" %}
+
+{% block main %}
+<a class="govuk-back-link" href="/plan/make/mods/comments">Back to View comments</a>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">Preview</span>
+    <h1 class="govuk-heading-l">Comments for the inspector</h1>
+    <p class="govuk-body">This is what {{ inspector }} will receive, through the programme officer, {{ programmeOfficer }}.</p>
+
+    <dl class="govuk-summary-list">
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Consulted on</dt>
+        <dd class="govuk-summary-list__value"><a class="govuk-link" href="/plan/make/mods/versions/{{ consultation.version.id }}">{{ consultation.version.title }}</a></dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Consultation</dt>
+        <dd class="govuk-summary-list__value">{{ consultation.version.published }} to {{ consultation.version.closes }}</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Responses</dt>
+        <dd class="govuk-summary-list__value">{{ consultation.total }} comments from {{ consultation.respondents | length }} respondents, each in full</dd>
+      </div>
+      <div class="govuk-summary-list__row">
+        <dt class="govuk-summary-list__key">Also attached</dt>
+        <dd class="govuk-summary-list__value">The schedule of modifications</dd>
+      </div>
+    </dl>
+  </div>
+</div>
+
+<table class="govuk-table">
+  <caption class="govuk-table__caption govuk-table__caption--m">Comments by main modification</caption>
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Ref</th>
+      <th scope="col" class="govuk-table__header">Policy and paragraph</th>
+      <th scope="col" class="govuk-table__header govuk-table__header--numeric">Support</th>
+      <th scope="col" class="govuk-table__header govuk-table__header--numeric">Object</th>
+      <th scope="col" class="govuk-table__header govuk-table__header--numeric">Neutral</th>
+      <th scope="col" class="govuk-table__header govuk-table__header--numeric">Total</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for row in consultation.rows %}
+      <tr class="govuk-table__row">
+        <th scope="row" class="govuk-table__header">{{ modTypeTag(row.type, row.ref) }}</th>
+        <td class="govuk-table__cell">{{ row.part.name }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric">{{ row.counts.Support }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric">{{ row.counts.Objection }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric">{{ row.counts.Neutral }}</td>
+        <td class="govuk-table__cell govuk-table__cell--numeric">{{ row.total }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if not state.sent %}
+  <form method="post" action="/plan/make/mods/comments/send" novalidate>
+    {{ govukButton({ text: "Send to inspector" }) }}
+  </form>
+{% endif %}
+{% endblock %}
