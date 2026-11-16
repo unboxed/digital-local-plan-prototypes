@@ -1,0 +1,144 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
+{% from "partials/policy-text/macro.njk" import appPolicyText %}
+{% from "consultations/managing-responses/partials/macros.html" import crTabs %}
+
+{% set pageName = "Question " + question.id %}
+{% set base = "/plan/make/miqs/responses/" + question.id %}
+{% set locked = state.sent %}
+
+{#
+  Everything that changes the response belongs to one form, #miq-response-form, in the response
+  pane. Buttons and checkboxes in the support panel (the tab partials) join it through
+  form="miq-response-form", so pressing any of them also saves what has been typed.
+#}
+
+{% block main %}
+
+<a class="govuk-back-link" href="/plan/make/miqs/responses/matters/{{ matter.id }}">Matter {{ matter.id }}: {{ matter.title }}</a>
+
+<div class="dlp-miq-question-head">
+  <div>
+    <span class="govuk-caption-l">Matter {{ matter.id }}: {{ matter.title }}</span>
+    <h1 class="govuk-heading-l">Question {{ question.id }}</h1>
+  </div>
+  <div>{{ miqStatusTag(status) }}</div>
+</div>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body-s dlp-miq-muted govuk-!-margin-bottom-1">Issue: {{ issue.title }}</p>
+    <p class="govuk-body-l dlp-miq-question-text">{{ question.text }}</p>
+
+    <details class="govuk-details">
+      <summary class="govuk-details__summary">
+        <span class="govuk-details__summary-text">
+          {% if policies | length %}Policies this question is about: {% for policy in policies %}{{ policy.ref }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}This question is not about a particular policy{% endif %}
+        </span>
+      </summary>
+      <div class="govuk-details__text">
+        {% for policy in policies %}
+          <h2 class="govuk-heading-s">{{ policy.ref }} {{ policy.title }}</h2>
+          {% if policy.text %}
+            {{ appPolicyText(policy.text) }}
+          {% else %}
+            <p class="govuk-body">{{ policy.summary }}</p>
+          {% endif %}
+        {% else %}
+          <p class="govuk-body">This question is about how the plan was prepared. Use the legal compliance and soundness tab.</p>
+        {% endfor %}
+        <p class="govuk-body-s"><a class="govuk-link" href="/plan/make/miqs/check/{{ question.id }}">Change the policies for this question</a></p>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="dlp-split dlp-miq-split"
+     data-dlp-split
+     data-dlp-split-key="miq-response-support"
+     data-dlp-split-min="30"
+     data-dlp-split-max="70"
+     data-dlp-split-default="45">
+
+  {# --- The response --- #}
+  <section class="dlp-pw2-pane dlp-miq-pane" aria-labelledby="response-heading" data-dlp-split-pane="response">
+    <div class="dlp-pw2-pane__heading">
+      <h2 class="govuk-heading-s dlp-pw2-pane__title" id="response-heading">The council’s response</h2>
+      <button type="button" class="dlp-pw2-pane__link dlp-pw2-pane__reopen" data-dlp-split-reopen="support" hidden>
+        Show evidence and compliance
+      </button>
+    </div>
+    <div class="dlp-pw2-pane__body">
+      <form method="post" action="{{ base }}" id="miq-response-form" novalidate>
+        <input type="hidden" name="_tab" value="{{ tab }}">
+        {% if locked %}
+          <div class="govuk-inset-text">This response was sent to the programme officer on {{ state.sent.at }}, so it can no longer be changed.</div>
+          <div class="dlp-miq-response-text">{{ responseText }}</div>
+        {% else %}
+          {{ govukTextarea({
+            id: "response",
+            name: "_response",
+            rows: 14,
+            value: responseText,
+            label: { text: "Response to question " + question.id, classes: "govuk-label--s" },
+            hint: { text: "Answer the question directly, then refer to the evidence. Use the panel to add references and the summary." },
+            errorMessage: { text: errors.response } if errors.response
+          }) }}
+          <p class="govuk-body-s dlp-miq-muted" data-dlp-insert-status aria-live="polite"></p>
+          <div class="govuk-button-group">
+            {% if response.complete %}
+              {{ govukButton({ text: "Save", name: "_action", value: "save" }) }}
+              {{ govukButton({ text: "Reopen", name: "_action", value: "reopen", classes: "govuk-button--secondary" }) }}
+            {% else %}
+              {{ govukButton({ text: "Save", name: "_action", value: "save", classes: "govuk-button--secondary" }) }}
+              {{ govukButton({ text: "Mark as complete", name: "_action", value: "complete" }) }}
+            {% endif %}
+          </div>
+        {% endif %}
+      </form>
+
+      <nav class="dlp-miq-pager" aria-label="Other questions">
+        {% if previous %}<a class="govuk-link" href="/plan/make/miqs/responses/{{ previous.id }}?_tab={{ tab }}">Previous: question {{ previous.id }}</a>{% endif %}
+        {% if next %}<a class="govuk-link" href="/plan/make/miqs/responses/{{ next.id }}?_tab={{ tab }}">Next: question {{ next.id }}</a>{% endif %}
+      </nav>
+    </div>
+  </section>
+
+  <div class="dlp-split__divider"
+       role="separator"
+       tabindex="0"
+       aria-orientation="vertical"
+       aria-label="Resize the response and support panels"
+       aria-valuemin="30"
+       aria-valuemax="70"
+       aria-valuenow="45"
+       data-dlp-split-divider></div>
+
+  {# --- What supports it: one tab per need --- #}
+  <section class="dlp-pw2-pane dlp-miq-pane" aria-labelledby="support-heading" data-dlp-split-pane="support" id="support">
+    <div class="dlp-pw2-pane__heading">
+      <h2 class="govuk-heading-s dlp-pw2-pane__title" id="support-heading">Evidence and compliance</h2>
+      <span class="dlp-pw2-pane__actions">
+        <button type="button" class="dlp-pw2-pane__close" data-dlp-split-close="support">
+          <span aria-hidden="true">&#10005;</span>
+          <span class="govuk-visually-hidden">Close the evidence and compliance panel</span>
+        </button>
+      </span>
+    </div>
+    <div class="dlp-pw2-pane__body">
+      {{ crTabs("Evidence and compliance for question " + question.id, tabs) }}
+
+      {% if tab == "evidence" %}
+        {% include "miqs/partials/tab-evidence.html" %}
+      {% elif tab == "summary" %}
+        {% include "miqs/partials/tab-summary.html" %}
+      {% else %}
+        {% include "miqs/partials/tab-soundness.html" %}
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+{% endblock %}

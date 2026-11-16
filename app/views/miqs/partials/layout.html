@@ -1,0 +1,32 @@
+{#
+  Every page in the MIQs prototype after the landing page: the sidebar layout, filled with the
+  sidebar the route builds (buildMiqSidebar in app/routes.js), then the confirmation banner and
+  error summary when there is one. Pages extend this and fill in `main`.
+#}
+
+{% extends "layouts/main-with-sidebar.html" %}
+
+{% from "partials/side-navigation/macro.njk" import appSideNavigation %}
+{% from "partials/icons/status-icon.html" import statusIcon %}
+{% from "partials/handoff/macro.njk" import appHandoff %}
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/notification-banner/macro.njk" import govukNotificationBanner %}
+{% from "govuk/components/tag/macro.njk" import govukTag %}
+{% from "miqs/partials/macros.html" import miqStatusTag, miqPolicyList %}
+
+{% block sideNavigation %}
+  {{ appSideNavigation({ title: "Matters, issues and questions", sections: sidebarSections, ariaLabel: "MIQ tasks" }) }}
+{% endblock %}
+
+{% block content %}
+  <div class="dlp-miq">
+    {% if errorList | length %}
+      {{ govukErrorSummary({ titleText: "There is a problem", errorList: errorList }) }}
+    {% endif %}
+    {% if flash %}
+      {{ govukNotificationBanner({ type: "success", text: flash }) }}
+    {% endif %}
+    {% block main %}{% endblock %}
+  </div>
+{% endblock %}

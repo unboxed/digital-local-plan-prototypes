@@ -51,6 +51,7 @@ const MOVED_VIEWS = [
   ['/plan/make/policy-drafting', 'policy-writing-drafting'],
   ['/plan/make/policy-side-by-side', 'policy-writing-v2'],
   ['/plan/make/policy-writing', 'policy-writing'],
+  ['/plan/make/miqs', 'miqs'],
   ['/plan/sources', 'evidence'],
   ['/plan/consultation', 'consultations'],
   ['/plan/view/gateway-2-progress-check', 'gateway-2-progress-check'],
@@ -7452,6 +7453,663 @@ router.get('/plan/view/adopted-plan/policies/:slug', (req, res) => {
     backHref,
     examinationLibraryHref: PUB_EXAMINATION_LIBRARY
   }, pubAdoptedPlanLocals()))
+})
+
+// --- MIQs: responding to the inspector's matters, issues and questions (Make your plan) ---
+//
+// The authority's side of the MIQs workflow: receive the inspector's document, check what was
+// read from it, publish it, receive hearing statements, prepare a response to every question,
+// and send everything to the programme officer. The inspector and
+// participants only appear in "Prototype only" panels. See CLAUDE.md, "MIQs".
+//
+// Everything is one object, req.session.data.miqs, read only through getMiqs. Every status and
+// count is derived from it (miqStatuses, miqQuestionStatus), never stored.
+
+const MIQ = '/plan/make/miqs'
+const MIQS_SCHEMA_VERSION = 4
+const MIQD = require('./data/miqs.js')
+
+const MIQ_TABS = [
+  { id: 'evidence', text: 'Evidence and representations' },
+  { id: 'summary', text: 'Summary' },
+  { id: 'soundness', text: 'Legal compliance and soundness' }
+]
+
+function getMiqs (req) {
+  if (req.session.data.miqsSchemaVersion !== MIQS_SCHEMA_VERSION || !req.session.data.miqs) {
+    req.session.data.miqs = MIQD.startingState('drafting')
+    req.session.data.miqsSchemaVersion = MIQS_SCHEMA_VERSION
+  }
+  return req.session.data.miqs
+}
+
+function miqToday () {
+  return new Date().toLocaleDateString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function miqLog (state, action) {
+  state.history.push({ at: miqToday(), actor: MIQD.OFFICER, action })
+}
+
+function miqText (value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+// Errors and the one-line confirmation survive the redirect in session data, and are cleared
+// as soon as they're shown.
+function miqSetErrors (req, errors) { req.session.data.miqsErrors = errors }
+function miqSetFlash (req, flash) { req.session.data.miqsFlash = flash }
+
+function miqTake (req, key) {
+  const value = req.session.data[key]
+  delete req.session.data[key]
+  return value
+}
+
+// A question's policies: what was read from the document, unless the officer corrected them.
+function miqPolicyRefs (state, question) {
+  return state.linkOverrides[question.id] || question.policies
+}
+
+// Any policy in the plan. (getPolicy only returns the ones with a full summary page.)
+function miqFindPolicy (ref) {
+  return POLICIES.find(policy => policy.ref === ref) || null
+}
+
+function miqPolicyView (ref) {
+  const policy = miqFindPolicy(ref)
+  return {
+    ref,
+    title: policy ? policy.title : ref,
+    summary: policy ? policy.summary : '',
+    text: POLICY_TEXT[ref] || null
+  }
+}
+
+function miqResponse (state, questionId) {
+  return state.responses[questionId] || { text: '', complete: false, tests: [] }
+}
+
+function miqQuestionStatus (state, questionId) {
+  const response = miqResponse(state, questionId)
+  if (response.complete) return 'Completed'
+  if (miqText(response.text)) return 'In progress'
+  return 'Not started'
+}
+
+function miqMatterProgress (state, matter) {
+  const ids = []
+  matter.issues.forEach(issue => issue.questions.forEach(question => ids.push(question.id)))
+  const complete = ids.filter(id => miqQuestionStatus(state, id) === 'Completed').length
+  const started = ids.filter(id => miqQuestionStatus(state, id) !== 'Not started').length
+  let status = 'Not started'
+  if (complete === ids.length) status = 'Completed'
+  else if (started) status = 'In progress'
+  return { total: ids.length, complete, status }
+}
+
+function miqAllComplete (state) {
+  return MIQD.QUESTIONS.every(question => miqQuestionStatus(state, question.id) === 'Completed')
+}
+
+// One status per step. A step that can't start until an earlier one is done has no status
+// (null), so the sidebar shows no icon for it rather than a lock, by design request.
+function miqStatuses (state) {
+  const matters = MIQD.MATTERS.map(matter => miqMatterProgress(state, matter))
+  const anyStarted = matters.some(progress => progress.status !== 'Not started')
+  const allComplete = miqAllComplete(state)
+  let statements = null
+  if (state.published) statements = state.sent ? 'Completed' : (state.statements.length ? 'In progress' : 'Not started')
+  let responses = null
+  if (state.confirmed) responses = allComplete ? 'Completed' : (anyStarted ? 'In progress' : 'Not started')
+  return {
+    receive: state.confirmed ? 'Completed' : 'Not started',
+    publish: state.published ? 'Completed' : (state.confirmed ? 'Not started' : null),
+    statements,
+    responses,
+    send: state.sent ? 'Completed' : (allComplete && state.published ? 'Not started' : null)
+  }
+}
+
+function buildMiqSidebar (state, active, activeMatterId) {
+  const statuses = miqStatuses(state)
+  const step = (key, text, href) => ({ text, href, status: statuses[key], active: active === key })
+  const responses = step('responses', 'Prepare responses', MIQ + '/responses')
+  if (state.confirmed) {
+    responses.children = MIQD.MATTERS.map(matter => ({
+      text: 'Matter ' + matter.id + ': ' + matter.title,
+      href: MIQ + '/responses/matters/' + matter.id,
+      status: miqMatterProgress(state, matter).status,
+      active: matter.id === activeMatterId
+    }))
+    if (activeMatterId) responses.active = false
+  }
+  return [
+    {
+      items: [
+        step('receive', 'Check the hearing document', MIQ + '/check'),
+        step('publish', 'Publish on website', MIQ + '/publish'),
+        step('statements', 'Hearing statements received', MIQ + '/statements'),
+        responses,
+        step('send', 'View and send hearing statements', MIQ + '/send')
+      ]
+    },
+    {
+      items: [{ text: 'History', href: MIQ + '/history', active: active === 'history' }]
+    }
+  ]
+}
+
+// The document's structure with each question's current policies, status and statements.
+function miqMatterViews (state) {
+  return MIQD.MATTERS.map(matter => Object.assign({}, matter, {
+    progress: miqMatterProgress(state, matter),
+    href: MIQ + '/responses/matters/' + matter.id,
+    issues: matter.issues.map(issue => Object.assign({}, issue, {
+      questions: issue.questions.map(question => ({
+        id: question.id,
+        text: question.text,
+        href: MIQ + '/responses/' + question.id,
+        policies: miqPolicyRefs(state, question).map(miqPolicyView),
+        status: miqQuestionStatus(state, question.id),
+        response: miqResponse(state, question.id),
+        statementCount: state.statements.filter(statement => statement.questions.includes(question.id)).length
+      }))
+    }))
+  }))
+}
+
+function miqStatementView (statement) {
+  const consultee = getCrConsultee(statement.consulteeId)
+  return Object.assign({}, statement, {
+    consulteeName: consultee ? consultee.name : statement.consulteeId,
+    respondentType: consultee ? consultee.type : ''
+  })
+}
+
+function renderMiq (req, res, view, active, locals) {
+  const state = getMiqs(req)
+  const errors = miqTake(req, 'miqsErrors') || {}
+  res.render('miqs/' + view, Object.assign({
+    state,
+    statuses: miqStatuses(state),
+    document: MIQD.MIQ_DOCUMENT,
+    officer: MIQD.OFFICER,
+    errors,
+    errorList: Object.keys(errors).map(id => ({ text: errors[id], href: '#' + id })),
+    flash: miqTake(req, 'miqsFlash'),
+    sidebarSections: buildMiqSidebar(state, active, locals && locals.activeMatterId)
+  }, locals))
+}
+
+// --- The four kinds of support for a question (the question workspace's tabs) ---
+
+// Evidence for the question's policies: the policy's own resources first (the real SHMA for
+// S3), then the excerpts that support the most of its policies.
+function miqEvidence (refs) {
+  const seen = new Set()
+  const items = []
+  const add = (source, ref, text, policyRefs) => {
+    const key = source + '|' + ref
+    if (seen.has(key)) return
+    seen.add(key)
+    items.push({ source, ref, text, policyRefs: policyRefs.filter(policyRef => refs.includes(policyRef)), citation: '(' + source + ', ' + ref.charAt(0).toLowerCase() + ref.slice(1) + ')' })
+  }
+  refs.forEach(ref => {
+    const resources = POLICY_RESOURCES[ref]
+    if (resources && resources.evidence) resources.evidence.forEach(item => add(item.title, item.ref, item.text, [ref]))
+  })
+  EVIDENCE_EXCERPTS
+    .map(excerpt => ({ excerpt, score: excerpt.policyRefs.filter(ref => refs.includes(ref)).length }))
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .forEach(entry => add(entry.excerpt.source, entry.excerpt.ref, entry.excerpt.text, entry.excerpt.policyRefs))
+  return items.slice(0, 8)
+}
+
+function miqThemes (refs) {
+  return CR_THEMES.filter(theme => theme.policies.some(ref => refs.includes(ref)))
+}
+
+function miqRepresentations (refs) {
+  const reps = getCrRepresentations().filter(rep => refs.includes(rep.policyRef))
+  const counts = { Objection: 0, Support: 0, Neutral: 0 }
+  reps.forEach(rep => { counts[rep.commentType] = (counts[rep.commentType] || 0) + 1 })
+  // Objections first, then the rest, so the story starts with what has to be answered.
+  const order = { Objection: 0, Neutral: 1, Support: 2 }
+  const listed = reps.slice().sort((a, b) => order[a.commentType] - order[b.commentType]).slice(0, 6)
+  return { total: reps.length, counts, listed }
+}
+
+function miqCompliance (req, state, question, refs) {
+  const response = miqResponse(state, question.id)
+  const sdsState = getSdsConformity(req)
+  return {
+    tests: MIQD.SOUNDNESS_TESTS.map(test => Object.assign({}, test, {
+      raised: question.tests.includes(test.id),
+      addressed: response.tests.includes(test.id)
+    })),
+    requirements: question.compliance.map(ref => {
+      const requirement = getRequirement(ref)
+      return {
+        ref,
+        title: requirement ? requirement.title : '',
+        status: getRequirementStatus(ref, 'completed'),
+        href: '/plan/view/statement-of-compliance/completed/requirements/' + encodeURIComponent(ref)
+      }
+    }),
+    sds: question.sds.map(ref => {
+      const sdsPolicy = SDSC.getSdsPolicy(ref)
+      const entry = sdsState.policies[ref] || {}
+      return {
+        ref,
+        title: sdsPolicy ? sdsPolicy.title : '',
+        status: SDSC.getStatus(entry),
+        links: entry.links || [],
+        comment: entry.comment || '',
+        href: sdsPolicyHref(ref)
+      }
+    }),
+    policies: refs.map(miqPolicyView)
+  }
+}
+
+// What an "insert" button adds to the response: a citation for a piece of evidence, the
+// summary, or a reference to a participant's hearing statement. Worked out on the server from
+// the same lists the page shows, so the no-JavaScript path inserts exactly what the button says.
+function miqInsertText (state, question, key) {
+  const refs = miqPolicyRefs(state, question)
+  if (key === 'summary') return question.summary.evidence + ' ' + question.summary.issues
+  if (key.startsWith('ev:')) {
+    const item = miqEvidence(refs)[Number(key.slice(3))]
+    return item ? item.citation : ''
+  }
+  if (key.startsWith('st:')) {
+    const statement = state.statements.find(candidate => candidate.id === key.slice(3))
+    return statement ? '(' + miqStatementView(statement).consulteeName + ', hearing statement)' : ''
+  }
+  return ''
+}
+
+function miqAppend (text, addition) {
+  const base = (text || '').replace(/\s+$/, '')
+  if (!addition) return base
+  return base ? base + ' ' + addition : addition
+}
+
+// --- Routes ---
+
+router.get(MIQ, (req, res) => {
+  res.render('miqs/index', { document: MIQD.MIQ_DOCUMENT })
+})
+
+const MIQ_STARTS = {
+  received: MIQ + '/check',
+  drafting: MIQ + '/responses',
+  ready: MIQ + '/send'
+}
+
+router.post(MIQ + '/reset', (req, res) => {
+  const stage = MIQ_STARTS[req.body._stage] ? req.body._stage : 'received'
+  getMiqs(req)
+  req.session.data.miqs = MIQD.startingState(stage)
+  delete req.session.data.miqsErrors
+  delete req.session.data.miqsFlash
+  res.redirect(MIQ_STARTS[stage])
+})
+
+// 1. The MIQ document has arrived (the prototype assumes so: every starting state has it).
+// Check what was read from it. /receive was the upload page; it now goes to the check.
+
+router.get(MIQ + '/receive', (req, res) => res.redirect(MIQ + '/check'))
+
+router.get(MIQ + '/check', (req, res) => {
+  const state = getMiqs(req)
+  renderMiq(req, res, 'check', 'receive', {
+    inspector: MIQD.INSPECTOR,
+    matters: miqMatterViews(state),
+    questionCount: MIQD.QUESTIONS.length,
+    issueCount: MIQD.MATTERS.reduce((total, matter) => total + matter.issues.length, 0)
+  })
+})
+
+router.post(MIQ + '/check', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.confirmed) {
+    state.confirmed = true
+    miqLog(state, 'Checked the matters, issues and questions and their policies')
+  }
+  miqSetFlash(req, 'The matters, issues and questions have been checked')
+  res.redirect(state.published ? MIQ + '/responses' : MIQ + '/publish')
+})
+
+// The whole document as the inspector sent it: introduction, hearing programme, then the
+// matters, issues and questions. "View the hearing programme" links to its section.
+router.get(MIQ + '/document', (req, res) => {
+  const state = getMiqs(req)
+  renderMiq(req, res, 'document', 'receive', {
+    matters: miqMatterViews(state),
+    programme: MIQD.HEARING_PROGRAMME,
+    inspector: MIQD.INSPECTOR
+  })
+})
+
+router.param('miqQuestionId', (req, res, next, id) => {
+  const question = MIQD.getQuestion(id)
+  if (!question) return res.redirect(MIQ + '/responses')
+  req.miqQuestion = question
+  next()
+})
+
+router.get(MIQ + '/check/:miqQuestionId', (req, res) => {
+  const state = getMiqs(req)
+  const question = req.miqQuestion
+  const refs = miqPolicyRefs(state, question)
+  renderMiq(req, res, 'check-policies', 'receive', {
+    question,
+    matter: MIQD.getMatter(question.matterId),
+    policies: refs.map(miqPolicyView),
+    candidates: POLICIES.filter(policy => !refs.includes(policy.ref)),
+    changed: Boolean(state.linkOverrides[question.id])
+  })
+})
+
+// `_action` is add, remove:<ref>, reset or done. A visually hidden "Add" comes first in the
+// form, so pressing Enter in the select doesn't press a Remove.
+router.post(MIQ + '/check/:miqQuestionId', (req, res) => {
+  const state = getMiqs(req)
+  const question = req.miqQuestion
+  const action = String(req.body._action || 'add')
+  const back = MIQ + '/check/' + question.id
+  let refs = miqPolicyRefs(state, question).slice()
+  if (action === 'done') return res.redirect(MIQ + '/check#question-' + question.id.replace('.', '-'))
+  if (action === 'reset') {
+    delete state.linkOverrides[question.id]
+    return res.redirect(back)
+  }
+  if (action.startsWith('remove:')) {
+    refs = refs.filter(ref => ref !== action.slice(7))
+  } else {
+    const ref = miqText(req.body._policy)
+    if (!miqFindPolicy(ref)) {
+      miqSetErrors(req, { 'miq-policy': 'Select a policy to add' })
+      return res.redirect(back)
+    }
+    if (!refs.includes(ref)) refs.push(ref)
+  }
+  state.linkOverrides[question.id] = refs
+  res.redirect(back)
+})
+
+// 2. Publish the MIQs on the examination website, with a deadline for hearing statements.
+
+router.get(MIQ + '/publish', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.confirmed) return res.redirect(MIQ + '/check')
+  const values = req.session.data.miqsDeadlineValues || (state.published ? state.published.deadlineParts : MIQD.MIQ_DOCUMENT.defaultDeadline)
+  delete req.session.data.miqsDeadlineValues
+  renderMiq(req, res, 'publish', 'publish', { matters: miqMatterViews(state), deadline: values })
+})
+
+router.post(MIQ + '/publish', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.confirmed) return res.redirect(MIQ + '/check')
+  const parts = {
+    day: miqText(req.body['_deadline-day']),
+    month: miqText(req.body['_deadline-month']),
+    year: miqText(req.body['_deadline-year'])
+  }
+  const date = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)))
+  const valid = /^\d{1,2}$/.test(parts.day) && /^\d{1,2}$/.test(parts.month) && /^\d{4}$/.test(parts.year) &&
+    date.getUTCDate() === Number(parts.day) && date.getUTCMonth() === Number(parts.month) - 1
+  if (!valid) {
+    miqSetErrors(req, { 'deadline-day': 'Enter a real date for hearing statements to be sent by' })
+    req.session.data.miqsDeadlineValues = parts
+    return res.redirect(MIQ + '/publish')
+  }
+  const deadline = date.toLocaleDateString('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' })
+  const first = !state.published
+  state.published = { at: first ? miqToday() : state.published.at, deadline, deadlineParts: parts }
+  miqLog(state, first
+    ? 'Published the matters, issues and questions, with hearing statements due by ' + deadline
+    : 'Changed the deadline for hearing statements to ' + deadline)
+  miqSetFlash(req, first ? 'The matters, issues and questions have been published' : 'The deadline has been changed')
+  res.redirect(MIQ + '/publish')
+})
+
+// 3. Hearing statements received.
+
+router.get(MIQ + '/statements', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.published) return res.redirect(MIQ + '/publish')
+  renderMiq(req, res, 'statements', 'statements', {
+    statements: state.statements.map(miqStatementView),
+    questions: MIQD.QUESTIONS,
+    consultees: CR_CONSULTEES,
+    waiting: MIQD.HEARING_STATEMENTS.filter(seed => !state.statements.some(statement => statement.id === seed.id)).length,
+    values: miqTake(req, 'miqsStatementValues') || {}
+  })
+})
+
+// One statement, as a document. There is no real file behind it: the page stands in for the
+// PDF, showing who sent it and when.
+router.get(MIQ + '/statements/:statementId', (req, res) => {
+  const state = getMiqs(req)
+  const statement = state.statements.find(candidate => candidate.id === req.params.statementId)
+  if (!statement) return res.redirect(MIQ + '/statements')
+  renderMiq(req, res, 'statement', 'statements', { statement: miqStatementView(statement) })
+})
+
+// Stands in for participants sending their statements in: adds the seeded ones not yet here.
+router.post(MIQ + '/statements/arrive', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.published) return res.redirect(MIQ + '/publish')
+  let added = 0
+  MIQD.HEARING_STATEMENTS.forEach(seed => {
+    if (state.statements.some(statement => statement.id === seed.id)) return
+    state.statements.push(JSON.parse(JSON.stringify(seed)))
+    added++
+  })
+  if (added) {
+    miqLog(state, 'Received ' + added + ' hearing statement' + (added === 1 ? '' : 's'))
+    miqSetFlash(req, added + ' hearing statement' + (added === 1 ? ' has' : 's have') + ' been received')
+  }
+  res.redirect(MIQ + '/statements')
+})
+
+// A statement that came in another way (by post, say), added by hand.
+router.post(MIQ + '/statements/add', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.published) return res.redirect(MIQ + '/publish')
+  const consulteeId = miqText(req.body._consultee)
+  const fileName = miqText(req.body._statementFile)
+  const questions = [].concat(req.body._questions || []).filter(id => MIQD.getQuestion(id))
+  const errors = {}
+  if (!getCrConsultee(consulteeId)) errors['statement-consultee'] = 'Select who sent the statement'
+  if (!fileName) errors['statement-file'] = 'Choose the statement to upload'
+  if (!questions.length) errors['statement-questions'] = 'Select the questions the statement responds to'
+  if (Object.keys(errors).length) {
+    miqSetErrors(req, errors)
+    req.session.data.miqsStatementValues = { consulteeId, questions }
+    return res.redirect(MIQ + '/statements#add-statement')
+  }
+  state.statements.push({
+    id: 'hs-' + Date.now().toString(36),
+    consulteeId,
+    questions,
+    received: miqToday(),
+    fileName
+  })
+  miqLog(state, 'Added a hearing statement from ' + getCrConsultee(consulteeId).name)
+  miqSetFlash(req, 'The hearing statement has been added')
+  res.redirect(MIQ + '/statements')
+})
+
+router.post(MIQ + '/statements/:statementId/remove', (req, res) => {
+  const state = getMiqs(req)
+  const statement = state.statements.find(candidate => candidate.id === req.params.statementId)
+  if (statement && !state.sent) {
+    state.statements = state.statements.filter(candidate => candidate !== statement)
+    miqLog(state, 'Removed a hearing statement from ' + miqStatementView(statement).consulteeName)
+  }
+  res.redirect(MIQ + '/statements')
+})
+
+// 4. Prepare responses: every matter, one matter, then the question workspace.
+
+router.get(MIQ + '/responses', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.confirmed) return res.redirect(MIQ + '/check')
+  renderMiq(req, res, 'responses', 'responses', { matters: miqMatterViews(state) })
+})
+
+router.get(MIQ + '/responses/matters/:matterId', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.confirmed) return res.redirect(MIQ + '/check')
+  const matter = miqMatterViews(state).find(candidate => candidate.id === req.params.matterId)
+  if (!matter) return res.redirect(MIQ + '/responses')
+  renderMiq(req, res, 'matter', 'responses', { matter, activeMatterId: matter.id })
+})
+
+router.get(MIQ + '/responses/:miqQuestionId', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.confirmed) return res.redirect(MIQ + '/check')
+  const question = req.miqQuestion
+  const tab = MIQ_TABS.some(candidate => candidate.id === req.query._tab) ? req.query._tab : 'evidence'
+  const refs = miqPolicyRefs(state, question)
+  const matter = MIQD.getMatter(question.matterId)
+  const issue = matter.issues.find(candidate => candidate.id === question.issueId)
+  const index = MIQD.QUESTIONS.findIndex(candidate => candidate.id === question.id)
+  const values = miqTake(req, 'miqsResponseValues')
+  const response = miqResponse(state, question.id)
+  renderMiq(req, res, 'question', 'responses', {
+    activeMatterId: matter.id,
+    question,
+    matter,
+    issue,
+    status: miqQuestionStatus(state, question.id),
+    response,
+    responseText: values ? values.text : response.text,
+    policies: refs.map(miqPolicyView),
+    tab,
+    tabs: MIQ_TABS.map(candidate => ({
+      text: candidate.text,
+      href: MIQ + '/responses/' + question.id + '?_tab=' + candidate.id + '#support',
+      active: candidate.id === tab
+    })),
+    evidence: miqEvidence(refs),
+    representations: miqRepresentations(refs),
+    themes: miqThemes(refs).map(theme => ({ id: theme.id, title: theme.title, summary: theme.summary, respondents: theme.respondents, href: CR + '/themes/' + theme.id })),
+    statements: state.statements.filter(statement => statement.questions.includes(question.id)).map(miqStatementView),
+    compliance: miqCompliance(req, state, question, refs),
+    previous: MIQD.QUESTIONS[index - 1] || null,
+    next: MIQD.QUESTIONS[index + 1] || null
+  })
+})
+
+// One form for the whole workspace: the response box, plus the support panel's insert buttons
+// and checkboxes (associated with it through form="…"). Every action saves the typing first.
+// `_action` is save, complete, reopen or insert:<key>. The tests' checkboxes are only replaced when their
+// tab was on the page (`_testsShown`), so saving from another tab keeps them.
+router.post(MIQ + '/responses/:miqQuestionId', (req, res) => {
+  const state = getMiqs(req)
+  const question = req.miqQuestion
+  const action = String(req.body._action || 'save')
+  const tab = MIQ_TABS.some(candidate => candidate.id === req.body._tab) ? req.body._tab : 'evidence'
+  const back = MIQ + '/responses/' + question.id + '?_tab=' + tab
+  if (state.sent) return res.redirect(back)
+  const response = state.responses[question.id] = Object.assign({ text: '', complete: false, tests: [] }, state.responses[question.id])
+  response.text = typeof req.body._response === 'string' ? req.body._response : response.text
+  if (req.body._testsShown) {
+    response.tests = [].concat(req.body._tests || []).filter(id => MIQD.SOUNDNESS_TESTS.some(test => test.id === id))
+  }
+  if (action.startsWith('insert:')) {
+    response.text = miqAppend(response.text, miqInsertText(state, question, action.slice(7)))
+    if (response.complete) response.complete = false
+    return res.redirect(back + '#response')
+  }
+  if (action === 'complete') {
+    if (!miqText(response.text)) {
+      miqSetErrors(req, { response: 'Write a response before marking it as complete' })
+      return res.redirect(back + '#response')
+    }
+    response.complete = true
+    miqLog(state, 'Marked the response to question ' + question.id + ' as complete')
+    miqSetFlash(req, 'The response to question ' + question.id + ' is complete')
+    return res.redirect(back)
+  }
+  if (action === 'reopen') {
+    response.complete = false
+    miqLog(state, 'Reopened the response to question ' + question.id)
+    return res.redirect(back + '#response')
+  }
+  miqSetFlash(req, 'Your response has been saved')
+  res.redirect(back)
+})
+
+// The authority's hearing statement for a matter: its responses, in order.
+router.get(MIQ + '/statement/:matterId', (req, res) => {
+  const state = getMiqs(req)
+  const matter = miqMatterViews(state).find(candidate => candidate.id === req.params.matterId)
+  if (!matter) return res.redirect(MIQ + '/send')
+  renderMiq(req, res, 'lpa-statement', 'send', { matter })
+})
+
+// 5. Send everything to the programme officer.
+
+router.get(MIQ + '/send', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.confirmed) return res.redirect(MIQ + '/check')
+  const statuses = miqStatuses(state)
+  // The progress tracker, after Gateway 2 progress check: one row per thing that goes to the
+  // programme officer, each with a status tag in the standard words.
+  const rows = [
+    {
+      name: 'Matters, issues and questions published',
+      progress: state.published ? 'Published ' + state.published.at : 'Not published',
+      status: statuses.publish || 'Not started',
+      href: MIQ + '/publish',
+      action: 'View'
+    },
+    {
+      name: 'Participants’ hearing statements',
+      progress: state.statements.length
+        ? state.statements.length + ' received' + (state.published ? ', due by ' + state.published.deadline : '')
+        : 'None received',
+      status: statuses.statements || 'Not started',
+      href: MIQ + '/statements',
+      action: 'View'
+    }
+  ].concat(miqMatterViews(state).map(matter => ({
+    name: 'Council’s statement: Matter ' + matter.id + ', ' + matter.title,
+    progress: matter.progress.complete + ' of ' + matter.progress.total + ' questions answered',
+    status: matter.progress.status,
+    href: matter.progress.status === 'Completed' ? MIQ + '/statement/' + matter.id : matter.href,
+    action: matter.progress.status === 'Completed' ? 'View statement' : 'Answer questions'
+  })))
+  renderMiq(req, res, 'send', 'send', {
+    rows,
+    allComplete: miqAllComplete(state),
+    statements: state.statements.map(miqStatementView),
+    programmeOfficer: MIQD.PROGRAMME_OFFICER,
+    inspector: MIQD.INSPECTOR
+  })
+})
+
+router.post(MIQ + '/send', (req, res) => {
+  const state = getMiqs(req)
+  if (!state.published || !miqAllComplete(state) || state.sent) return res.redirect(MIQ + '/send')
+  state.sent = { at: miqToday(), statementCount: state.statements.length }
+  miqLog(state, 'Sent ' + MIQD.MATTERS.length + ' Corporation statements and ' + state.statements.length + ' hearing statements to the programme officer')
+  miqSetFlash(req, 'All statements have been sent to the programme officer')
+  res.redirect(MIQ + '/send')
+})
+
+router.get(MIQ + '/history', (req, res) => {
+  const state = getMiqs(req)
+  renderMiq(req, res, 'history', 'history', {
+    entries: state.history.slice().reverse()
+  })
 })
 
 // --- Not built yet, and moved prototype pages ---

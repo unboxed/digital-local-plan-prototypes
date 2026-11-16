@@ -1,0 +1,29 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% set pageName = "Hearing statement from " + statement.consulteeName %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/plan/make/miqs/statements">Hearing statements received</a>
+
+    {# Stands in for the PDF: there is no real file in the prototype. #}
+    <div class="dlp-miq-preview">
+      <p class="dlp-miq-preview__label">{{ statement.fileName }}</p>
+      <p class="govuk-caption-m">City Plan 2040 examination &middot; Response to {{ document.ref }}</p>
+      <h1 class="govuk-heading-l">Hearing statement from {{ statement.consulteeName }}</h1>
+      <dl class="govuk-summary-list govuk-summary-list--no-border">
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">From</dt>
+          <dd class="govuk-summary-list__value">{{ statement.consulteeName }} ({{ statement.respondentType }})</dd>
+        </div>
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Received</dt>
+          <dd class="govuk-summary-list__value">{{ statement.received }}</dd>
+        </div>
+      </dl>
+      <p class="govuk-body dlp-miq-muted">The participant’s statement would open here. There is no real document in the prototype.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

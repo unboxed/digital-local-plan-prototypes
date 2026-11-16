@@ -1,0 +1,58 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% from "miqs/partials/macros.html" import miqDocument %}
+
+{% set pageName = document.title %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <a class="govuk-back-link" href="/plan/make/miqs/check">Check the hearing document</a>
+
+    {# The document as the inspector sent it. It stands in for the PDF. #}
+    <div class="dlp-miq-preview">
+      <p class="dlp-miq-preview__label">{{ state.upload.fileName }}</p>
+      <p class="govuk-caption-m">{{ document.ref }} &middot; Issued {{ document.issued }} by {{ inspector }}</p>
+      <h1 class="govuk-heading-l">{{ document.title }}</h1>
+
+      <nav aria-label="Contents">
+        <ul class="govuk-list govuk-body-s">
+          <li><a class="govuk-link" href="#hearing-programme">Hearing programme</a></li>
+          <li><a class="govuk-link" href="#main-matters">Main matters, issues and questions</a></li>
+        </ul>
+      </nav>
+
+      {% for paragraph in document.intro %}
+        <p class="govuk-body">{{ paragraph }}</p>
+      {% endfor %}
+
+      <h2 class="govuk-heading-m" id="hearing-programme">Hearing programme</h2>
+      <p class="govuk-body">The hearings will be held at {{ document.venue }}, starting on {{ document.hearingsFrom }}.</p>
+      {% for day in programme %}
+        <table class="govuk-table">
+          <caption class="govuk-table__caption govuk-table__caption--s">{{ day.day }}</caption>
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th scope="col" class="govuk-table__header">Time</th>
+              <th scope="col" class="govuk-table__header">Session</th>
+              <th scope="col" class="govuk-table__header">Questions</th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {% for session in day.sessions %}
+              <tr class="govuk-table__row">
+                <td class="govuk-table__cell">{{ session.time }}</td>
+                <td class="govuk-table__cell">{{ session.title }}</td>
+                <td class="govuk-table__cell govuk-body-s">{{ session.questions }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endfor %}
+
+      <h2 class="govuk-heading-l" id="main-matters">Main matters, issues and questions</h2>
+      {{ miqDocument(matters, { policies: false }) }}
+    </div>
+  </div>
+</div>
+{% endblock %}

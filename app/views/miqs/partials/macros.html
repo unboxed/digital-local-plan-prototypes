@@ -1,0 +1,64 @@
+{#
+  Small pieces shared by the MIQs pages.
+#}
+
+{# A question's status as a GOV.UK tag, in the standard status words. #}
+{% macro miqStatusTag(status) %}
+  {%- set colours = { "Completed": "green", "In progress": "light-blue", "Not started": "grey" } -%}
+  <strong class="govuk-tag govuk-tag--{{ colours[status] | default('grey') }}">{{ status }}</strong>
+{%- endmacro %}
+
+{# A question's policies, inline: "S3 Housing, HS1 Location of New Housing". #}
+{% macro miqPolicyList(policies) %}
+  {%- if policies | length -%}
+    {%- for policy in policies -%}
+      <span class="dlp-miq-policy"><strong>{{ policy.ref }}</strong> {{ policy.title }}</span>{% if not loop.last %}, {% endif %}
+    {%- endfor -%}
+  {%- else -%}
+    <span class="dlp-miq-muted">No particular policy</span>
+  {%- endif -%}
+{% endmacro %}
+
+{# The document's structure: matters, issues and questions, for the check and publish pages. #}
+{% macro miqDocument(matters, options) %}
+  {% for matter in matters %}
+    <section class="dlp-miq-matter" aria-labelledby="matter-{{ matter.id }}">
+      <h2 class="govuk-heading-m" id="matter-{{ matter.id }}">Matter {{ matter.id }}: {{ matter.title }}</h2>
+      <p class="govuk-body">{{ matter.intro }}</p>
+      {% for issue in matter.issues %}
+        <h3 class="govuk-heading-s dlp-miq-issue">Issue: {{ issue.title }}</h3>
+        <ol class="dlp-miq-questions">
+          {% for question in issue.questions %}
+            <li class="dlp-miq-questions__item" id="question-{{ question.id | replace('.', '-') }}">
+              <p class="govuk-body dlp-miq-questions__text"><span class="dlp-miq-questions__number">{{ question.id }}</span> {{ question.text }}</p>
+              {% if options.policies %}
+                <p class="govuk-body-s dlp-miq-questions__meta">
+                  Policies: {{ miqPolicyList(question.policies) }}
+                  {% if options.changeHref %}
+                    &middot; <a class="govuk-link" href="{{ options.changeHref }}/{{ question.id }}">Change<span class="govuk-visually-hidden"> policies for question {{ question.id }}</span></a>
+                  {% endif %}
+                </p>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      {% endfor %}
+    </section>
+  {% endfor %}
+{% endmacro %}
+
+{#
+  A button that adds text to the response. Without JavaScript it submits the response form
+  (`insert:<key>`), and the server appends the same text; with it, initInsertText puts the text
+  at the cursor instead and nothing is sent until the officer saves. Nothing once the
+  statements have been sent (`locked`).
+#}
+{% macro miqInsertButton(key, text, label, locked) %}
+  {% if not locked %}
+    <button type="submit" form="miq-response-form" name="_action" value="insert:{{ key }}"
+            class="dlp-link-button dlp-miq-insert"
+            data-dlp-insert-text="{{ text }}" data-dlp-insert-target="#response">
+      {{ label }}
+    </button>
+  {% endif %}
+{% endmacro %}

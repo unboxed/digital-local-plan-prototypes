@@ -1,0 +1,24 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% set pageName = "History" %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-l">History</h1>
+    <p class="govuk-body">Audit of activity with the most recent first.</p>
+    {# The shared timeline's markup (partials/timeline), with the action as the entry's heading. #}
+    <ol class="app-timeline">
+      {% for entry in entries %}
+        <li class="app-timeline__entry app-timeline__entry--done">
+          <span class="app-timeline__marker" aria-hidden="true"></span>
+          <p class="app-timeline__head"><span class="app-timeline__type">{{ entry.action }}</span></p>
+          <p class="app-timeline__meta">{{ entry.at }} &middot; {{ entry.actor }}</p>
+        </li>
+      {% else %}
+        <li class="govuk-body">Nothing yet.</li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+{% endblock %}

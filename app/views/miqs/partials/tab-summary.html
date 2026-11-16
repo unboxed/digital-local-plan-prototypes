@@ -1,0 +1,23 @@
+{#
+  Need 2: a summary of the evidence and the key issues from the representations. Canned for the
+  prototype, so it carries the usual AI caveat.
+#}
+{% from "miqs/partials/macros.html" import miqInsertButton %}
+
+<div class="govuk-warning-text">
+  <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+  <strong class="govuk-warning-text__text">
+    <span class="govuk-visually-hidden">Warning</span>
+    AI generated: check the summary against the source before you use it.
+  </strong>
+</div>
+
+<h3 class="govuk-heading-s">What the evidence says</h3>
+<p class="govuk-body">{{ question.summary.evidence }}</p>
+
+<h3 class="govuk-heading-s">Key issues from representations and hearing statements</h3>
+<p class="govuk-body">{{ question.summary.issues }}</p>
+
+<p class="govuk-body">
+  {{ miqInsertButton("summary", question.summary.evidence + " " + question.summary.issues, "Insert the summary into the response", state.sent) }}
+</p>

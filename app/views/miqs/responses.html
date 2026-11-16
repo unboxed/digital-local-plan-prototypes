@@ -1,0 +1,31 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% set pageName = "Prepare the council’s responses" %}
+
+{% block main %}
+<span class="govuk-caption-l">Step 4 of 5</span>
+<h1 class="govuk-heading-l">Prepare the council’s responses</h1>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">
+      Write a response to each of the inspector’s questions. When you open a question, you will see
+      the evidence, representations and legal compliance for its policies alongside, so you can
+      deal with them in writing before the hearing. The responses to each matter become the council’s
+      hearing statement for that matter.
+    </p>
+  </div>
+</div>
+
+{% for matter in matters %}
+  <section class="dlp-miq-matter" aria-labelledby="matter-{{ matter.id }}">
+    <div class="dlp-miq-matter__head">
+      <h2 class="govuk-heading-m" id="matter-{{ matter.id }}">
+        <a class="govuk-link govuk-link--no-visited-state" href="{{ matter.href }}">Matter {{ matter.id }}: {{ matter.title }}</a>
+      </h2>
+      <p class="govuk-body-s dlp-miq-muted">{{ matter.progress.complete }} of {{ matter.progress.total }} questions answered</p>
+    </div>
+    {% include "miqs/partials/question-table.html" %}
+  </section>
+{% endfor %}
+{% endblock %}

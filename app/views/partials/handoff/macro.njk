@@ -1,0 +1,35 @@
+{#
+  "Prototype only" panel: where something passes between two people in the real service (an
+  email arriving, a report being submitted), a tester uses this to make it happen. It is styled
+  to look unlike the rest of the page and says it would not appear in the real service.
+  First built for Managing commissioned evidence (whose ceHandoff now calls this); shared so
+  other journeys can use it too.
+
+  Usage:
+    {% from "partials/handoff/macro.njk" import appHandoff %}
+    {{ appHandoff({ text: "...", linkText: "...", href: "..." }) }}
+    {{ appHandoff({ text: "...", action: "/post/here", buttonText: "..." }) }}
+
+  params.text: string (optional) — what would happen in the real service
+  params.href + params.linkText — a link, for switching to the other person's screen
+  params.action + params.buttonText — a POST form instead, for something that changes state
+    (a statement arriving). Optional params.fields: { name: value } hidden inputs.
+  Neither link nor form: the panel only explains.
+#}
+
+{% macro appHandoff(params) %}
+<aside class="dlp-ce-handoff" aria-label="Prototype only">
+  <p class="dlp-ce-handoff__label">Prototype only — this would not appear in the real service</p>
+  {% if params.text %}<p class="govuk-body{% if not params.href and not params.action %} govuk-!-margin-bottom-0{% endif %}">{{ params.text }}</p>{% endif %}
+  {% if params.href %}
+    <p class="govuk-body govuk-!-margin-bottom-0">
+      <a class="govuk-link dlp-ce-handoff__link" href="{{ params.href }}">{{ params.linkText }}</a>
+    </p>
+  {% elif params.action %}
+    <form method="post" action="{{ params.action }}" novalidate>
+      {% for name, value in params.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <button type="submit" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">{{ params.buttonText }}</button>
+    </form>
+  {% endif %}
+</aside>
+{% endmacro %}

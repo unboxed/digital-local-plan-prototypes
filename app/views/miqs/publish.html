@@ -1,0 +1,70 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
+{% from "miqs/partials/macros.html" import miqDocument %}
+
+{% set pageName = "Publish the MIQs on the examination website" %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">Step 2 of 5</span>
+    <h1 class="govuk-heading-l">Publish the MIQs on the examination website</h1>
+
+    {% if state.published %}
+      <dl class="govuk-summary-list">
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Status</dt>
+          <dd class="govuk-summary-list__value">{{ govukTag({ text: "Published", classes: "govuk-tag--green" }) }}</dd>
+        </div>
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Published</dt>
+          <dd class="govuk-summary-list__value">{{ state.published.at }}</dd>
+        </div>
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Hearing statements due by</dt>
+          <dd class="govuk-summary-list__value">{{ state.published.deadline }}</dd>
+        </div>
+      </dl>
+      <p class="govuk-body">
+        Participants can now send hearing statements in response to any or all of the questions.
+        <a class="govuk-link" href="/plan/make/miqs/statements">See the hearing statements received</a>.
+      </p>
+    {% else %}
+      <p class="govuk-body">
+        Publishing puts the inspector’s matters, issues and questions on the examination website,
+        so participants can send hearing statements in response to them. Set the date statements
+        must be sent by.
+      </p>
+    {% endif %}
+
+    <form method="post" action="/plan/make/miqs/publish" novalidate>
+      {% set deadlineError = errors["deadline-day"] %}
+      {{ govukDateInput({
+        id: "deadline",
+        namePrefix: "_deadline",
+        fieldset: { legend: { text: ("Change the deadline for hearing statements" if state.published else "Deadline for hearing statements"), classes: "govuk-fieldset__legend--s" } },
+        hint: { text: "Usually about four weeks before the hearings start on " + document.hearingsFrom + ". For example, 4 12 2026" },
+        errorMessage: { text: deadlineError } if deadlineError,
+        items: [
+          { name: "day", classes: "govuk-input--width-2" + (" govuk-input--error" if deadlineError else ""), value: deadline.day },
+          { name: "month", classes: "govuk-input--width-2" + (" govuk-input--error" if deadlineError else ""), value: deadline.month },
+          { name: "year", classes: "govuk-input--width-4" + (" govuk-input--error" if deadlineError else ""), value: deadline.year }
+        ]
+      }) }}
+      {{ govukButton({ text: ("Change the deadline" if state.published else "Publish on the examination website"), classes: ("govuk-button--secondary" if state.published else "") }) }}
+    </form>
+
+    <h2 class="govuk-heading-m">Preview</h2>
+    <div class="dlp-miq-preview">
+      <p class="dlp-miq-preview__label">As it will appear on the examination website</p>
+      <p class="govuk-caption-m">{{ document.ref }} &middot; Issued {{ document.issued }}</p>
+      <p class="govuk-heading-l">{{ document.title }}</p>
+      <p class="govuk-body">City Plan 2040 examination. Hearings start on {{ document.hearingsFrom }}.</p>
+      {{ miqDocument(matters, { policies: false }) }}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1421,5 +1421,8 @@ $dlp-confidence-low: govuk-colour("orange");
 // Statement of compliance. Uses the variables above.
 @import "statement-of-compliance";
 
+// Responding to the inspector's MIQs. Uses the variables above, and policy-writing-v2's pane styles.
+@import "miqs";
+
 // The site's own pages: plan maker home and section pages.
 @import "site-structure";

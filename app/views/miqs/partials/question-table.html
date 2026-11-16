@@ -1,0 +1,31 @@
+{#
+  One matter's questions, grouped by issue, with their policies, statements and status.
+  Expects `matter` (from miqMatterViews) in scope.
+#}
+{% from "miqs/partials/macros.html" import miqStatusTag, miqPolicyList %}
+
+{% for issue in matter.issues %}
+  <table class="govuk-table dlp-miq-table">
+    <caption class="govuk-table__caption govuk-table__caption--s">Issue: {{ issue.title }}</caption>
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header dlp-miq-table__question">Question</th>
+        <th scope="col" class="govuk-table__header">Policies</th>
+        <th scope="col" class="govuk-table__header">Hearing statements</th>
+        <th scope="col" class="govuk-table__header">Status</th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for question in issue.questions %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">
+            <a class="govuk-link" href="{{ question.href }}"><strong>{{ question.id }}</strong> {{ question.text }}</a>
+          </td>
+          <td class="govuk-table__cell govuk-body-s">{{ miqPolicyList(question.policies) }}</td>
+          <td class="govuk-table__cell govuk-body-s">{{ question.statementCount }}</td>
+          <td class="govuk-table__cell">{{ miqStatusTag(question.status) }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endfor %}

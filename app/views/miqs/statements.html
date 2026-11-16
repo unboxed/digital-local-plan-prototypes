@@ -1,0 +1,115 @@
+{% extends "miqs/partials/layout.html" %}
+
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+{% from "govuk/components/file-upload/macro.njk" import govukFileUpload %}
+{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
+
+{% set pageName = "Hearing statements received" %}
+
+{% block main %}
+<span class="govuk-caption-l">Step 3 of 5</span>
+<h1 class="govuk-heading-l">Hearing statements received</h1>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">All statements received by {{ state.published.deadline }}.</p>
+
+    {% if waiting and not state.sent %}
+      {{ appHandoff({
+        text: "Participants send their hearing statements to the council by the deadline. " + waiting + " are waiting to arrive.",
+        action: "/plan/make/miqs/statements/arrive",
+        buttonText: "Receive the hearing statements"
+      }) }}
+    {% endif %}
+  </div>
+</div>
+
+{% if statements | length %}
+  <table class="govuk-table">
+    <caption class="govuk-table__caption govuk-table__caption--s">{{ statements | length }} statement{{ "s" if statements | length != 1 }}</caption>
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header">From</th>
+        <th scope="col" class="govuk-table__header">Statement</th>
+        <th scope="col" class="govuk-table__header">Received</th>
+        {% if not state.sent %}<th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Action</span></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for statement in statements %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">
+            <strong>{{ statement.consulteeName }}</strong>
+            <span class="dlp-miq-muted govuk-body-s govuk-!-display-block govuk-!-margin-bottom-0">{{ statement.respondentType }}</span>
+          </td>
+          <td class="govuk-table__cell govuk-body-s">
+            <a class="govuk-link dlp-miq-file-link" href="/plan/make/miqs/statements/{{ statement.id }}">{{ statement.fileName }}<span class="govuk-visually-hidden">, statement from {{ statement.consulteeName }}</span></a>
+          </td>
+          <td class="govuk-table__cell govuk-body-s">{{ statement.received }}</td>
+          {% if not state.sent %}
+            <td class="govuk-table__cell govuk-table__cell--numeric">
+              <form method="post" action="/plan/make/miqs/statements/{{ statement.id }}/remove" class="dlp-inline-form" novalidate>
+                <button type="submit" class="dlp-link-button govuk-body-s">Remove<span class="govuk-visually-hidden"> the statement from {{ statement.consulteeName }}</span></button>
+              </form>
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="govuk-body">No hearing statements have been received yet.</p>
+{% endif %}
+
+{% if not state.sent %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    {% set detailsOpen = errorList | length %}
+    <details class="govuk-details" id="add-statement" {% if detailsOpen %}open{% endif %}>
+      <summary class="govuk-details__summary">
+        <span class="govuk-details__summary-text">Add another statement</span>
+      </summary>
+      <div class="govuk-details__text">
+        <p class="govuk-body">For a statement sent by post or email rather than through the examination website.</p>
+        <form method="post" action="/plan/make/miqs/statements/add" novalidate>
+          {% set consulteeOptions = [{ value: "", text: "Choose who sent it" }] %}
+          {% for consultee in consultees %}
+            {% set consulteeOptions = (consulteeOptions.push({ value: consultee.id, text: consultee.name + " (" + consultee.type + ")", selected: values.consulteeId == consultee.id }), consulteeOptions) %}
+          {% endfor %}
+          {{ govukSelect({
+            id: "statement-consultee",
+            name: "_consultee",
+            label: { text: "Who sent it", classes: "govuk-label--s" },
+            items: consulteeOptions,
+            errorMessage: { text: errors["statement-consultee"] } if errors["statement-consultee"]
+          }) }}
+
+          {{ govukFileUpload({
+            id: "statement-file",
+            name: "_statementFile",
+            label: { text: "Upload the statement", classes: "govuk-label--s" },
+            attributes: { accept: ".pdf,.doc,.docx" },
+            errorMessage: { text: errors["statement-file"] } if errors["statement-file"]
+          }) }}
+
+          {% set questionItems = [] %}
+          {% for question in questions %}
+            {% set questionItems = (questionItems.push({ value: question.id, text: question.id + " " + question.text, checked: (values.questions and question.id in values.questions) }), questionItems) %}
+          {% endfor %}
+          {{ govukCheckboxes({
+            idPrefix: "statement-questions",
+            name: "_questions",
+            classes: "govuk-checkboxes--small",
+            fieldset: { legend: { text: "Which questions does it respond to?", classes: "govuk-fieldset__legend--s" } },
+            items: questionItems,
+            errorMessage: { text: errors["statement-questions"] } if errors["statement-questions"]
+          }) }}
+
+          {{ govukButton({ text: "Add statement", classes: "govuk-button--secondary" }) }}
+        </form>
+      </div>
+    </details>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
