@@ -778,7 +778,7 @@ the header's "Consultations" item, previously a disabled placeholder, now links 
 
 `/plan/make/miqs` (`app/views/miqs/`) is the authority's side of the examination's matters,
 issues and questions (MIQs), built from a workshop workflow diagram (no Figma). It fills the
-"Manage MODs and MIQs" feature in `site-map.js`; MODs are not built. Only the authority's screens
+"Manage MODs and MIQs" feature in `site-map.js`, beside Managing main modifications. Only the authority's screens
 exist: the inspector and participants appear in "Prototype only" panels.
 
 - **Five steps:** check the hearing document (each question's policies can be corrected); publish it
@@ -845,6 +845,103 @@ exist: the inspector and participants appear in "Prototype only" panels.
 - **The "Prototype only" panel is now shared**: `partials/handoff/macro.njk` (`appHandoff`), which
   takes a link (`href`) or a POST form (`action`, `buttonText`). Commissioned evidence's
   `ceHandoff` is a thin wrapper round it.
+
+## Managing main modifications (Make your plan)
+
+`/plan/make/mods` (`app/views/mods/`) is the authority's side of the main modifications after
+the hearings, built from the "MODS WORKFLOW" workshop diagram (no Figma). It sits beside MIQs
+under "Manage MODs and MIQs" and copies its structure: `mods/partials/layout.html`,
+`buildModsSidebar`, `renderMods`, `appHandoff` panels and a History page.
+
+- **No steps, just navigation.** The sidebar has no status icons and pages have no "Step n"
+  caption: every page can be visited in any order. The landing page has one Start button, which
+  resets to the examples (`startingState()`, no stages).
+- **The examples are after the consultation.** `TODAY` is 20 April 2027. The modifications were
+  agreed in February (`agreedModifications()`), a version was published for consultation on
+  1 Mar 2027 (closed `CONSULTATION.closes`), and since the responses some have been reopened or
+  sent for review. Every inspector's request has a modification, so none is Not started.
+- **Nothing is required.** No field blocks an action: a new modification with no part or type
+  takes the first free part (`modFirstFreeTarget`) and AM; sending for review or agreeing needs
+  no wording change or reason; a blank comment or reply is ignored. There is no error summary in
+  use. Nothing is ever locked.
+- **Pages in the menu:**
+  1. Inspector's suggested modifications: the post-hearing letter's requests, each linked to
+     its MIQs matter and question.
+  2. Draft modifications: the list, "Add a modification", and the drafting workspace.
+  3. Schedule of modifications.
+  4. View and publish changes (`/plan`): an inert "Publish this version" button (no publishing flow
+     yet), the versions table, then the current version with the latest tracked changes.
+  5. View comments (`/comments`): respondents to the consultation version, then "Send comments
+     to inspector" with Preview (`/comments/preview`) and Send (`POST /comments/send`).
+
+  `/consult` and `/responses` redirect to the last two.
+- **Static content** is in `app/data/mods.js`: the letter, six requests, the seeded wording and
+  reasons, the team (MIQs' Priya Shah, then Policy drafting's `OFFICERS` less Priya Sharma),
+  the consultation responses and `startingState()`. All
+  of it is invented. The prototype's "today" is fixed at `TODAY` (20 April 2027), after the
+  MIQs' January 2027 hearings, so new actions don't date from before the letter.
+- **State** is one object, `mods`, read only through `getMods` and stamped with
+  `MODS_SCHEMA_VERSION`, so **bump that when the shape changes**.
+  - A modification stores `{id, type, requestId, target, after, reason, status, assignee,
+    updatedAt, updatedBy, comments}`.
+  - It never stores the current wording: that is always read from `POLICY_TEXT`.
+  - `status` is `draft`, `review` or `agreed`, shown as Draft, Ready for review and Agreed.
+    A request with no draft is Not started.
+- **Only policies with full wording can be modified:** S3 and HS1–HS8 (`MODD.POLICY_REFS`).
+  - `modParts` breaks them into parts in plan order: supporting text (`S3.exp`, from
+    `POLICY_PARAGRAPHS`), introduction (`S3.intro`), clauses (`S3.2`) and lettered items
+    (`S3.2a`).
+  - There is **one modification per part**. Adding one to a part that already has one opens
+    that one instead.
+  - Adding one to a part the inspector asked about makes it that request's main modification.
+- **MM and AM numbers are derived, never stored** (`modsSchedule`). They are counted
+  separately in plan order, so adding a modification earlier in the plan renumbers the ones
+  after it. Requests not drafted yet are in the schedule as Not started, so they are numbered
+  too.
+- **Tracked changes are a word-level comparison** (`modDiff`, a longest common subsequence over
+  words).
+  - It runs in routes.js for every page, and again in application.js (`modDiff` and
+    `initModPreview`, `data-dlp-mod-preview`) for the workspace's live preview. **Change the two
+    together.**
+  - The markup is `partials/tracked-text/macro.njk` (`appTrackedText`, `appTrackedKey`):
+    `<ins>`/`<del>` and a label linking to the modification.
+  - MM and AM differ in border style (solid or dashed) and label as well as colour, and each
+    change has visually hidden text.
+  - The preview script builds with `createElement`/`textContent` only.
+- **The drafting workspace** follows Policy drafting's draft page: `.dlp-split.dlp-pd-split`
+  with `.dlp-pw2-pane` panes, and the inert "Invite collaborators" button.
+  - The proposed wording is a **plain textarea, not the rich text editor**, because the
+    tracked change compares words.
+  - One form, `#mod-form`, holds everything. The right-hand pane's controls join it with
+    `form="mod-form"`, so every action saves the typing first.
+  - `_action` is `save`, `ready`, `agree`, `reopen`, `remove` (council modifications only),
+    `comment`, `reply:<id>` (field `_reply-<id>`) or `resolve:<id>`.
+  - The tabs are links (`crTabs`): Inspector's request, Comments and Evidence (`miqEvidence`).
+  - Comments reuse the commissioned evidence comment card's `dlp-ce-comment` styles, not its
+    `ceComment` macro, which posts to that prototype's routes.
+- **The schedule** reuses the SDS conformity count tiles and filters. The sticky kit fields are
+  `modType`, `modPolicy` and `modStatus`, applied on change by `initAutosubmit`. A version line
+  ("Last updated … by …", `state.lastChange`) heads it.
+- **The tracked changes plan** (`modsPlanPolicies`, shared by View and publish changes and a version's
+  page through `partials/plan-body.html`) renders the policies in the public view's policy text
+  styles (`dlp-pub-policy-text`), with a contents column. The sticky `modShow` field picks what's
+  marked:
+  - `all` marks every change
+  - `mm` or `am` marks one kind and applies the other unmarked
+  - `clean` shows the plan as modified, with nothing marked
+
+  Modifications not yet agreed are labelled "draft". Only the current version's labels link to
+  the drafts.
+- **Versions follow Publish plan versions**: `state.versions`, each `{id, title, versionDate,
+  published, sharedAt, closes, exportedBy, modifications}`, shown in that prototype's history
+  table format (`partials/versions-table.html`, `dlp-ppv-table`, short-month dates), with "View
+  version" at `/versions/:versionId`. **A version keeps its own copy of the modifications**, so it
+  still shows what was published after the working copy moves on. Seeded: an internal review
+  (19 Feb) and the consultation version (published 1 Mar).
+- **View comments** reads the published version with a `closes` date (`modsConsultation`):
+  respondents from `RESPONSES` (by part key, names from `CONSULTEES`), with the MM numbers of
+  that version. "View response" links are `#`: viewing a response isn't built (it would follow
+  Managing consultation responses). The preview counts support, objection and neutral per MM.
 
 ## Getting ready (Manage your plan; formerly "Make your plan")
 

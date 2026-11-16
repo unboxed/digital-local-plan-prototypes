@@ -1,0 +1,71 @@
+{% extends "mods/partials/layout.html" %}
+
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+
+{% set pageName = "Add a modification" %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="{{ '/plan/make/mods/letter#request-' + request.id if request else '/plan/make/mods/drafts' }}">Back</a>
+
+    {% if request %}
+      <span class="govuk-caption-l">Main modification</span>
+      <h1 class="govuk-heading-l">Draft {{ requestPart.name }}</h1>
+      <div class="govuk-inset-text">
+        <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">The inspector asks:</p>
+        <p class="govuk-body govuk-!-margin-bottom-0">{{ request.text }}</p>
+      </div>
+    {% else %}
+      <h1 class="govuk-heading-l">Add a modification</h1>
+      <p class="govuk-body">Choose what to change. You then edit its wording, and the change is tracked for you.</p>
+    {% endif %}
+
+    <form method="post" action="/plan/make/mods/drafts/new" novalidate>
+      {% if request %}
+        <input type="hidden" name="_request" value="{{ request.id }}">
+      {% else %}
+        <div class="govuk-form-group {%- if errors.target %} govuk-form-group--error{% endif %}">
+          <label class="govuk-label govuk-label--s" for="target">What does it change?</label>
+          <div class="govuk-hint" id="target-hint">Only policies with their full wording in the prototype can be changed: S3 and HS1 to HS8.</div>
+          {% if errors.target %}<p id="target-error" class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ errors.target }}</p>{% endif %}
+          <select class="govuk-select {%- if errors.target %} govuk-select--error{% endif %}" id="target" name="_target" aria-describedby="target-hint{% if errors.target %} target-error{% endif %}">
+            <option value="">Choose a policy and clause</option>
+            {% for group in groups %}
+              <optgroup label="{{ group.ref }} {{ group.title }}">
+                {% for part in group.parts %}
+                  <option value="{{ part.key }}" {%- if values.target == part.key %} selected{% endif %}>{{ group.ref }} {{ part.label }}{% if part.taken %} (already has a modification){% endif %}</option>
+                {% endfor %}
+              </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+
+        {{ govukRadios({
+          idPrefix: "type",
+          name: "_type",
+          fieldset: { legend: { text: "What kind of modification is it?", classes: "govuk-fieldset__legend--s" } },
+          errorMessage: { text: errors.type } if errors.type,
+          items: [
+            { value: "AM", text: "Additional modification", checked: values.type == "AM", hint: { text: "A minor change, such as a correction or an update, that doesn’t affect soundness. Shown in the schedule but not consulted on." } },
+            { value: "MM", text: "Main modification", checked: values.type == "MM", hint: { text: "A change needed to make the plan sound. Consulted on." } }
+          ]
+        }) }}
+      {% endif %}
+
+      <div class="govuk-form-group">
+        <label class="govuk-label govuk-label--s" for="assignee">Assigned to</label>
+        <select class="govuk-select" id="assignee" name="_assignee">
+          {% for member in team %}
+            <option value="{{ member.id }}" {%- if (values.assignee or "priya-shah") == member.id %} selected{% endif %}>{{ member.name }}{% if loop.first %} (you){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {{ govukButton({ text: "Start drafting" }) }}
+    </form>
+
+  </div>
+</div>
+{% endblock %}

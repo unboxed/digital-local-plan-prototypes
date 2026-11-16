@@ -1,0 +1,27 @@
+{% extends "mods/partials/layout.html" %}
+
+{% set pageName = "View and publish changes" %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-l">View and publish changes</h1>
+    <p class="govuk-body">
+      The current version of City Plan 2040, with the latest tracked changes. It updates as the
+      team drafts. Publish it when you’re ready to share it or consult on it.
+    </p>
+    {# Publishing isn't built yet. #}
+    <button type="button" class="govuk-button" data-module="govuk-button" aria-disabled="true">Publish this version</button>
+  </div>
+</div>
+
+<h2 class="govuk-heading-m">Versions</h2>
+{% include "mods/partials/versions-table.html" %}
+
+<h2 class="govuk-heading-l govuk-!-margin-top-6">Current version</h2>
+<p class="govuk-body dlp-miq-muted">
+  Last updated {{ state.lastChange.at }} by {{ state.lastChange.by }}. Select a label to open that
+  modification. Only the policies with full wording are in the prototype: S3 Housing and HS1 to HS8.
+</p>
+{% include "mods/partials/plan-body.html" %}
+{% endblock %}

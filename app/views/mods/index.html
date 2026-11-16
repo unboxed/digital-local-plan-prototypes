@@ -1,0 +1,52 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Managing main modifications" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/plan/make">Back to Make your plan</a>
+
+    <h1 class="govuk-heading-xl">Managing main modifications</h1>
+
+    <p class="govuk-body">
+      After the hearings, the inspector tells the council which main modifications the plan
+      needs to be sound. The council drafts them, keeps a schedule of every modification, and
+      keeps a tracked changes version of the plan. It then consults on the main modifications
+      for at least 6 weeks and sends the comments to the inspector.
+    </p>
+
+    <p class="govuk-body">
+      The council can also make <strong>additional modifications</strong>: minor changes, such as
+      corrections and updates, that don’t affect soundness.
+    </p>
+
+    <p class="govuk-body">
+      You are a policy officer, Priya Shah, at the City of London Corporation, working with the
+      rest of the policy team. You will only see the council’s screens. Where the inspector or a
+      consultee would do something, a panel marked <strong>Prototype only</strong> does it for you.
+    </p>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m" />
+
+    <p class="govuk-body">
+      The prototype starts after the consultation, with examples to look at: a version of the plan
+      published for consultation and the comments made on it, and the team revising some
+      modifications in the light of them, with modifications in draft, waiting for review and
+      agreed. Use the menu on the left to move between pages in any order.
+    </p>
+
+    {# Starting resets the prototype's data to the examples, so it POSTs. #}
+    <form method="post" action="/plan/make/mods/reset" novalidate>
+      <button type="submit" name="_stage" value="drafting" class="govuk-button govuk-button--start" data-module="govuk-button">
+        Start now
+        <svg class="govuk-button__start-icon" xmlns="http://www.w3.org/2000/svg" width="17.5" height="19" viewBox="0 0 33 40" aria-hidden="true" focusable="false"><path fill="currentColor" d="M0 0h13l20 20-20 20H0l20-20z"/></svg>
+      </button>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

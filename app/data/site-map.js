@@ -109,12 +109,17 @@ const SECTIONS = [
       },
       {
         title: 'Manage MODs and MIQs',
-        description: 'Manage main modifications (MODs) and the inspector’s matters, issues and questions (MIQs). Only MIQs have a prototype so far.',
+        description: 'Manage main modifications (MODs) and the inspector’s matters, issues and questions (MIQs).',
         prototypes: [
           {
             title: 'Responding to the inspector’s MIQs',
             href: '/plan/make/miqs',
             description: 'Receive the inspector’s matters, issues and questions and publish them, collect hearing statements, prepare a response to each question with its evidence, representations and compliance alongside, then send every statement to the programme officer.'
+          },
+          {
+            title: 'Managing main modifications',
+            href: '/plan/make/mods',
+            description: 'Read the main modifications the inspector asks for, draft them with the team, keep a schedule of every main and additional modification, view and publish versions of the tracked changes plan, then view the consultation comments and send them to the inspector.'
           }
         ]
       }

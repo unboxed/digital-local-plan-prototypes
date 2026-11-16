@@ -1,0 +1,68 @@
+{% extends "mods/partials/layout.html" %}
+
+{% set pageName = "View comments" %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-l">View comments</h1>
+
+    {% if not consultation %}
+      <p class="govuk-body">No version of the plan has been published for consultation, so there are no comments.</p>
+    {% else %}
+      <p class="govuk-body">
+        Responses to the consultation on
+        <a class="govuk-link" href="/plan/make/mods/versions/{{ consultation.version.id }}">{{ consultation.version.title }}</a>,
+        published {{ consultation.version.published }}. The consultation closed on {{ consultation.version.closes }}.
+        {{ consultation.respondents | length }} respondents made {{ consultation.total }} comments.
+      </p>
+    {% endif %}
+  </div>
+</div>
+
+{% if consultation %}
+  <table class="govuk-table">
+    <caption class="govuk-table__caption govuk-table__caption--m">Respondents</caption>
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header">Respondent</th>
+        <th scope="col" class="govuk-table__header">Modifications commented on</th>
+        <th scope="col" class="govuk-table__header">Response</th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for respondent in consultation.respondents %}
+        <tr class="govuk-table__row">
+          <td class="govuk-table__cell">{{ respondent.name }}</td>
+          <td class="govuk-table__cell">{{ respondent.refs | join(", ") }}</td>
+          {# Viewing a response isn't built yet: it would follow Managing consultation responses. #}
+          <td class="govuk-table__cell"><a class="govuk-link" href="#">View response<span class="govuk-visually-hidden"> from {{ respondent.name }}</span></a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <h2 class="govuk-heading-m" id="send">Send comments to inspector</h2>
+      {% if state.sent %}
+        <div class="govuk-panel govuk-panel--confirmation dlp-miq-panel">
+          <h3 class="govuk-panel__title govuk-!-font-size-27">Sent to the inspector</h3>
+          <div class="govuk-panel__body govuk-!-font-size-19">On {{ state.sent.at }}</div>
+        </div>
+        {{ appHandoff({
+          text: inspector + " reads the comments, makes any small changes to the modifications, and sends the final report to the council."
+        }) }}
+      {% else %}
+        <p class="govuk-body">Send every response, with the schedule of modifications, to the inspector through the programme officer. Preview what the inspector will receive first.</p>
+        <form method="post" action="/plan/make/mods/comments/send" novalidate>
+          <div class="govuk-button-group">
+            {{ govukButton({ text: "Preview", href: "/plan/make/mods/comments/preview", classes: "govuk-button--secondary" }) }}
+            {{ govukButton({ text: "Send to inspector" }) }}
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

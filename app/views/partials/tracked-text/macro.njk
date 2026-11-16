@@ -1,0 +1,44 @@
+{#
+  Text with a tracked change marked in it: insertions as <ins>, deletions as <del>, then a label
+  naming the modification ("MM3"), linked to it. Used by the MODs prototype's tracked changes
+  plan, schedule and drafting preview. The segments come from modDiff in app/routes.js (and the
+  browser's copy in application.js, which builds the same markup for the live preview).
+
+  Usage:
+    {% from "partials/tracked-text/macro.njk" import appTrackedText %}
+    {{ appTrackedText(segments, { marked: true, change: { ref: "MM3", type: "MM", typeName: "Main modification", href: "…" } }) }}
+
+  segments: [{ kind: "same" | "ins" | "del", text }]
+  marked: false shows the text as modified, with nothing marked (deletions left out).
+  change: optional; without it the label is left off. `agreed: false` adds "draft" to the label.
+
+  Main and additional modifications differ in their label and border style as well as colour,
+  and each change has visually hidden text, so colour is never the only cue.
+#}
+{% macro appTrackedText(segments, params) -%}
+{%- set change = params.change -%}
+{%- set kind = (change.type | lower) if change else "mm" -%}
+{%- if params.marked -%}
+{%- for segment in segments -%}
+{%- if segment.kind == "ins" -%}
+<ins class="dlp-mod dlp-mod--{{ kind }}"><span class="govuk-visually-hidden">{{ change.ref if change else "" }} inserted: </span>{{ segment.text }}</ins>
+{%- elif segment.kind == "del" -%}
+<del class="dlp-mod dlp-mod--{{ kind }}"><span class="govuk-visually-hidden">{{ change.ref if change else "" }} deleted: </span>{{ segment.text }}</del>
+{%- else -%}
+{{ segment.text }}
+{%- endif -%}
+{%- endfor -%}
+{%- if change %} {% if change.href %}<a class="dlp-mod-label dlp-mod-label--{{ kind }}" href="{{ change.href }}">{% else %}<span class="dlp-mod-label dlp-mod-label--{{ kind }}">{% endif %}<span class="govuk-visually-hidden">{{ change.typeName }} </span>{{ change.ref }}{% if change.agreed == false %}, draft{% endif %}{% if change.href %}</a>{% else %}</span>{% endif %}{% endif -%}
+{%- else -%}
+{%- for segment in segments -%}{%- if segment.kind != "del" -%}{{ segment.text }}{%- endif -%}{%- endfor -%}
+{%- endif -%}
+{%- endmacro %}
+
+{# The key to the marks, for the top of a page that shows them. #}
+{% macro appTrackedKey() %}
+<ul class="govuk-list dlp-mod-key" aria-label="Key to the tracked changes">
+  <li><span class="dlp-mod-label dlp-mod-label--mm">MM</span> Main modification: needed to make the plan sound. Solid border.</li>
+  <li><span class="dlp-mod-label dlp-mod-label--am">AM</span> Additional modification: a minor change made by the council. Dashed border.</li>
+  <li><ins class="dlp-mod dlp-mod--mm">Inserted text</ins> is underlined, <del class="dlp-mod dlp-mod--mm">deleted text</del> is struck through.</li>
+</ul>
+{% endmacro %}

@@ -1,0 +1,126 @@
+// Managing main modifications (app/views/mods). See CLAUDE.md, "Managing main modifications".
+//
+// Tracked changes reuse Publish plan versions' added and removed colours. Main and additional
+// modifications differ in border style (solid for MM, dashed for AM) as well as in their label,
+// so colour is never the only cue.
+
+$dlp-mod-mm: govuk-colour("blue");
+$dlp-mod-am: govuk-colour("purple");
+
+ins.dlp-mod {
+  background-color: $dlp-ppv-added-fill;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+del.dlp-mod {
+  background-color: $dlp-ppv-removed-fill;
+  color: $dlp-ppv-removed;
+  text-decoration: line-through;
+}
+
+ins.dlp-mod,
+del.dlp-mod {
+  border-bottom: 2px solid $dlp-mod-mm;
+  padding: 0 1px;
+}
+
+ins.dlp-mod--am,
+del.dlp-mod--am {
+  border-bottom: 2px dashed $dlp-mod-am;
+}
+
+// "MM3" after a change, and the Ref column's tag.
+.dlp-mod-label {
+  @include govuk-font($size: 16, $weight: bold);
+  border: 2px solid $dlp-mod-mm;
+  color: $dlp-mod-mm;
+  display: inline-block;
+  line-height: 1.2;
+  padding: 0 4px;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:link,
+  &:visited {
+    color: $dlp-mod-mm;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus {
+    @include govuk-focused-text;
+  }
+}
+
+.dlp-mod-label--am {
+  border-style: dashed;
+  border-color: $dlp-mod-am;
+  color: $dlp-mod-am;
+
+  &:link,
+  &:visited {
+    color: $dlp-mod-am;
+  }
+}
+
+.dlp-mod-key {
+  li {
+    margin-bottom: govuk-spacing(2);
+  }
+}
+
+.dlp-mod-version {
+  border-left: 4px solid $dlp-mod-mm;
+  padding-left: govuk-spacing(3);
+}
+
+// --- The inspector's letter -----------------------------------------------------------------
+
+.dlp-mod-requests__head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2) govuk-spacing(4);
+  justify-content: space-between;
+}
+
+// --- The drafting workspace -----------------------------------------------------------------
+
+.dlp-mod-current {
+  border-left: 4px solid $dlp-border-grey;
+  color: $dlp-muted-text;
+  padding-left: govuk-spacing(3);
+}
+
+.dlp-mod-preview {
+  background: $dlp-panel-background;
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(3);
+}
+
+.dlp-mod-preview__text {
+  margin-bottom: 0;
+}
+
+// --- The schedule and the plan ----------------------------------------------------------------
+
+.dlp-mod-schedule__change {
+  min-width: 18em;
+}
+
+.dlp-mod-contents {
+  margin-bottom: govuk-spacing(6);
+
+  @include govuk-media-query($from: desktop) {
+    position: sticky;
+    top: govuk-spacing(3);
+  }
+}
+
+.dlp-mod-plan__policy {
+  border-top: 1px solid $dlp-border-grey;
+  padding-top: govuk-spacing(4);
+}

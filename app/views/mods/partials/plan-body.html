@@ -1,0 +1,88 @@
+{#
+  The plan's policies with their tracked changes, the "Show" filter and a contents column. Shared
+  by View and publish changes (the current version) and a version's page. Needs `policies` and `show`
+  (modsPlanPolicies and modsShow in app/routes.js).
+#}
+{% from "partials/tracked-text/macro.njk" import appTrackedText, appTrackedKey %}
+
+{% macro tracked(policy, key) -%}
+  {%- set view = policy.parts[key] -%}
+  {{- appTrackedText(view.segments, { marked: view.marked, change: view.change if view.marked }) -}}
+{%- endmacro %}
+
+{% set letters = "abcdefghij" %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    {{ appTrackedKey() }}
+    <form method="get" action="" class="dlp-sds-filters" novalidate>
+      <div class="dlp-sds-filters__fields" data-dlp-autosubmit>
+        <div class="govuk-form-group dlp-sds-field">
+          <label class="govuk-label" for="mod-show">Show</label>
+          <select class="govuk-select" id="mod-show" name="modShow">
+            <option value="all" {%- if show == "all" %} selected{% endif %}>All changes</option>
+            <option value="mm" {%- if show == "mm" %} selected{% endif %}>Main modifications only</option>
+            <option value="am" {%- if show == "am" %} selected{% endif %}>Additional modifications only</option>
+            <option value="clean" {%- if show == "clean" %} selected{% endif %}>The plan as modified, with nothing marked</option>
+          </select>
+        </div>
+      </div>
+      <div class="govuk-button-group">
+        <button type="submit" class="govuk-button govuk-button--secondary dlp-sds-filters__apply" data-module="govuk-button">Show</button>
+      </div>
+    </form>
+    {% if show == "mm" or show == "am" %}
+      <p class="govuk-body-s dlp-miq-muted">The other kind of modification is applied to the text without being marked.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-one-quarter">
+    <nav class="dlp-mod-contents" aria-labelledby="contents-heading">
+      <h3 class="govuk-heading-s" id="contents-heading">Contents</h3>
+      <ul class="govuk-list govuk-body-s">
+        {% for policy in policies %}
+          <li>
+            <a class="govuk-link" href="#policy-{{ policy.ref | lower }}">{{ policy.ref }} {{ policy.title }}</a>
+            {% if policy.counts.MM or policy.counts.AM %}
+              <span class="govuk-!-display-block dlp-miq-muted">
+                {%- if policy.counts.MM %}{{ policy.counts.MM }} MM{% endif %}{% if policy.counts.MM and policy.counts.AM %}, {% endif %}{% if policy.counts.AM %}{{ policy.counts.AM }} AM{% endif -%}
+              </span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+
+  <div class="govuk-grid-column-three-quarters dlp-mod-plan">
+    {% for policy in policies %}
+      <section class="dlp-mod-plan__policy" id="policy-{{ policy.ref | lower }}" aria-labelledby="policy-{{ policy.ref | lower }}-heading">
+        <h3 class="govuk-heading-m" id="policy-{{ policy.ref | lower }}-heading">Policy {{ policy.ref }}: {{ policy.title }}</h3>
+        {% if policy.parts[policy.ref + ".exp"] %}
+          <p class="govuk-body">{{ tracked(policy, policy.ref + ".exp") }}</p>
+        {% endif %}
+        <div class="dlp-pub-policy-text">
+          <p class="dlp-pub-policy-text__ref">Policy {{ policy.ref }}</p>
+          {% if policy.body.intro %}<p class="govuk-body">{{ tracked(policy, policy.ref + ".intro") }}</p>{% endif %}
+          <ol class="dlp-pub-policy-text__list">
+            {% for clause in policy.body.clauses %}
+              {% set number = loop.index %}
+              <li>
+                {{ tracked(policy, policy.ref + "." + number) }}
+                {% if clause.items %}
+                  <ol class="dlp-pub-policy-text__items">
+                    {% for item in clause.items %}
+                      <li>{{ tracked(policy, policy.ref + "." + number + letters[loop.index0]) }}</li>
+                    {% endfor %}
+                  </ol>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ol>
+        </div>
+      </section>
+    {% endfor %}
+  </div>
+</div>

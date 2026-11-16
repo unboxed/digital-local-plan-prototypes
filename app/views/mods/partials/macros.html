@@ -1,0 +1,15 @@
+{#
+  Small pieces shared by the MODs pages.
+#}
+
+{# A modification's status as a GOV.UK tag. #}
+{% macro modStatusTag(status) %}
+  {%- set colours = { "Not started": "grey", "Draft": "light-blue", "Ready for review": "purple", "Agreed": "green" } -%}
+  <strong class="govuk-tag govuk-tag--{{ colours[status] | default('grey') }}">{{ status }}</strong>
+{%- endmacro %}
+
+{# A modification's number (MM3, AM1), or just its type, in its label style, with the full
+   type name for screen readers. #}
+{% macro modTypeTag(type, ref) %}
+  <span class="dlp-mod-label dlp-mod-label--{{ type | lower }}"><span class="govuk-visually-hidden">{{ "Main modification" if type == "MM" else "Additional modification" }} </span>{{ ref or type }}</span>
+{%- endmacro %}

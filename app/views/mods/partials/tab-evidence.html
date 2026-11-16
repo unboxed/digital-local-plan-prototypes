@@ -1,0 +1,14 @@
+{# The workspace's evidence tab: the evidence behind the policy being changed (miqEvidence). #}
+<p class="govuk-body-s dlp-miq-muted">Evidence for {{ part.ref }} {{ part.policyTitle }}.</p>
+{% if evidence | length %}
+  <ul class="govuk-list dlp-miq-cards">
+    {% for source in evidence %}
+      <li class="dlp-miq-card">
+        <p class="govuk-body-s dlp-miq-card__title"><strong>{{ source.source }}</strong>, {{ source.ref }}</p>
+        <p class="govuk-body-s govuk-!-margin-bottom-0">{{ source.text }}</p>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="govuk-body">No evidence is linked to this policy.</p>
+{% endif %}
