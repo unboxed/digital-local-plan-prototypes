@@ -26,7 +26,10 @@
     "Upcoming": "govuk-tag--blue",
     "Date needed": "govuk-tag--grey",
     "Scheduled": "govuk-tag--green",
-    "Not yet assigned": "govuk-tag--grey"
+    "Not yet assigned": "govuk-tag--grey",
+    "Work started": "govuk-tag--light-blue",
+    "Recommended progress": "govuk-tag--green",
+    "Not applicable": "govuk-tag--grey"
   } %}
   {{ govukTag({ text: status, classes: "dlp-pm-tag " + (classes[status] or "govuk-tag--grey") }) }}
 {% endmacro %}

@@ -1,0 +1,37 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+
+{% set pageName = ("Update note" if entry.note else "Add note") %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Readiness checker", href: pmBase + "/readiness-checker" },
+  { text: pageName }
+] }) }}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">{{ section.title }}</span>
+    <h1 class="govuk-heading-l">{{ pageName }}</h1>
+    <p class="govuk-body">{{ check.text }}</p>
+    <form method="post" novalidate>
+      {{ govukTextarea({
+        id: "note",
+        name: "_note",
+        rows: 5,
+        value: entry.note,
+        label: { text: "Note", classes: "govuk-label--s" },
+        hint: { text: "For example, what still needs doing or who to speak to. Leave it blank to remove the note." }
+      }) }}
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Save" }) }}
+        <a class="govuk-link" href="{{ pmBase }}/readiness-checker#check-{{ check.id }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

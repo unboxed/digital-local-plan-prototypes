@@ -39,7 +39,7 @@ const SECTIONS = [
           {
             title: 'Getting ready to make your plan',
             href: '/plan/manage/getting-ready',
-            description: 'Create and publish the Local Plan timetable, schedule its milestones for committee, write and approve the Project Initiation Documentation, publish the notice of intention to commence, and gather the policy starting points.'
+            description: 'Create and publish the Local Plan timetable, schedule its milestones for committee, write and approve the Project Initiation Documentation, publish the notice of intention to commence, gather the policy starting points, and track readiness for gateway 1 in the readiness checker.'
           }
         ]
       },

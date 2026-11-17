@@ -1,0 +1,39 @@
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+
+{% set pageName = "Update status" %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Readiness checker", href: pmBase + "/readiness-checker" },
+  { text: "Update status" }
+] }) }}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <form method="post" novalidate>
+      {% set items = [] %}
+      {% for option in statuses %}
+        {% set items = (items.push({ value: option.status, text: option.status, hint: { text: option.hint } if option.hint, checked: option.status == entry.status }), items) %}
+      {% endfor %}
+      {{ govukRadios({
+        name: "_status",
+        idPrefix: "status",
+        fieldset: {
+          legend: { html: '<span class="govuk-caption-l">' + (section.title | escape) + '</span>' + (check.text | escape), isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+        },
+        hint: { text: "Choose the description that best matches your progress." },
+        items: items
+      }) }}
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Save" }) }}
+        <a class="govuk-link" href="{{ pmBase }}/readiness-checker#check-{{ check.id }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

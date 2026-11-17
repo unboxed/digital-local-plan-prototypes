@@ -1,0 +1,92 @@
+{#
+  The readiness checker: every check from the gateway 1 readiness checker, grouped by area, each
+  with its status, note and audit log. Built from "Figma screenshots/Readiness checker.png".
+#}
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% set pageName = "Readiness checker" %}
+
+{% block pageContent %}
+
+{{ govukBreadcrumbs({ items: [
+  { text: "Home", href: pmBase + "/overview" },
+  { text: "Readiness checker" }
+] }) }}
+
+<h1 class="govuk-heading-xl govuk-!-margin-bottom-3">Readiness checker</h1>
+<p class="govuk-body-l">Review your progress through the plan making process</p>
+
+<hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
+
+<nav class="dlp-pm-contents" aria-labelledby="readiness-contents">
+  <h2 class="govuk-body govuk-!-margin-bottom-2" id="readiness-contents">Contents</h2>
+  <ul class="dlp-pm-contents__list">
+    {% for section in sections %}
+      <li class="dlp-pm-contents__item"><a class="govuk-link" href="#{{ section.id }}">{{ section.title }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+
+{% for section in sections %}
+  <section class="dlp-pm-readiness" id="{{ section.id }}" aria-labelledby="{{ section.id }}-heading">
+    <h2 class="govuk-heading-m" id="{{ section.id }}-heading">{{ section.title }}</h2>
+
+    {% for check in section.checks %}
+      <div class="dlp-pm-readiness__check" id="check-{{ check.id }}" tabindex="-1">
+        <p class="govuk-body">{{ check.text }}</p>
+
+        <p class="govuk-body dlp-pm-readiness__status">
+          {{ pmStatusTag(check.status) }}
+          <a class="govuk-link" href="{{ pmBase }}/readiness-checker/{{ check.id }}/status">Update status<span class="govuk-visually-hidden">: {{ check.text }}</span></a>
+        </p>
+
+        {% if check.note %}
+          <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Note</h3>
+          <p class="govuk-body govuk-!-margin-bottom-1 dlp-pm-readiness__note">{{ check.note }}</p>
+          <p class="govuk-body"><a class="govuk-link" href="{{ pmBase }}/readiness-checker/{{ check.id }}/note">Update note<span class="govuk-visually-hidden">: {{ check.text }}</span></a></p>
+        {% else %}
+          <p class="govuk-body"><a class="govuk-link" href="{{ pmBase }}/readiness-checker/{{ check.id }}/note">Add note<span class="govuk-visually-hidden">: {{ check.text }}</span></a></p>
+        {% endif %}
+
+        {% if check.log | length %}
+          <details class="govuk-details govuk-!-margin-bottom-0">
+            <summary class="govuk-details__summary">
+              <span class="govuk-details__summary-text">View audit log<span class="govuk-visually-hidden">: {{ check.text }}</span></span>
+            </summary>
+            <div class="govuk-details__text dlp-pm-readiness__log">
+              <table class="govuk-table govuk-!-margin-bottom-0">
+                <caption class="govuk-table__caption govuk-visually-hidden">Audit log for {{ check.text }}, oldest first</caption>
+                <thead class="govuk-table__head">
+                  <tr class="govuk-table__row">
+                    <th scope="col" class="govuk-table__header">Date</th>
+                    <th scope="col" class="govuk-table__header">User</th>
+                    <th scope="col" class="govuk-table__header">Activity</th>
+                  </tr>
+                </thead>
+                <tbody class="govuk-table__body">
+                  {% for entry in check.log %}
+                    <tr class="govuk-table__row">
+                      <td class="govuk-table__cell">{{ entry.at }}</td>
+                      <td class="govuk-table__cell">{{ entry.by }}</td>
+                      <td class="govuk-table__cell">
+                        {%- set prefix = "Status changed to " -%}
+                        {%- if entry.activity.indexOf(prefix) == 0 -%}
+                          {{ prefix }}<em>{{ entry.activity.slice(prefix.length) }}</em>
+                        {%- else -%}
+                          {{ entry.activity }}
+                        {%- endif -%}
+                        {% if entry.comment %}<p class="govuk-body govuk-!-margin-top-3 govuk-!-margin-bottom-0"><em>{{ entry.comment }}</em></p>{% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </section>
+{% endfor %}
+
+{% endblock %}

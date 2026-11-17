@@ -33,6 +33,24 @@
     </span>
   </div>
 
+  {#
+    The source picker from Policy drafting with starting points' evidence viewer, listing this
+    policy's sources. Without JavaScript it is a GET form; with it, choosing a source shows it
+    straight away (initEvidenceDrop), so unsaved typing in the draft isn't lost, and the View
+    button is hidden.
+  #}
+  {% if policy.sources | length %}
+    <form method="get" action="/plan/make/policy-side-by-side/chapter/{{ policy.id }}" class="dlp-pd-viewer__picker" data-dlp-evidence-picker>
+      <label class="govuk-label govuk-!-font-weight-bold govuk-!-margin-0" for="pw2-evidence-source">Source:</label>
+      <select class="govuk-select dlp-pd-viewer__select" id="pw2-evidence-source" name="source">
+        {% for source in policy.sources %}
+          <option value="{{ source.id }}" {%- if selectedSource and source.id == selectedSource.id %} selected{% endif %}>{{ source.source }}{% if source.ref %}, {{ source.ref }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="govuk-button govuk-button--secondary govuk-!-margin-0 dlp-pd-viewer__go" data-dlp-evidence-picker-go>View</button>
+    </form>
+  {% endif %}
+
   <div class="dlp-pw2-pane__body" data-dlp-evidence-body>
     {% if selectedSource %}
       {{ evidenceDocument(selectedSource, selectedDocument) }}

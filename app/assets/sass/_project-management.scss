@@ -661,3 +661,65 @@
   color: inherit;
   padding: 0 2px;
 }
+
+// --- Readiness checker -----------------------------------------------------------------------
+
+// The contents list: links with a dash before each, as in the design.
+.dlp-pm-contents {
+  margin-bottom: govuk-spacing(6);
+}
+
+.dlp-pm-contents__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dlp-pm-contents__item {
+  @include govuk-font($size: 16);
+  margin-bottom: govuk-spacing(1);
+  padding-left: govuk-spacing(5);
+  position: relative;
+
+  &::before {
+    content: "—";
+    left: 0;
+    position: absolute;
+  }
+}
+
+// One grey panel per area, holding its checks.
+.dlp-pm-readiness {
+  background: $dlp-panel-background;
+  margin-bottom: govuk-spacing(6);
+  padding: govuk-spacing(4);
+}
+
+.dlp-pm-readiness__check {
+  margin-bottom: govuk-spacing(6);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.dlp-pm-readiness__status {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(4);
+}
+
+.dlp-pm-readiness__note {
+  white-space: pre-line;
+}
+
+// The audit log sits flush in the panel rather than indented under the summary.
+.dlp-pm-readiness__log {
+  border-left: 0;
+  padding-left: 0;
+}
