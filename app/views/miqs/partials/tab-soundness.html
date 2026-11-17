@@ -1,31 +1,23 @@
 {#
-  Need 3: how the policy meets the legal requirements, is sound and is in general conformity.
-  The tests ticked here are saved with the response (_testsShown says the boxes were on the page,
-  so unticking them all is saved too).
+  Need 3: how the policy is sound and meets the legal requirements. The statement of soundness
+  (its title and published date, SOUNDNESS_STATEMENT_DOCUMENT), with the parts for the question's
+  policies (example statements, MIQD.SOUNDNESS_STATEMENTS), then the Statement of compliance
+  requirements. Nothing here is
+  a field, so the tab has no Save button of its own.
 #}
-{% from "govuk/components/checkboxes/macro.njk" import govukCheckboxes %}
-
-<input type="hidden" name="_testsShown" value="1" form="miq-response-form">
-
-{% set testItems = [] %}
-{% for test in compliance.tests %}
-  {% set testItems = (testItems.push({
-    value: test.id,
-    html: test.title + (' <strong class="govuk-tag govuk-tag--blue dlp-miq-card__tag">Raised by this question</strong>' if test.raised else ''),
-    hint: { text: test.description },
-    checked: test.addressed,
-    disabled: state.sent,
-    attributes: { form: "miq-response-form" }
-  }), testItems) %}
+<h3 class="govuk-heading-m govuk-!-margin-bottom-1">{{ compliance.statementDocument.title }}</h3>
+<p class="govuk-body-s dlp-miq-muted">Published {{ compliance.statementDocument.published }}</p>
+{% for statement in compliance.statements %}
+  <section class="dlp-miq-statement" aria-labelledby="miq-statement-{{ loop.index }}">
+    <h4 class="govuk-heading-s" id="miq-statement-{{ loop.index }}">{{ statement.title }}</h4>
+    <p class="govuk-body-s">{{ statement.intro }}</p>
+    {% for test in statement.tests %}
+      <h5 class="govuk-heading-s govuk-!-margin-bottom-1 dlp-miq-statement__test">{{ test.title }}</h5>
+      <p class="govuk-body-s">{{ test.text }}</p>
+    {% endfor %}
+  </section>
 {% endfor %}
-{{ govukCheckboxes({
-  idPrefix: "miq-tests",
-  name: "_tests",
-  classes: "govuk-checkboxes--small",
-  fieldset: { legend: { text: "Tests of soundness your response shows the plan meets", classes: "govuk-fieldset__legend--s" } },
-  hint: { text: "Tick each test your response deals with." },
-  items: testItems
-}) }}
+<p class="govuk-body-s dlp-miq-muted">Example statement, written for the prototype.</p>
 
 {% if compliance.requirements | length %}
   <h3 class="govuk-heading-s">Legal requirements</h3>
@@ -39,24 +31,4 @@
       </li>
     {% endfor %}
   </ul>
-{% endif %}
-
-{% if compliance.sds | length %}
-  <h3 class="govuk-heading-s">General conformity with the London Plan</h3>
-  <p class="govuk-body-s">From the statement of general conformity with the spatial development strategy.</p>
-  <ul class="govuk-list dlp-miq-cards">
-    {% for policy in compliance.sds %}
-      <li class="dlp-miq-card">
-        <p class="govuk-body-s dlp-miq-card__title"><strong>{{ policy.ref }}</strong> {{ policy.title }}
-          <strong class="govuk-tag govuk-tag--{{ 'green' if policy.status == 'Addressed' else 'yellow' }} dlp-miq-card__tag">{{ policy.status }}</strong></p>
-        {% if policy.links | length %}<p class="govuk-body-s">Met by {{ policy.links | join(", ") }}</p>{% endif %}
-        {% if policy.comment %}<p class="govuk-body-s">{{ policy.comment }}</p>{% endif %}
-        <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link" href="{{ policy.href }}">See the conformity statement<span class="govuk-visually-hidden"> for {{ policy.ref }}</span></a></p>
-      </li>
-    {% endfor %}
-  </ul>
-{% endif %}
-
-{% if not state.sent %}
-  {{ govukButton({ text: "Save", name: "_action", value: "save", classes: "govuk-button--secondary", attributes: { form: "miq-response-form" } }) }}
 {% endif %}

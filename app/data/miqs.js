@@ -69,10 +69,84 @@ const SOUNDNESS_TESTS = [
   { id: 'consistent', title: 'Consistent with national policy', description: 'Enables the delivery of sustainable development in accordance with national policy.' }
 ]
 
+// Example statements of soundness, shown on the question workspace's Statement of soundness tab:
+// how the Corporation says a policy (or, for `plan`, the plan as a whole) meets each test of
+// soundness, by test id. Written for the prototype: they are not the City of London's own
+// statements, though the figures and evidence named are those used elsewhere in the prototype.
+// The statement of soundness as a document: its title and when it was published (with the
+// submission documents, before the inspector's matters, issues and questions were issued).
+const SOUNDNESS_STATEMENT_DOCUMENT = {
+  title: 'City Plan 2040: Statement of soundness',
+  published: '14 September 2026'
+}
+
+const SOUNDNESS_STATEMENTS = {
+  plan: {
+    title: 'City Plan 2040 as a whole',
+    intro: 'The City Corporation considers that the plan has been prepared in accordance with the legal and procedural requirements and is sound. This statement summarises how it meets each test.',
+    tests: {
+      'positively-prepared': 'The plan sets out a strategy to meet the City’s objectively assessed needs for offices, homes and infrastructure. It was prepared through three rounds of consultation, and the representations received at each stage are summarised in the consultation statement with the Corporation’s response.',
+      justified: 'Each strategic policy is supported by proportionate evidence, listed in the examination library. The integrated impact assessment considered reasonable alternatives at each stage.',
+      effective: 'The plan is deliverable over the plan period. Cross-boundary matters were addressed through joint working with neighbouring boroughs and the Mayor of London, recorded in the statement of common ground.',
+      consistent: 'The plan is consistent with the National Planning Policy Framework and in general conformity with the London Plan, as set out in the statement of compliance and the statement of general conformity.'
+    }
+  },
+  S3: {
+    title: 'Policy S3: Housing',
+    intro: 'Policy S3 sets the City’s housing requirement and the approach to affordable housing. The City Corporation considers that it is sound for the following reasons.',
+    tests: {
+      'positively-prepared': 'The policy plans for a minimum of 1,706 net additional dwellings between 2025/26 and 2039/40, meeting the London Plan’s ten-year target for the City and rolling it forward to the end of the plan period.',
+      justified: 'The requirement and the 50% affordable housing requirement on public sector land are based on the Strategic Housing Market Assessment (2023) and tested in the Local Plan Viability Assessment. Higher and lower targets were considered and rejected because of the City’s limited land and its primary business role.',
+      effective: 'The housing trajectory in Appendix 2 shows how the requirement will be met from identified sites and windfall, and is monitored annually through the Authority Monitoring Report. Affordable housing is secured through planning obligations, with off-site provision only in the circumstances the policy sets out.',
+      consistent: 'The policy follows the National Planning Policy Framework’s approach to meeting housing need and delivering affordable homes, and is in general conformity with London Plan Policies H1 and H4.'
+    }
+  },
+  HS1: {
+    title: 'Policy HS1: Location of New Housing',
+    intro: 'Policy HS1 directs new homes to the City’s identified residential areas. The City Corporation considers that it is sound for the following reasons.',
+    tests: {
+      'positively-prepared': 'The policy makes provision for new homes in and near the residential areas where they can be delivered with good standards of amenity, contributing to the requirement in Policy S3.',
+      justified: 'The approach is based on the Strategic Housing Market Assessment and the residential amenity evidence. Dispersing housing across the City was considered and rejected because of conflicts with office and night-time uses.',
+      effective: 'The sites in the housing trajectory fall mainly within or next to the identified residential areas, and the policy sets clear criteria for housing elsewhere.',
+      consistent: 'The policy is consistent with national policy on making effective use of land and achieving well-designed places, and with London Plan Policy H1.'
+    }
+  },
+  S12: {
+    title: 'Policy S12: Tall Buildings',
+    intro: 'Policy S12 identifies where tall buildings may be appropriate and sets the criteria they must meet. The City Corporation considers that it is sound for the following reasons.',
+    tests: {
+      'positively-prepared': 'The policy plans for the office floorspace the City needs by identifying areas where tall buildings may be appropriate, prepared with neighbouring boroughs and Historic England.',
+      justified: 'The tall building areas and height contours in Figure 15 are based on the Tall Buildings Study and the 3D modelling of protected views, landmarks and heritage assets. Alternative areas and heights were tested and rejected.',
+      effective: 'The definition of a tall building as one over 75m AOD gives a clear threshold, and the criteria in the policy are applied through the City’s 3D model in assessing proposals.',
+      consistent: 'The policy is consistent with national policy on design and the historic environment, and in general conformity with London Plan Policy D9, which requires boroughs to define tall buildings and identify suitable locations.'
+    }
+  },
+  S13: {
+    title: 'Policy S13: Protected Views',
+    intro: 'Policy S13 protects strategic and local views of St Paul’s Cathedral, the Tower of London and the Monument. The City Corporation considers that it is sound for the following reasons.',
+    tests: {
+      'positively-prepared': 'The policy protects the views that make the City’s heritage legible while allowing growth, prepared with Historic England and neighbouring boroughs whose views cross the City.',
+      justified: 'The views and their management are based on the London View Management Framework and the City’s own Protected Views Supplementary Planning Document.',
+      effective: 'The policy names the views to be protected and the tests development must meet, and proposals are assessed using the City’s 3D model.',
+      consistent: 'The policy is consistent with national policy on conserving heritage assets and their settings, and in general conformity with London Plan Policies HC3 and HC4.'
+    }
+  },
+  HE1: {
+    title: 'Policy HE1: Managing Change to the Historic Environment',
+    intro: 'Policy HE1 sets out how development affecting heritage assets and their settings will be managed. The City Corporation considers that it is sound for the following reasons.',
+    tests: {
+      'positively-prepared': 'The policy plans positively for the conservation and enjoyment of the City’s heritage assets while allowing them to adapt to new uses.',
+      justified: 'The approach is based on the City’s conservation area appraisals and the heritage evidence in the examination library.',
+      effective: 'The policy sets a clear test for development affecting designated heritage assets and their settings, applied through heritage statements submitted with applications.',
+      consistent: 'The policy follows the National Planning Policy Framework’s approach to weighing harm to heritage assets against public benefits, and is in general conformity with London Plan Policy HC1.'
+    }
+  }
+}
+
 // Matter → issue → question, as the inspector's document sets them out. A question's
 // `policies` are the City Plan 2040 refs it is about, as read from the document: the officer can
 // correct them on the "Check what we found" page. `tests`, `compliance` (Statement of compliance
-// regulation refs) and `sds` (London Plan policy refs) drive the Legal compliance and soundness
+// regulation refs) and `sds` (London Plan policy refs) drive the Statement of soundness
 // tab. `summary` is the canned "AI generated" summary.
 const MATTERS = [
   {
@@ -435,6 +509,8 @@ module.exports = {
   MIQ_DOCUMENT,
   HEARING_PROGRAMME,
   SOUNDNESS_TESTS,
+  SOUNDNESS_STATEMENT_DOCUMENT,
+  SOUNDNESS_STATEMENTS,
   MATTERS,
   QUESTIONS,
   HEARING_STATEMENTS,

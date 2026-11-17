@@ -838,8 +838,13 @@ exist: the inspector and participants appear in "Prototype only" panels.
     `EVIDENCE_EXCERPTS`, plus the consultation representations and the hearing statements on
     the question
   - Summary: canned, with the "AI generated" caveat
-  - Legal compliance and soundness: the soundness tests, Statement of compliance requirements
-    and the SDS conformity statement
+  - Statement of soundness (formerly "Legal compliance and soundness", `?_tab=soundness`):
+    the document's title and published date (`SOUNDNESS_STATEMENT_DOCUMENT`), then an
+    example statement of soundness for each of the question's policies, or the plan as a whole
+    when it names none (`SOUNDNESS_STATEMENTS` in miqs.js, written for the prototype; S3, HS1,
+    S12, S13, HE1 and `plan`); then the
+    Statement of compliance requirements. The soundness test checkboxes and the London Plan
+    conformity cards were removed by request
 
   An Objections tab (common objections from the consultation themes, with ones pressed again in
   hearing statements flagged as significant) was removed by request. An old `?_tab=objections`
