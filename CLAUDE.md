@@ -913,17 +913,32 @@ under "Manage MODs and MIQs" and copies its structure: `mods/partials/layout.htm
 - **Tracked changes are a word-level comparison** (`modDiff`, a longest common subsequence over
   words).
   - It runs in routes.js for every page, and again in application.js (`modDiff` and
-    `initModPreview`, `data-dlp-mod-preview`) for the workspace's live preview. **Change the two
+    `initModEdit`, `data-dlp-mod-edit`) for the workspace's Update wording. **Change the two
     together.**
   - The markup is `partials/tracked-text/macro.njk` (`appTrackedText`, `appTrackedKey`):
     `<ins>`/`<del>` and a label linking to the modification.
   - MM and AM differ in border style (solid or dashed) and label as well as colour, and each
     change has visually hidden text.
-  - The preview script builds with `createElement`/`textContent` only.
+  - `initModEdit` builds with `createElement`/`textContent` only.
 - **The drafting workspace** follows Policy drafting's draft page: `.dlp-split.dlp-pd-split`
   with `.dlp-pw2-pane` panes, and the inert "Invite collaborators" button.
-  - The proposed wording is a **plain textarea, not the rich text editor**, because the
-    tracked change compares words.
+  - **The workspace is the whole policy.** `/drafts/:modId` is headed with the policy title
+    only ("Policy S3: Housing"), and the draft modifications list still links to each
+    modification. Update wording is a tall scrolling box (`.dlp-mod-wording`, opened at the
+    modification the page is open on) laid out like the tracked changes plan, and **every part
+    of the policy is editable** (`modPolicyParts`; one textarea per part, `_after[<part key>]`).
+    A part with a modification shows its tracked change in the text (tinted; the open one
+    outlined). With JavaScript, selecting a part swaps in its auto-growing textarea; leaving it
+    (blur or Escape) shows the tracked text again, updated. Without JavaScript each textarea
+    sits under its text.
+  - Saving (`modSaveWording`) updates every changed modification in the policy, and **changing
+    a part that has none adds one** (main if the inspector asked for that part, otherwise
+    additional, assigned to you), named in the flash.
+  - "Modifications in this policy", above Update wording, lists them all; the others are `_action` `open:<id>`
+    buttons, which save and switch. The kind, reason, assignee, status buttons and the
+    right-hand pane are for the modification the page is open on.
+  - The wording is a **plain textarea, not the rich text editor**, because the tracked change
+    compares words.
   - One form, `#mod-form`, holds everything. The right-hand pane's controls join it with
     `form="mod-form"`, so every action saves the typing first.
   - `_action` is `save`, `ready`, `agree`, `reopen`, `remove` (council modifications only),
@@ -936,7 +951,7 @@ under "Manage MODs and MIQs" and copies its structure: `mods/partials/layout.htm
   ("Last updated … by …", `state.lastChange`) heads it.
 - **The tracked changes plan** (`modsPlanPolicies`, shared by View and publish changes and a version's
   page through `partials/plan-body.html`) renders the policies in the public view's policy text
-  styles (`dlp-pub-policy-text`), with a contents column. The sticky `modShow` field picks what's
+  styles (`dlp-pub-policy-text`), with a contents column (the shared `dlp-contents` list, `_contents-list.scss`, also used by the readiness checker). The sticky `modShow` field picks what's
   marked:
   - `all` marks every change
   - `mm` or `am` marks one kind and applies the other unmarked

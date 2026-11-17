@@ -87,7 +87,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-copy-link]').forEach(safeInit(initCopyLink))
   document.querySelectorAll('[data-dlp-rich-text]').forEach(safeInit(initRichText))
   document.querySelectorAll('[data-dlp-insert-text]').forEach(safeInit(initInsertText))
-  document.querySelectorAll('[data-dlp-mod-preview]').forEach(safeInit(initModPreview))
+  document.querySelectorAll('[data-dlp-mod-edit]').forEach(safeInit(initModEdit))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2528,12 +2528,11 @@ document.addEventListener('focusin', event => {
   if (event.target && event.target.tagName === 'TEXTAREA') event.target.dataset.dlpInsertUsed = 'true'
 })
 
-// --- Tracked change preview (MODs drafting workspace) ----------------------------------------
+// --- Tracked changes in Update wording (MODs drafting workspace) ---------------------------
 //
-// Redraws the tracked change under the proposed wording as it is typed. modDiff is the same
-// word-level comparison as modDiff in app/routes.js, which renders the preview on save, so the
-// two must change together; the markup matches partials/tracked-text/macro.njk. Built with
-// createElement and textContent only: the wording is user input.
+// modDiff is the same word-level comparison as modDiff in app/routes.js, which renders the
+// tracked text on save, so the two must change together; the markup matches
+// partials/tracked-text/macro.njk.
 function modDiff (before, after) {
   const tokens = text => (text || '').match(/\S+\s*/g) || []
   const a = tokens(before)
@@ -2561,15 +2560,20 @@ function modDiff (before, after) {
   return segments
 }
 
-function initModPreview (root) {
-  const input = document.querySelector(root.getAttribute('data-dlp-mod-preview-input'))
-  const output = root.querySelector('[data-dlp-mod-preview-text]')
-  if (!input || !output) return
-  const note = root.querySelector('[data-dlp-mod-preview-note]')
+// Update wording in the MODs drafting workspace: the part being modified sits in the whole
+// policy, showing its tracked change in the text. Selecting it swaps in the textarea to edit;
+// leaving the textarea puts the tracked text back, worked out again with modDiff (the same
+// comparison as routes.js). The textarea stays in the form while hidden, so it is always saved.
+// Built with createElement and textContent only: the wording is user input.
+function initModEdit (root) {
+  const view = root.querySelector('[data-dlp-mod-edit-view]')
+  const input = root.querySelector('[data-dlp-mod-edit-input]')
+  if (!view || !input) return
   const before = root.getAttribute('data-dlp-mod-before') || ''
   const type = root.getAttribute('data-dlp-mod-type') || 'mm'
   const ref = root.getAttribute('data-dlp-mod-ref') || ''
   const typeName = root.getAttribute('data-dlp-mod-type-name') || ''
+  const name = root.getAttribute('data-dlp-mod-name') || ''
   const hidden = text => {
     const span = document.createElement('span')
     span.className = 'govuk-visually-hidden'
@@ -2577,27 +2581,67 @@ function initModPreview (root) {
     return span
   }
   const render = () => {
-    output.textContent = ''
+    view.textContent = ''
     modDiff(before, input.value.replace(/\s+/g, ' ').trim()).forEach(segment => {
       if (segment.kind === 'same') {
-        output.appendChild(document.createTextNode(segment.text))
+        view.appendChild(document.createTextNode(segment.text))
         return
       }
       const mark = document.createElement(segment.kind === 'ins' ? 'ins' : 'del')
       mark.className = 'dlp-mod dlp-mod--' + type
       mark.appendChild(hidden(ref + (segment.kind === 'ins' ? ' inserted: ' : ' deleted: ')))
       mark.appendChild(document.createTextNode(segment.text))
-      output.appendChild(mark)
+      view.appendChild(mark)
     })
-    output.appendChild(document.createTextNode(' '))
+    // A part with no modification yet has no number until it is saved.
+    if (!ref) return
+    view.appendChild(document.createTextNode(' '))
     const label = document.createElement('span')
     label.className = 'dlp-mod-label dlp-mod-label--' + type
     label.appendChild(hidden(typeName + ' '))
     label.appendChild(document.createTextNode(ref))
-    output.appendChild(label)
+    view.appendChild(label)
   }
-  if (note) note.textContent = 'Updates as you type.'
-  input.addEventListener('input', render)
+  const fit = () => {
+    input.style.height = 'auto'
+    input.style.height = input.scrollHeight + 'px'
+  }
+  const edit = () => {
+    view.hidden = true
+    input.hidden = false
+    fit()
+    input.focus()
+  }
+  const show = () => {
+    render()
+    input.hidden = true
+    view.hidden = false
+  }
+
+  root.classList.add('dlp-mod-edit--js')
+  view.setAttribute('role', 'button')
+  view.setAttribute('tabindex', '0')
+  view.setAttribute('aria-label', 'Edit the wording of ' + name)
+  view.addEventListener('click', edit)
+  view.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      edit()
+    }
+  })
+  input.addEventListener('input', fit)
+  input.addEventListener('blur', show)
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      show()
+      view.focus()
+    }
+  })
+  input.hidden = true
+
+  // Open the box at the modification the page is open on, not the top of the policy.
+  const box = root.closest('[data-dlp-mod-wording]')
+  if (box && root.hasAttribute('data-dlp-mod-edit-active')) box.scrollTop += root.getBoundingClientRect().top - box.getBoundingClientRect().top - 48
 }
 
 // --- Select all, with a running count ------------------------------------------------------

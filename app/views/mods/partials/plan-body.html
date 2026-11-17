@@ -39,15 +39,15 @@
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-one-quarter">
-    <nav class="dlp-mod-contents" aria-labelledby="contents-heading">
-      <h3 class="govuk-heading-s" id="contents-heading">Contents</h3>
-      <ul class="govuk-list govuk-body-s">
+    <nav class="dlp-contents dlp-mod-contents" aria-labelledby="contents-heading">
+      <h3 class="dlp-contents__heading" id="contents-heading">Contents</h3>
+      <ul class="dlp-contents__list">
         {% for policy in policies %}
-          <li>
+          <li class="dlp-contents__item">
             <a class="govuk-link" href="#policy-{{ policy.ref | lower }}">{{ policy.ref }} {{ policy.title }}</a>
             {% if policy.counts.MM or policy.counts.AM %}
-              <span class="govuk-!-display-block dlp-miq-muted">
-                {%- if policy.counts.MM %}{{ policy.counts.MM }} MM{% endif %}{% if policy.counts.MM and policy.counts.AM %}, {% endif %}{% if policy.counts.AM %}{{ policy.counts.AM }} AM{% endif -%}
+              <span class="dlp-contents__meta">
+                {%- if policy.counts.MM %}{{ policy.counts.MM }} main{% endif %}{% if policy.counts.MM and policy.counts.AM %}, {% endif %}{% if policy.counts.AM %}{{ policy.counts.AM }} additional{% endif -%}
               </span>
             {% endif %}
           </li>
