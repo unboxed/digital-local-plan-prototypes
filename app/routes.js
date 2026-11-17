@@ -8531,6 +8531,73 @@ router.post(MODS + '/drafts/new', (req, res) => {
   res.redirect(MODS + '/drafts/' + created.id)
 })
 
+// Every part of a policy for the workspace's Update wording, by part key: its current wording,
+// the wording as modified, the tracked change, and its modification (null if it has none).
+// `active` is the modification the page is open on; `after` its unsaved wording, if any.
+function modPolicyParts (state, ref, active, after) {
+  const byTarget = {}
+  modsSchedule(state).forEach(entry => { if (entry.mod) byTarget[entry.mod.target] = entry })
+  const parts = {}
+  modParts().filter(part => part.ref === ref).forEach(part => {
+    const entry = byTarget[part.key] || null
+    const wording = entry ? (entry.mod === active ? after : entry.mod.after) : part.text
+    parts[part.key] = {
+      key: part.key,
+      name: part.name,
+      before: part.text,
+      after: wording,
+      segments: modDiff(part.text, wording),
+      modId: entry ? entry.mod.id : null,
+      active: Boolean(entry) && entry.mod === active,
+      change: entry ? { ref: entry.ref, type: entry.type, typeName: entry.typeName, agreed: entry.mod.status === 'agreed' } : null
+    }
+  })
+  return parts
+}
+
+// Saves Update wording: `_after` is an object of part key to wording, for every part of the
+// policy. A changed part with a modification updates it; a changed part without one starts a
+// modification (main if the inspector asked for it, otherwise additional). Returns what changed.
+function modSaveWording (state, ref, wording) {
+  const created = []
+  const edited = []
+  if (!wording || typeof wording !== 'object') return { created, edited }
+  modParts().filter(part => part.ref === ref).forEach(part => {
+    if (typeof wording[part.key] !== 'string') return
+    const text = wording[part.key].replace(/\s+/g, ' ').trim()
+    const existing = modForTarget(state, part.key)
+    if (existing) {
+      if (text !== existing.after) {
+        existing.after = text
+        modsTouch(state, existing)
+        edited.push(existing)
+      }
+      return
+    }
+    if (!text || text === part.text) return
+    const request = MODD.REQUESTS.find(candidate => candidate.target === part.key && !modForRequest(state, candidate.id)) || null
+    const item = {
+      id: 'm' + state.nextId,
+      type: request ? 'MM' : 'AM',
+      requestId: request ? request.id : null,
+      target: part.key,
+      after: text,
+      reason: '',
+      status: 'draft',
+      assignee: 'priya-shah',
+      updatedAt: MODD.TODAY,
+      updatedBy: MODD.OFFICER,
+      comments: []
+    }
+    state.nextId += 1
+    state.modifications.push(item)
+    state.lastChange = { at: MODD.TODAY, by: MODD.OFFICER }
+    modsLog(state, 'Started ' + MOD_TYPE_NAMES[item.type].toLowerCase() + ' to ' + part.name)
+    created.push(item)
+  })
+  return { created, edited }
+}
+
 router.get(MODS + '/drafts/:modId', (req, res) => {
   const state = getMods(req)
   const item = modFor(state, req.params.modId)
@@ -8551,6 +8618,10 @@ router.get(MODS + '/drafts/:modId', (req, res) => {
     after,
     reason: values.reason !== undefined ? values.reason : item.reason,
     segments: modDiff(part.text, after),
+    // The whole policy for Update wording: every part editable, each with its modification.
+    policy: modsPlanPolicies(state.modifications, 'all', true).find(candidate => candidate.ref === part.ref),
+    policyParts: modPolicyParts(state, part.ref, item, after),
+    policyMods: modsSchedule(state).filter(candidate => candidate.mod && candidate.part.ref === part.ref),
     statusText: MOD_STATUS_TEXT[item.status],
     assigneeName: assignee ? assignee.name : '',
     team: MODD.TEAM,
@@ -8587,14 +8658,14 @@ router.post(MODS + '/drafts/:modId', (req, res) => {
     return res.redirect(MODS + '/drafts')
   }
 
-  // Every action saves what has been typed first.
-  const after = typeof req.body._after === 'string' ? req.body._after.replace(/\s+/g, ' ').trim() : item.after
+  // Every action saves what has been typed first: the whole policy's wording, then this
+  // modification's own fields.
+  const { created, edited: wordingEdited } = modSaveWording(state, part.ref, req.body._after)
   const reason = typeof req.body._reason === 'string' ? req.body._reason.trim() : item.reason
   const type = item.requestId ? 'MM' : (req.body._type === 'AM' || req.body._type === 'MM' ? req.body._type : item.type)
   const assignee = MODD.teamMember(req.body._assignee) ? req.body._assignee : item.assignee
-  const edited = after !== item.after || reason !== item.reason || type !== item.type || assignee !== item.assignee
+  const edited = reason !== item.reason || type !== item.type || assignee !== item.assignee
   if (edited) {
-    item.after = after
     item.reason = reason
     item.type = type
     item.assignee = assignee
@@ -8637,7 +8708,14 @@ router.post(MODS + '/drafts/:modId', (req, res) => {
       modsLog(state, 'Resolved a comment on the ' + label)
     }
     return res.redirect(MODS + '/drafts/' + item.id + '?_tab=comments#support')
-  } else if (edited) {
+  } else if (action.startsWith('open:')) {
+    // Switch to another modification in this policy, having saved.
+    const other = modFor(state, action.slice(5))
+    return res.redirect(MODS + '/drafts/' + (other ? other.id : item.id))
+  } else if (created.length) {
+    const schedule = modsSchedule(state)
+    modsSetFlash(req, 'Your changes have been saved. Added ' + created.map(added => (schedule.find(entry => entry.mod === added) || {}).ref + ' to ' + modPart(added.target).name).join(' and ') + ' to the schedule.')
+  } else if (edited || wordingEdited.length) {
     modsSetFlash(req, 'Your changes have been saved')
   }
   res.redirect(back)

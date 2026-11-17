@@ -3,8 +3,9 @@
 {% from "govuk/components/textarea/macro.njk" import govukTextarea %}
 {% from "govuk/components/radios/macro.njk" import govukRadios %}
 {% from "consultations/managing-responses/partials/macros.html" import crTabs %}
+{% from "partials/tracked-text/macro.njk" import appTrackedText %}
 
-{% set pageName = entry.ref + ": " + part.name %}
+{% set pageName = "Policy " + part.ref + ": " + part.policyTitle %}
 {% set typeName = "Main modification" if item.type == "MM" else "Additional modification" %}
 {% set change = { ref: entry.ref, type: item.type, typeName: typeName } %}
 
@@ -20,14 +21,7 @@
 
 <a class="govuk-back-link" href="/plan/make/mods/drafts">Draft modifications</a>
 
-<div class="dlp-miq-question-head">
-  <div>
-    <span class="govuk-caption-l">{{ typeName }} {{ entry.ref }}</span>
-    <h1 class="govuk-heading-l govuk-!-margin-bottom-2">{{ part.name }}</h1>
-    <p class="govuk-body-s dlp-miq-muted">{{ part.policyTitle }} &middot; Assigned to {{ assigneeName }} &middot; Last edited by {{ item.updatedBy }} on {{ item.updatedAt }}</p>
-  </div>
-  <div>{{ modStatusTag(statusText) }}</div>
-</div>
+<h1 class="govuk-heading-l">Policy {{ part.ref }}: {{ part.policyTitle }}</h1>
 
 <div class="dlp-split dlp-pd-split dlp-mod-split"
      data-dlp-split
@@ -54,26 +48,85 @@
         {# Enter in a field presses the first button in the form, so make that Save. #}
         <button type="submit" name="_action" value="save" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Save</button>
 
-        <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Current wording</h3>
-        <p class="govuk-body dlp-mod-current">{{ part.text }}</p>
+        {#
+          Update wording: the whole policy, as the tracked changes plan lays it out, in a tall box
+          that scrolls. Every part can be edited: a part with a modification shows its tracked
+          change in the text, and changing a part without one adds a modification on save
+          (modSaveWording). With JavaScript, selecting a part swaps in its textarea, and leaving
+          the textarea puts the tracked text back, updated (initModEdit). Without it, each
+          textarea sits under its text. The modification this page is open on is outlined.
+        #}
+        {% macro tracked(key, parts) -%}
+          {%- set p = parts[key] -%}
+          {%- if p -%}
+          <span class="dlp-mod-edit {%- if p.change %} dlp-mod-edit--modified{% endif %}{% if p.active %} dlp-mod-edit--active{% endif %}" data-dlp-mod-edit
+                {%- if p.active %} data-dlp-mod-edit-active{% endif %}
+                data-dlp-mod-before="{{ p.before }}" data-dlp-mod-type="{{ (p.change.type if p.change else 'am') | lower }}"
+                data-dlp-mod-ref="{{ p.change.ref if p.change else '' }}" data-dlp-mod-type-name="{{ p.change.typeName if p.change else '' }}"
+                data-dlp-mod-name="{{ p.name }}">
+            <span class="dlp-mod-edit__view" data-dlp-mod-edit-view>{{ appTrackedText(p.segments, { marked: true, change: p.change }) }}</span>
+            <textarea class="govuk-textarea dlp-mod-edit__input" id="after-{{ key | replace('.', '-') }}" name="_after[{{ key }}]" rows="3"
+                      aria-label="Wording of {{ p.name }}" data-dlp-mod-edit-input>{{ p.after }}</textarea>
+          </span>
+          {%- endif -%}
+        {%- endmacro %}
+        {% set letters = "abcdefghij" %}
 
-          {{ govukTextarea({
-            id: "after",
-            name: "_after",
-            rows: 6,
-            value: after,
-            label: { text: "Proposed wording", classes: "govuk-label--s" },
-            hint: { text: "Edit the wording in place. Insertions and deletions are tracked for you." },
-            errorMessage: { text: errors.after } if errors.after
-          }) }}
+        {#
+          The policy's modifications, above Update wording. The details under the wording (kind,
+          reason, assignee, status) and the right-hand pane are for the one this page is open on;
+          the others' buttons save and switch to them.
+        #}
+        <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Modifications in this policy</h3>
+        <ul class="govuk-list dlp-mod-switch govuk-!-margin-bottom-6">
+          {% for other in policyMods %}
+            <li class="dlp-mod-switch__item {%- if other.mod.id == item.id %} dlp-mod-switch__item--active{% endif %}">
+              {% if other.mod.id == item.id %}
+                <strong>{{ other.ref }}: {{ other.part.name }}</strong> <span class="dlp-miq-muted">(open)</span>
+              {% else %}
+                <button type="submit" name="_action" value="open:{{ other.mod.id }}" class="dlp-link-button">{{ other.ref }}: {{ other.part.name }}</button>
+              {% endif %}
+              {{ modStatusTag(other.status) }}
+            </li>
+          {% endfor %}
+        </ul>
 
-          <div class="dlp-mod-preview" data-dlp-mod-preview data-dlp-mod-preview-input="#after"
-               data-dlp-mod-before="{{ part.text }}" data-dlp-mod-type="{{ item.type | lower }}"
-               data-dlp-mod-ref="{{ entry.ref }}" data-dlp-mod-type-name="{{ typeName }}">
-            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">Tracked change</h3>
-            <p class="govuk-body-s dlp-miq-muted govuk-!-margin-bottom-1" data-dlp-mod-preview-note>As last saved. Save to update it.</p>
-            <p class="govuk-body dlp-mod-preview__text" data-dlp-mod-preview-text>{{ appTrackedText(segments, { marked: true, change: change }) }}</p>
+        <div class="govuk-form-group">
+          <h3 class="govuk-label-wrapper"><label class="govuk-label govuk-label--s" for="after-{{ part.key | replace('.', '-') }}" id="update-wording-label">Update wording</label></h3>
+          <div class="govuk-hint" id="update-wording-hint">
+            Select text to edit and track changes. All changes are captured in the
+            <a class="govuk-link" href="/plan/make/mods/schedule">Schedule</a>.
           </div>
+          <div class="dlp-mod-wording" tabindex="0" role="region" aria-label="Policy {{ policy.ref }}, with tracked changes" data-dlp-mod-wording>
+            {% if policy.parts[policy.ref + ".exp"] %}
+              <div class="govuk-body">{{ tracked(policy.ref + ".exp", policyParts) }}</div>
+            {% endif %}
+            <div class="dlp-pub-policy-text govuk-!-margin-bottom-0">
+              <p class="dlp-pub-policy-text__ref">Policy {{ policy.ref }}: {{ policy.title }}</p>
+              {% if policy.body.intro %}<div class="govuk-body">{{ tracked(policy.ref + ".intro", policyParts) }}</div>{% endif %}
+              <ol class="dlp-pub-policy-text__list">
+                {% for clause in policy.body.clauses %}
+                  {% set number = loop.index %}
+                  <li>
+                    {{ tracked(policy.ref + "." + number, policyParts) }}
+                    {% if clause.items %}
+                      <ol class="dlp-pub-policy-text__items">
+                        {% for clauseItem in clause.items %}
+                          <li>{{ tracked(policy.ref + "." + number + letters[loop.index0], policyParts) }}</li>
+                        {% endfor %}
+                      </ol>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ol>
+            </div>
+          </div>
+        </div>
+
+
+        <div class="dlp-mod-selected">
+          <h3 class="govuk-heading-m govuk-!-margin-bottom-1">{{ typeName }} {{ entry.ref }}: {{ part.name }}</h3>
+          <p class="govuk-body-s dlp-miq-muted">Assigned to {{ assigneeName }} &middot; Last edited by {{ item.updatedBy }} on {{ item.updatedAt }}</p>
 
           {% if not item.requestId %}
             {{ govukRadios({
@@ -123,6 +176,7 @@
           {% if not item.requestId %}
             <p class="govuk-body-s"><button type="submit" name="_action" value="remove" class="dlp-link-button">Remove this modification</button></p>
           {% endif %}
+        </div>
       </form>
     </div>
   </section>

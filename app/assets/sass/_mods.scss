@@ -89,22 +89,6 @@ del.dlp-mod--am {
 
 // --- The drafting workspace -----------------------------------------------------------------
 
-.dlp-mod-current {
-  border-left: 4px solid $dlp-border-grey;
-  color: $dlp-muted-text;
-  padding-left: govuk-spacing(3);
-}
-
-.dlp-mod-preview {
-  background: $dlp-panel-background;
-  margin-bottom: govuk-spacing(6);
-  padding: govuk-spacing(3);
-}
-
-.dlp-mod-preview__text {
-  margin-bottom: 0;
-}
-
 // --- The schedule and the plan ----------------------------------------------------------------
 
 .dlp-mod-schedule__change {
@@ -121,6 +105,85 @@ del.dlp-mod--am {
 }
 
 .dlp-mod-plan__policy {
+  border-top: 1px solid $dlp-border-grey;
+  padding-top: govuk-spacing(4);
+}
+
+// --- Update wording: the whole policy, with the part being changed editable in place --------
+
+.dlp-mod-wording {
+  background: govuk-colour("white");
+  border: $govuk-border-width-form-element solid $govuk-input-border-colour;
+  max-height: 32em;
+  overflow-y: auto;
+  padding: govuk-spacing(3);
+
+  &:focus {
+    outline: $govuk-focus-width solid $govuk-focus-colour;
+    outline-offset: 0;
+  }
+
+  // The policy reads as text in the box, not as a panel inside it.
+  .dlp-pub-policy-text {
+    border: 0;
+    padding: 0;
+  }
+}
+
+// Every part can be edited. A part with a modification is tinted; the one the page is open on
+// is outlined as well.
+.dlp-mod-edit {
+  display: block;
+}
+
+.dlp-mod-edit--modified {
+  background: $dlp-panel-background;
+  box-shadow: 0 0 0 4px $dlp-panel-background;
+}
+
+.dlp-mod-edit--active {
+  box-shadow: 0 0 0 4px $dlp-panel-background, 0 0 0 6px $govuk-link-colour;
+}
+
+.dlp-mod-edit__view {
+  display: block;
+}
+
+.dlp-mod-edit__input {
+  margin-top: govuk-spacing(2);
+  margin-bottom: 0;
+  overflow: hidden;
+  resize: none;
+}
+
+// With JavaScript the textarea replaces the tracked text while editing.
+.dlp-mod-edit--js {
+  .dlp-mod-edit__view {
+    cursor: text;
+
+    &:hover {
+      background: govuk-colour("white");
+    }
+
+    &:focus {
+      @include govuk-focused-text;
+    }
+  }
+
+  .dlp-mod-edit__input {
+    margin-top: 0;
+  }
+}
+
+// "Modifications in this policy": the one open is bold, the others are buttons that switch.
+.dlp-mod-switch__item {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2);
+}
+
+.dlp-mod-selected {
   border-top: 1px solid $dlp-border-grey;
   padding-top: govuk-spacing(4);
 }

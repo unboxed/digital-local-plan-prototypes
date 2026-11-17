@@ -664,30 +664,6 @@
 
 // --- Readiness checker -----------------------------------------------------------------------
 
-// The contents list: links with a dash before each, as in the design.
-.dlp-pm-contents {
-  margin-bottom: govuk-spacing(6);
-}
-
-.dlp-pm-contents__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.dlp-pm-contents__item {
-  @include govuk-font($size: 16);
-  margin-bottom: govuk-spacing(1);
-  padding-left: govuk-spacing(5);
-  position: relative;
-
-  &::before {
-    content: "—";
-    left: 0;
-    position: absolute;
-  }
-}
-
 // One grey panel per area, holding its checks.
 .dlp-pm-readiness {
   background: $dlp-panel-background;

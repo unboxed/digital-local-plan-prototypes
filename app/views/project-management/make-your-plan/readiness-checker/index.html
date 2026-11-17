@@ -18,11 +18,11 @@
 
 <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m">
 
-<nav class="dlp-pm-contents" aria-labelledby="readiness-contents">
-  <h2 class="govuk-body govuk-!-margin-bottom-2" id="readiness-contents">Contents</h2>
-  <ul class="dlp-pm-contents__list">
+<nav class="dlp-contents" aria-labelledby="readiness-contents">
+  <h2 class="dlp-contents__heading" id="readiness-contents">Contents</h2>
+  <ul class="dlp-contents__list">
     {% for section in sections %}
-      <li class="dlp-pm-contents__item"><a class="govuk-link" href="#{{ section.id }}">{{ section.title }}</a></li>
+      <li class="dlp-contents__item"><a class="govuk-link" href="#{{ section.id }}">{{ section.title }}</a></li>
     {% endfor %}
   </ul>
 </nav>
