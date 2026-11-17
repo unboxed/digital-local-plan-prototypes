@@ -543,7 +543,11 @@ module.exports = {
         startingPointIds: ['housing'],
         brief: 'Plan for the homes the City needs over the plan period, including affordable housing, while protecting its role as a centre of business.',
         officers: ['sarah-jenkins', 'james-chen'],
-        explanatoryText: '',
+        // Sample text, written for the prototype (not the real City Plan 2040's).
+        explanatoryText: 'The City of London is first and foremost a centre of business, but it is also home to around 8,600 residents, most of them living in a small number of established residential areas such as the Barbican, Golden Lane, Middlesex Street and Temple.\n\n' +
+          'This chapter sets out how the City will meet its share of London’s housing need over the plan period. New homes will be directed to locations where they will not compromise the City’s primary business function, and where residents can enjoy good standards of amenity, access to open space and local services.\n\n' +
+          'The policies in this chapter seek to deliver a range of housing types and tenures, with a particular focus on affordable housing, which is in very short supply in the City. They also protect existing homes from loss and set standards for the quality of new housing, including accessibility and internal space.\n\n' +
+          'The approach is supported by the Strategic Housing Market Assessment (2023), which identifies the need for new homes in the City, and by national policy in the National Planning Policy Framework.',
         sources: ['shma', 'nppf-housing'],
         policyAreas: null,
         drafts: {},

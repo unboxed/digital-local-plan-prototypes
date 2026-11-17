@@ -380,6 +380,10 @@ workspace, independent of the `policy-writing` prototype and sharing no session 
   builds the same shape for the drag path, so the two have to be changed together; the extracts
   reach the browser attached to each source in `sourcesJson` (built by the route, not dumped
   from the session, which holds only what the user owns).
+- **The evidence viewer has Policy drafting's source picker** ("Source:" select, the
+  `dlp-pd-viewer__picker` styles) listing the policy's sources. Without JavaScript it's a GET
+  form (`?source=`); with it, `initEvidenceDrop` renders the choice in place (so unsaved typing
+  survives), hides View, and keeps the select in step with drags.
 - **References are inserted by pointing at the paragraph being cited** — `initReferenceFlow`.
   Press the toolbar's reference control, click where it goes in the draft, then click the
   paragraph in the evidence panel. The citation is written in full,
@@ -519,8 +523,16 @@ the repo. Ask the user for them if you need to compare against the design.
   Static reference content (officers, the evidence library, viewer extracts, suggested policy
   areas) is in `app/data/policy-drafting.js`.
 - **Chapters come from the included starting points.** `syncChaptersWithStartingPoints` runs on
-  "Save and continue" from the review. It never deletes a chapter that has work on it. A chapter's
-  brief page can merge it into another chapter ("Assign to chapter").
+  "Save and continue" from the review. It never deletes a chapter that has work on it.
+- **Nothing about chapters has to be selected or assigned first**, by request (the design is
+  unchanged): the sidebar always lists the chapters, without "Manage chapters" being saved; the
+  brief's "Assign to chapter" select is shown but ignored; and the draft page materialises the
+  suggested policies (`ensurePolicyAreas`), so it can be drafted without visiting Manage policies.
+- **The draft page has the side by side prototype's template selector** ("Add a template policy
+  to work from", `POLICY_TEMPLATES`) under the policy detail. Its button posts the draft form to
+  `/draft/:areaId/template` (`formaction`), which saves first (`pdSaveDraft`) and then appends the
+  template as rich text blocks (`pdTemplateBlocks`: blank lines split blocks, and "1."/"a." lines
+  become a numbered list).
 - **Chapter steps are one config array, `CHAPTER_STEPS`.** Its `done` tests drive the sidebar
   icons and the chapter's status on the chapters list. The sidebar nests the current chapter's
   steps under it using the side navigation macro's `children` (one level deep), added for this
@@ -988,9 +1000,23 @@ area's hub, listing it under Current prototypes.
   you're on it. The midway reset copies the prefilled variant's "now" steps (layers included);
   every reset first removes the scoping origin from the shared layers.
 - **Linked, not built:** the PID's Evidence section goes to `/plan/sources`. The Scoping consultation (`/scoping-consultation`, "This section of the prototype has not been
-  built yet"; starting it from the overview still records `scopingConsultationStarted`) and the
-  Readiness checker are not built, so their pages say so. They share the `not-designed` template;
-  pass `standIn: false` to drop its "This page stands in for it" line.
+  built yet"; starting it from the overview still records `scopingConsultationStarted`) is not
+  built, so its page says so, using the `not-designed` template; pass `standIn: false` to drop its
+  "This page stands in for it" line.
+- **The Readiness checker** (`/readiness-checker`, the sidebar button; `readiness-checker/`
+  views) is built from `Figma screenshots/Readiness checker.png`, but its **content comes from
+  the "Readiness checker for gateway 1" spreadsheet** the user supplied: each Area is a section
+  and each Activity a check (`READINESS_SECTIONS` in `project-management.js`, 6 sections and 19
+  checks, typos corrected). The screenshot's repeated copy is replaced by the spreadsheet's.
+  - Statuses are Not started, Work started, Recommended progress and Not applicable
+    (`READINESS_STATUSES`), **set by hand**. Each of the first three matches a spreadsheet
+    column, whose descriptor (`levels`) is the radio hint on Update status and the italic line
+    under "Status changed to …" in the audit log (`readinessDescriptor`).
+  - State is `readiness: {checkId: {status, note, log: [{at, by, activity, comment?}]}}`. Notes
+    and status changes are logged with the real time ("DD-MM-YYYY HH:MM"); a blank note removes
+    it. The "Automated by the system" rows are seeded in `midwayReadiness()`, not generated.
+  - The spreadsheet's header fields (LPA name, version, date, lead officer) are left out, as in
+    the screenshot.
 - **The website preview is council-branded**, not GOV.UK: the frame mocked the authority's site
   with a GOV.UK bar, which this project can't show.
 - **Real outbound links**: guidance and its search go to GOV.UK, "Export" downloads a real CSV

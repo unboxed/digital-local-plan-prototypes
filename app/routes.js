@@ -3636,7 +3636,7 @@ const {
 } = require('./data/policy-drafting.js')
 
 const PD = '/plan/make/policy-drafting'
-const POLICY_DRAFTING_SCHEMA_VERSION = 2
+const POLICY_DRAFTING_SCHEMA_VERSION = 3
 const PD_RESULTS_PER_PAGE = 10
 
 function ensurePolicyDraftingShape (req) {
@@ -3746,9 +3746,7 @@ function pdTimestamp () {
 // Sidebar: the starting points phase, then every chapter, with the current chapter's steps
 // nested under it (the shared side navigation's `children`).
 //
-// The chapters only appear once "Manage chapters" is complete — until then there are no
-// settled chapters to list. The exception is a page inside a chapter (reached from the landing
-// page's shortcut, say), which still needs its own steps to navigate by.
+// The chapters are always listed, so nothing has to be confirmed in "Manage chapters" first.
 function buildDraftingSidebar (data, active) {
   const everyChapterHasBrief = data.chapters.length > 0 && data.chapters.every(chapter => chapter.brief.trim())
   const firstWithoutBrief = data.chapters.find(chapter => !chapter.brief.trim())
@@ -3772,8 +3770,6 @@ function buildDraftingSidebar (data, active) {
       ]
     }
   ]
-
-  if (!data.chaptersConfirmed && !active.chapterId) return sections
 
   sections.push({
     heading: 'Chapters',
@@ -3906,19 +3902,10 @@ router.get(PD + '/chapters/:pdChapterId/brief', (req, res) => {
   })
 })
 
-// Saving the brief can also move the chapter into another one ("Assign to chapter"): its
-// starting points and brief go to the target, and this chapter is removed.
+// Saving the brief. "Assign to chapter" is shown, as in the design, but does nothing: the
+// prototype never asks anyone to move a chapter.
 router.post(PD + '/chapters/:pdChapterId/brief', (req, res) => {
-  const data = getPolicyDrafting(req)
-  const chapter = req.pdChapter
-  chapter.brief = (req.body._brief || '').trim().slice(0, 500)
-
-  const target = data.chapters.find(candidate => candidate.id === req.body._assignTo)
-  if (target && target !== chapter) {
-    target.startingPointIds = target.startingPointIds.concat(chapter.startingPointIds)
-    if (chapter.brief) target.brief = [target.brief, chapter.brief].filter(Boolean).join('\n\n').slice(0, 500)
-    data.chapters = data.chapters.filter(candidate => candidate !== chapter)
-  }
+  req.pdChapter.brief = (req.body._brief || '').trim().slice(0, 500)
   res.redirect(PD + '/chapters')
 })
 
@@ -4150,6 +4137,8 @@ function pdPolicyAssignee (chapter, areas, policyArea) {
 
 router.get(PD + '/chapters/:pdChapterId/draft', (req, res) => {
   const chapter = req.pdChapter
+  // The suggested policies are ready to draft without visiting Manage policies first.
+  ensurePolicyAreas(chapter)
   const areas = selectedPolicyAreas(chapter)
   const policyArea = areas.find(area => area.id === req.query._policy) || areas[0] || null
 
@@ -4160,7 +4149,8 @@ router.get(PD + '/chapters/:pdChapterId/draft', (req, res) => {
     draft: (policyArea && chapter.drafts[policyArea.id]) || {},
     detailBlocks: pdRichText(policyArea && chapter.drafts[policyArea.id] ? chapter.drafts[policyArea.id].detail : ''),
     detailPlain: pdRichTextPlain(policyArea && chapter.drafts[policyArea.id] ? chapter.drafts[policyArea.id].detail : ''),
-    imageUploadUrl: PD + '/images'
+    imageUploadUrl: PD + '/images',
+    templates: POLICY_TEMPLATES
   }, viewerLocals(req, chapter, req.query._source)))
 })
 
@@ -4305,24 +4295,54 @@ function pdReadPolicyDetail (body) {
   return pdRichText((body._policyDetail || '').trim())
 }
 
+function pdSaveDraft (chapter, policyArea, body) {
+  // The draft page no longer has a title field (the policy chosen above it is the title), so a
+  // title saved before then is kept rather than blanked.
+  const existing = chapter.drafts[policyArea.id] || {}
+  chapter.drafts[policyArea.id] = {
+    title: typeof body._policyTitle === 'string' ? body._policyTitle.trim() : (existing.title || ''),
+    context: (body._policyContext || '').trim(),
+    detail: pdReadPolicyDetail(body),
+    strategic: body._strategic === 'yes',
+    savedAt: pdTimestamp()
+  }
+  return chapter.drafts[policyArea.id]
+}
+
+function pdDraftReturn (chapter, areaId, body) {
+  return pdChapterUrl(chapter, 'draft') + '?_policy=' + encodeURIComponent(areaId) +
+    (body._source ? '&_source=' + encodeURIComponent(body._source) : '')
+}
+
+// A template's text as rich text blocks: blank lines separate blocks, and a block whose every
+// line starts "1." or "a." is a numbered list.
+function pdTemplateBlocks (text) {
+  return text.split(/\n\s*\n/).map(chunk => chunk.split('\n').map(line => line.trim()).filter(Boolean)).filter(lines => lines.length).map(lines => {
+    if (lines.every(line => /^([0-9]+|[a-z])\.\s/.test(line))) {
+      return { type: 'list', ordered: true, items: lines.map(line => [{ text: line.replace(/^([0-9]+|[a-z])\.\s+/, '') }]) }
+    }
+    return { type: 'paragraph', runs: [{ text: lines.join(' ') }] }
+  })
+}
+
 router.post(PD + '/chapters/:pdChapterId/draft/:areaId', (req, res) => {
   const chapter = req.pdChapter
   const policyArea = selectedPolicyAreas(chapter).find(area => area.id === req.params.areaId)
+  if (policyArea) pdSaveDraft(chapter, policyArea, req.body)
+  res.redirect(pdDraftReturn(chapter, req.params.areaId, req.body))
+})
+
+// "Insert template into draft": saves what's typed, then adds the template's skeleton to the end
+// of the policy detail, as the side by side prototype does.
+router.post(PD + '/chapters/:pdChapterId/draft/:areaId/template', (req, res) => {
+  const chapter = req.pdChapter
+  const policyArea = selectedPolicyAreas(chapter).find(area => area.id === req.params.areaId)
+  const template = getPolicyTemplate(req.body._templateId)
   if (policyArea) {
-    // The draft page no longer has a title field (the policy chosen above it is the title), so a
-    // title saved before then is kept rather than blanked.
-    const existing = chapter.drafts[policyArea.id] || {}
-    chapter.drafts[policyArea.id] = {
-      title: typeof req.body._policyTitle === 'string' ? req.body._policyTitle.trim() : (existing.title || ''),
-      context: (req.body._policyContext || '').trim(),
-      detail: pdReadPolicyDetail(req.body),
-      strategic: req.body._strategic === 'yes',
-      savedAt: pdTimestamp()
-    }
+    const draft = pdSaveDraft(chapter, policyArea, req.body)
+    if (template) draft.detail = pdRichText(draft.detail).concat(pdTemplateBlocks(template.text))
   }
-  const query = '?_policy=' + encodeURIComponent(req.params.areaId) +
-    (req.body._source ? '&_source=' + encodeURIComponent(req.body._source) : '')
-  res.redirect(pdChapterUrl(chapter, 'draft') + query)
+  res.redirect(pdDraftReturn(chapter, req.params.areaId, req.body) + '#pd-policy-detail-editor')
 })
 
 // The evidence viewer on a page of its own, for "Open in new window".
@@ -5129,7 +5149,7 @@ router.post(CR + '/inspector/:repId', (req, res) => {
 
 const PM = '/plan/manage/getting-ready'
 // 2 added scoping activities' starting points and GIS connection.
-const PROJECT_MANAGEMENT_SCHEMA_VERSION = 2
+const PROJECT_MANAGEMENT_SCHEMA_VERSION = 3
 const PMD = require('./data/project-management.js')
 
 function getProjectManagement (req) {
@@ -5628,11 +5648,89 @@ router.post(PM + '/scoping-activities/' + GIS_STEP + '/layers', (req, res) => sp
 router.post(PM + '/scoping-activities/:step', (req, res) => spSaveItem(req, res, SCOPING_JOURNEY))
 router.post(PM + '/scoping-activities/:step/:itemId/remove', (req, res) => spRemoveItem(req, res, SCOPING_JOURNEY))
 
+// --- Readiness checker ---
+//
+// Every check from the gateway 1 readiness checker, with its status, note and audit log. Statuses
+// are set by hand; the "Automated by the system" rows are seeded. See CLAUDE.md.
+
+function pmReadiness (state) {
+  return PMD.READINESS_SECTIONS.map(section => Object.assign({}, section, {
+    checks: section.checks.map(item => Object.assign({}, item, state.readiness[item.id] || { status: 'Not started', note: '', log: [] }))
+  }))
+}
+
+// "DD-MM-YYYY HH:MM", as the design's audit logs show.
+function pmLogTime () {
+  const format = { timeZone: 'Europe/London', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', format).formatToParts(new Date()).map(part => [part.type, part.value]))
+  return parts.day + '-' + parts.month + '-' + parts.year + ' ' + parts.hour + ':' + parts.minute
+}
+
+// Loads the check for /readiness-checker/:readinessCheckId/..., or goes back to the page.
+function pmReadinessCheck (req, res) {
+  const found = PMD.getReadinessCheck(req.params.readinessCheckId)
+  if (!found) {
+    res.redirect(PM + '/readiness-checker')
+    return null
+  }
+  const state = getProjectManagement(req)
+  if (!state.readiness[found.check.id]) state.readiness[found.check.id] = { status: 'Not started', note: '', log: [] }
+  return Object.assign({ state, entry: state.readiness[found.check.id] }, found)
+}
+
 router.get(PM + '/readiness-checker', (req, res) => {
-  renderPm(req, res, 'not-designed', null, {
-    title: 'Readiness checker',
-    text: 'The readiness checker, which would tell you whether you are ready to move to the next stage of plan-making, has not been designed yet.'
+  renderPm(req, res, 'readiness-checker/index', null, {
+    sections: pmReadiness(getProjectManagement(req))
   })
+})
+
+router.get(PM + '/readiness-checker/:readinessCheckId/status', (req, res) => {
+  const found = pmReadinessCheck(req, res)
+  if (!found) return
+  renderPm(req, res, 'readiness-checker/status', null, {
+    section: found.section,
+    check: found.check,
+    entry: found.entry,
+    statuses: PMD.READINESS_STATUSES.map(status => ({ status, hint: PMD.readinessDescriptor(found.check, status) }))
+  })
+})
+
+// Nothing is required: no choice, or the same status, just goes back.
+router.post(PM + '/readiness-checker/:readinessCheckId/status', (req, res) => {
+  const found = pmReadinessCheck(req, res)
+  if (!found) return
+  const status = req.body._status
+  if (PMD.READINESS_STATUSES.includes(status) && status !== found.entry.status) {
+    found.entry.status = status
+    const comment = PMD.readinessDescriptor(found.check, status)
+    found.entry.log.push(Object.assign({ at: pmLogTime(), by: PMD.OFFICER.name, activity: 'Status changed to ' + status }, comment ? { comment } : {}))
+    pmFlash(req, 'Status updated to ' + status)
+  }
+  res.redirect(PM + '/readiness-checker#check-' + found.check.id)
+})
+
+router.get(PM + '/readiness-checker/:readinessCheckId/note', (req, res) => {
+  const found = pmReadinessCheck(req, res)
+  if (!found) return
+  renderPm(req, res, 'readiness-checker/note', null, {
+    section: found.section,
+    check: found.check,
+    entry: found.entry
+  })
+})
+
+// A blank note removes the note.
+router.post(PM + '/readiness-checker/:readinessCheckId/note', (req, res) => {
+  const found = pmReadinessCheck(req, res)
+  if (!found) return
+  const note = pmText(req.body._note)
+  if (note !== found.entry.note) {
+    const activity = !note ? 'Note removed' : (found.entry.note ? 'Note updated' : 'Note added')
+    found.entry.note = note
+    found.entry.log.push({ at: pmLogTime(), by: PMD.OFFICER.name, activity })
+    pmFlash(req, activity)
+  }
+  res.redirect(PM + '/readiness-checker#check-' + found.check.id)
 })
 
 // --- Timetable ---

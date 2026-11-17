@@ -2019,6 +2019,9 @@ function initEvidenceDrop (pane) {
   const sources = readJsonFrom(pane.dataset.dlpSourcesSource)
   const openLink = pane.querySelector('[data-dlp-evidence-open-link]')
   const sourceUrl = pane.dataset.dlpSourceUrl || ''
+  // The source picker (a GET form without JavaScript) shows its choice in place instead.
+  const picker = pane.querySelector('[data-dlp-evidence-picker]')
+  const pickerSelect = picker ? picker.querySelector('select') : null
 
   // Mirrors policy-writing-v2/partials/evidence-document.html — change one and change the
   // other. The extracts are attached to each source by the route (see sourcesJson).
@@ -2097,6 +2100,21 @@ function initEvidenceDrop (pane) {
     // Keep the rail's current-item marker in step with what the viewer is showing.
     document.querySelectorAll('[data-dlp-evidence-draggable]').forEach(item => {
       item.classList.toggle('dlp-pw2-source--current', item.dataset.dlpSourceId === source.id)
+    })
+    if (pickerSelect) pickerSelect.value = source.id
+  }
+
+  if (picker && pickerSelect) {
+    const go = picker.querySelector('[data-dlp-evidence-picker-go]')
+    if (go) go.hidden = true
+    const showPicked = () => {
+      const source = sources.filter(candidate => candidate.id === pickerSelect.value)[0]
+      if (source) renderSource(source)
+      return Boolean(source)
+    }
+    pickerSelect.addEventListener('change', showPicked)
+    picker.addEventListener('submit', event => {
+      if (showPicked()) event.preventDefault()
     })
   }
 
