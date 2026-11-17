@@ -7571,7 +7571,7 @@ const MIQD = require('./data/miqs.js')
 const MIQ_TABS = [
   { id: 'evidence', text: 'Evidence and representations' },
   { id: 'summary', text: 'Summary' },
-  { id: 'soundness', text: 'Legal compliance and soundness' }
+  { id: 'soundness', text: 'Statement of soundness' }
 ]
 
 function getMiqs (req) {
@@ -7781,13 +7781,7 @@ function miqRepresentations (refs) {
 }
 
 function miqCompliance (req, state, question, refs) {
-  const response = miqResponse(state, question.id)
-  const sdsState = getSdsConformity(req)
   return {
-    tests: MIQD.SOUNDNESS_TESTS.map(test => Object.assign({}, test, {
-      raised: question.tests.includes(test.id),
-      addressed: response.tests.includes(test.id)
-    })),
     requirements: question.compliance.map(ref => {
       const requirement = getRequirement(ref)
       return {
@@ -7797,19 +7791,15 @@ function miqCompliance (req, state, question, refs) {
         href: '/plan/view/statement-of-compliance/completed/requirements/' + encodeURIComponent(ref)
       }
     }),
-    sds: question.sds.map(ref => {
-      const sdsPolicy = SDSC.getSdsPolicy(ref)
-      const entry = sdsState.policies[ref] || {}
-      return {
-        ref,
-        title: sdsPolicy ? sdsPolicy.title : '',
-        status: SDSC.getStatus(entry),
-        links: entry.links || [],
-        comment: entry.comment || '',
-        href: sdsPolicyHref(ref)
-      }
-    }),
-    policies: refs.map(miqPolicyView)
+    policies: refs.map(miqPolicyView),
+    statementDocument: MIQD.SOUNDNESS_STATEMENT_DOCUMENT,
+    // The example statements of soundness for the question's policies, or for the plan as a
+    // whole when it is about none (or none with a statement).
+    statements: (refs.map(ref => MIQD.SOUNDNESS_STATEMENTS[ref]).filter(Boolean).length
+      ? refs.map(ref => MIQD.SOUNDNESS_STATEMENTS[ref]).filter(Boolean)
+      : [MIQD.SOUNDNESS_STATEMENTS.plan]).map(statement => Object.assign({}, statement, {
+      tests: MIQD.SOUNDNESS_TESTS.map(test => ({ title: test.title, text: statement.tests[test.id] }))
+    }))
   }
 }
 
@@ -8108,8 +8098,7 @@ router.get(MIQ + '/responses/:miqQuestionId', (req, res) => {
 
 // One form for the whole workspace: the response box, plus the support panel's insert buttons
 // and checkboxes (associated with it through form="…"). Every action saves the typing first.
-// `_action` is save, complete, reopen or insert:<key>. The tests' checkboxes are only replaced when their
-// tab was on the page (`_testsShown`), so saving from another tab keeps them.
+// `_action` is save, complete, reopen or insert:<key>.
 router.post(MIQ + '/responses/:miqQuestionId', (req, res) => {
   const state = getMiqs(req)
   const question = req.miqQuestion
@@ -8119,9 +8108,6 @@ router.post(MIQ + '/responses/:miqQuestionId', (req, res) => {
   if (state.sent) return res.redirect(back)
   const response = state.responses[question.id] = Object.assign({ text: '', complete: false, tests: [] }, state.responses[question.id])
   response.text = typeof req.body._response === 'string' ? req.body._response : response.text
-  if (req.body._testsShown) {
-    response.tests = [].concat(req.body._tests || []).filter(id => MIQD.SOUNDNESS_TESTS.some(test => test.id === id))
-  }
   if (action.startsWith('insert:')) {
     response.text = miqAppend(response.text, miqInsertText(state, question, action.slice(7)))
     if (response.complete) response.complete = false
