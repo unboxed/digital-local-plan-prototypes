@@ -7571,7 +7571,7 @@ const MIQD = require('./data/miqs.js')
 const MIQ_TABS = [
   { id: 'evidence', text: 'Evidence and representations' },
   { id: 'summary', text: 'Summary' },
-  { id: 'soundness', text: 'Statement of soundness' }
+  { id: 'soundness', text: 'Soundness' }
 ]
 
 function getMiqs (req) {
@@ -7780,6 +7780,21 @@ function miqRepresentations (refs) {
   return { total: reps.length, counts, listed }
 }
 
+// The Greater London Authority's response to the consultation on the proposed local plan, from
+// the Managing consultation responses prototype: its title links to the GLA's consultee page.
+// Its date is that of its latest representation.
+function miqGlaResponse () {
+  const id = 'greater-london-authority'
+  const consultee = getCrConsultee(id)
+  const dates = getCrRepresentations().filter(rep => rep.consulteeId === id).map(rep => rep.date).sort()
+  const page = '/plan/consultation/managing-responses/consultees/' + id
+  return {
+    title: crConsulteeDocument(consultee, CR_CONSULTATION.id).title,
+    date: dates.length ? new Date(dates[dates.length - 1] + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' }) : '',
+    href: page + '?_view=responses'
+  }
+}
+
 function miqCompliance (req, state, question, refs) {
   return {
     requirements: question.compliance.map(ref => {
@@ -7793,6 +7808,7 @@ function miqCompliance (req, state, question, refs) {
     }),
     policies: refs.map(miqPolicyView),
     statementDocument: MIQD.SOUNDNESS_STATEMENT_DOCUMENT,
+    gla: miqGlaResponse(),
     // The example statements of soundness for the question's policies, or for the plan as a
     // whole when it is about none (or none with a statement).
     statements: (refs.map(ref => MIQD.SOUNDNESS_STATEMENTS[ref]).filter(Boolean).length
