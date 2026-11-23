@@ -37,7 +37,11 @@ const MOVED_URLS = [
   ['/gateway-2-progress-check', '/plan/view/gateway-2-progress-check'],
   ['/examination-inspector-view', '/plan/view/examination'],
   ['/statement-of-compliance', '/plan/make/gateway-preparation/statement-of-compliance'],
+  ['/plan/view/statement-of-compliance/spatial-development-strategy/policies', '/plan/make/london-plan-alignment/policies'],
+  ['/plan/view/statement-of-compliance/spatial-development-strategy/evidence', '/plan/make/london-plan-alignment/evidence'],
   ['/plan/view/statement-of-compliance', '/plan/make/gateway-preparation/statement-of-compliance'],
+  ['/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy/policies', '/plan/make/london-plan-alignment/policies'],
+  ['/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy/evidence', '/plan/make/london-plan-alignment/evidence'],
   ['/public-view', '/plan/view'],
   ['/user-stories', '/']
 ]
@@ -3354,19 +3358,109 @@ router.get('/plan/make/gateway-preparation', (req, res) => {
   res.redirect('/plan/make')
 })
 
-// --- Statement of compliance: general conformity with the spatial development strategy ---
+// --- Statement of compliance: representations on general conformity with the SDS ---
+//
+// For regulation 32(j): copies of the representations made under regulation 28 are one of the
+// documents prepared for submission (regulation 34(1)(e)). The page shows the Greater London
+// Authority's whole response to each consultation phase (static, from consultation-responses.js)
+// and an optional short statement from the authority, kept in session data as `socSdsStatement`
+// (a plain string, so there is nothing to deep-clone).
+//
+// Registered before .../statement-of-compliance/:socVariant, which would otherwise take
+// "spatial-development-strategy" as a variant and redirect it away.
+const SOC_SDS = '/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy'
+const SOC_SDS_CONSULTEE = 'greater-london-authority'
+
+// One whole response per consultation phase, newest first, from the same response documents
+// Managing consultation responses shows (crConsulteeDocument). `commentedOn` is what each one
+// comments on: policies in the latest round, whose response is set out by policy, and topics
+// with the policies they relate to in the earlier rounds, whose responses are set out by topic.
+function socSdsPhases (consultee) {
+  const policyTitle = ref => (POLICIES.find(policy => policy.ref === ref) || {}).title || ''
+  return CR_CONSULTATIONS
+    .filter(round => round.id === CR_CONSULTATION.id || (consultee.earlier || []).includes(round.id))
+    .reverse()
+    .map(round => {
+      const current = round.id === CR_CONSULTATION.id
+      const document = crConsulteeDocument(consultee, round.id)
+      const phase = {
+        id: round.id,
+        title: round.title,
+        when: current ? CR_CONSULTATION.dates : round.month,
+        fileName: document.fileName,
+        docHref: CR + '/consultees/' + consultee.id + '?_doc=' + round.id,
+        intro: document.intro,
+        current,
+        commentedOn: [],
+        sections: []
+      }
+      if (current) {
+        // The representations, gathered under the policy each is about, in plan order.
+        const reps = getCrRepresentations().filter(rep => rep.consulteeId === consultee.id)
+        POLICIES.filter(policy => reps.some(rep => rep.policyRef === policy.ref)).forEach(policy => {
+          const onPolicy = reps.filter(rep => rep.policyRef === policy.ref).sort((a, b) => a.date < b.date ? -1 : 1)
+          phase.commentedOn.push({
+            label: policy.ref + ' ' + policy.title,
+            note: onPolicy.length + (onPolicy.length === 1 ? ' comment' : ' comments'),
+            types: CR_COMMENT_TYPES.filter(type => onPolicy.some(rep => rep.commentType === type))
+              .map(type => ({ type, colour: CR_COMMENT_COLOURS[type], count: onPolicy.filter(rep => rep.commentType === type).length }))
+          })
+          phase.sections.push({
+            heading: 'Policy ' + policy.ref + ': ' + policy.title,
+            paragraphs: onPolicy.map(rep => ({ text: rep.text, ref: rep.id, type: rep.commentType, colour: CR_COMMENT_COLOURS[rep.commentType] }))
+          })
+        })
+      } else {
+        consultee.themes.forEach(themeId => {
+          const theme = getCrTheme(themeId)
+          const type = theme.previous.type
+          phase.commentedOn.push({
+            label: theme.title,
+            note: 'Policies ' + theme.policies.map(ref => ref + ' ' + policyTitle(ref)).join(', '),
+            types: [{ type, colour: CR_COMMENT_COLOURS[type], count: 1 }]
+          })
+          phase.sections.push({
+            heading: theme.title,
+            paragraphs: [{ text: theme.previous.text, type, colour: CR_COMMENT_COLOURS[type] }]
+          })
+        })
+      }
+      return phase
+    })
+}
+
+router.get(SOC_SDS, (req, res) => {
+  const consultee = getCrConsultee(SOC_SDS_CONSULTEE)
+  const saved = req.session.data._socSdsSaved
+  delete req.session.data._socSdsSaved
+
+  res.render('statement-of-compliance/sds.html', {
+    consultee,
+    phases: socSdsPhases(consultee),
+    consulteeHref: CR + '/consultees/' + SOC_SDS_CONSULTEE,
+    statement: req.session.data.socSdsStatement || '',
+    saved: Boolean(saved),
+    alignmentHref: '/plan/make/london-plan-alignment'
+  })
+})
+
+router.post(SOC_SDS, (req, res) => {
+  req.session.data.socSdsStatement = String(req.body._statement || '').trim()
+  req.session.data._socSdsSaved = true
+  res.redirect(SOC_SDS + '#authority-statement')
+})
+
+// --- View alignment with London Plan (Make your plan) ---
 //
 // Every policy of the SDS (the London Plan 2021, for the City of London's City Plan 2040), with
 // the local plan policies it is linked to, an authority comment on the linkage and, where a
 // policy isn't addressed, evidence that it needn't be. Content and the seed are in
 // app/data/sds-conformity.js. What the authority records is one session object, `sdsConformity`
 // ({ policies: { <SDS ref>: { links, comment, evidence } }, flash }), read only through
-// getSdsConformity. Statuses are derived (SDSC.getStatus), never stored.
-//
-// These routes are registered before .../statement-of-compliance/:socVariant, which would
-// otherwise take "spatial-development-strategy" as a variant and redirect it away.
+// getSdsConformity. Statuses are derived (SDSC.getStatus), never stored. It began as the
+// statement of compliance's SDS page, which is now the GLA's representations above.
 const SDSC = require('./data/sds-conformity.js')
-const SDS_BASE = '/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy'
+const SDS_BASE = '/plan/make/london-plan-alignment'
 const SDS_CONFORMITY_SCHEMA_VERSION = 1
 
 function getSdsConformity (req) {
@@ -3443,7 +3537,7 @@ router.get(SDS_BASE, (req, res) => {
     }))
     .filter(chapter => chapter.policies.length)
 
-  res.render('statement-of-compliance/sds/index.html', {
+  res.render('london-plan-alignment/index.html', {
     sds: SDSC.SDS,
     total: all.length,
     counts,
@@ -3486,7 +3580,7 @@ router.get(SDS_BASE + '/policies/:ref', (req, res) => {
     group.options.push({ value: candidate.ref, text: candidate.ref + ': ' + candidate.title })
   })
 
-  res.render('statement-of-compliance/sds/policy.html', {
+  res.render('london-plan-alignment/policy.html', {
     sds: SDSC.SDS,
     chapter: SDSC.getChapter(policy.chapter),
     policy: view,
@@ -3552,7 +3646,7 @@ router.get(SDS_BASE + '/evidence/:id', (req, res) => {
     .filter(policy => state.policies[policy.ref] && state.policies[policy.ref].evidence.includes(item.id))
     .map(policy => ({ ref: policy.ref, title: policy.title, href: sdsPolicyHref(policy.ref) }))
 
-  res.render('statement-of-compliance/sds/evidence.html', { sds: SDSC.SDS, item, citedBy })
+  res.render('london-plan-alignment/evidence.html', { sds: SDSC.SDS, item, citedBy })
 })
 
 // The statement's requirements for one variant, as listed by the checklist and by the

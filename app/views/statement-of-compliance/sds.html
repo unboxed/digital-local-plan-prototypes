@@ -1,0 +1,102 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "General conformity with the London Plan" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/plan/make/gateway-preparation/statement-of-compliance">Back to Statement of compliance</a>
+
+    {% if saved %}
+    <div class="govuk-notification-banner govuk-notification-banner--success" role="alert" aria-labelledby="soc-sds-saved-title" data-module="govuk-notification-banner">
+      <div class="govuk-notification-banner__header">
+        <h2 class="govuk-notification-banner__title" id="soc-sds-saved-title">Success</h2>
+      </div>
+      <div class="govuk-notification-banner__content">
+        <p class="govuk-notification-banner__heading">{{ "Statement saved." if statement else "Statement removed." }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <span class="govuk-caption-xl">Statement of compliance: regulation 32(j)</span>
+    <h1 class="govuk-heading-xl">General conformity with the London Plan</h1>
+
+    <p class="govuk-body">
+      The {{ consultee.name }}’s responses to the consultations on the plan are submitted with it
+      for independent examination, as regulation 34(1)(e) requires for representations made under
+      regulation 28 (conformity with operative spatial development strategy).
+    </p>
+
+    <h2 class="govuk-heading-l govuk-!-margin-top-8">Responses from the {{ consultee.name }}</h2>
+    <p class="govuk-body">
+      The {{ consultee.name }}’s whole response to each consultation phase, latest first, with
+      what it commented on.
+    </p>
+
+    {% for phase in phases %}
+    <section class="dlp-soc-phase" aria-labelledby="phase-{{ phase.id }}">
+      <h3 class="govuk-heading-m govuk-!-margin-bottom-1" id="phase-{{ phase.id }}">{{ phase.title }}</h3>
+      <p class="govuk-body-s dlp-pd-muted">
+        {{ phase.when }} ·
+        <a class="govuk-link" href="{{ phase.docHref }}">{{ phase.fileName }}<span class="govuk-visually-hidden"> ({{ phase.title }} response)</span></a>
+      </p>
+
+      <div class="dlp-soc-commented">
+        <h4 class="govuk-heading-s govuk-!-margin-bottom-2">{{ "Policies commented on" if phase.current else "Topics commented on" }}</h4>
+        <ul class="govuk-list govuk-!-margin-bottom-0">
+          {% for item in phase.commentedOn %}
+          <li class="dlp-soc-commented__item">
+            <strong>{{ item.label }}</strong>
+            <span class="govuk-body-s dlp-pd-muted">{{ item.note }}</span>
+            {% for t in item.types %}
+            <strong class="govuk-tag govuk-tag--{{ t.colour }}">{% if phase.current %}{{ t.count }} {% if t.type == "Support" %}in support{% elif t.type == "Objection" %}objection{{ "s" if t.count > 1 }}{% else %}neutral{% endif %}{% else %}{{ t.type }}{% endif %}</strong>
+            {% endfor %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="dlp-soc-response">
+        <p class="govuk-body">{{ phase.intro }}</p>
+        {% for section in phase.sections %}
+        <h4 class="govuk-heading-s govuk-!-margin-bottom-2">{{ section.heading }}</h4>
+        {% for paragraph in section.paragraphs %}
+        <p class="govuk-body">
+          {{ paragraph.text }}
+          <span class="govuk-body-s dlp-pd-muted">({% if paragraph.ref %}{{ paragraph.ref }}, {% endif %}{{ paragraph.type | lower }})</span>
+        </p>
+        {% endfor %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+
+    <p class="govuk-body">
+      <a class="govuk-link" href="{{ consulteeHref }}">View the {{ consultee.name }}’s responses and the replies to them in Managing consultation responses</a>
+    </p>
+
+    <form method="post" action="" novalidate id="authority-statement" class="govuk-!-margin-top-8">
+      <div class="govuk-form-group">
+        <h2 class="govuk-label-wrapper">
+          <label class="govuk-label govuk-label--l" for="soc-sds-statement">Statement from the authority (optional)</label>
+        </h2>
+        <div class="govuk-hint" id="soc-sds-statement-hint">
+          A short statement on the plan’s general conformity with the London Plan, for example how
+          the responses above have been addressed.
+        </div>
+        <textarea class="govuk-textarea" id="soc-sds-statement" name="_statement" rows="6" aria-describedby="soc-sds-statement-hint">{{ statement }}</textarea>
+      </div>
+      <button type="submit" class="govuk-button" data-module="govuk-button">Save statement</button>
+    </form>
+
+    <p class="govuk-body">
+      For a policy by policy comparison of the plan with the London Plan, see
+      <a class="govuk-link" href="{{ alignmentHref }}">View alignment with London Plan</a>.
+    </p>
+
+  </div>
+</div>
+
+{% endblock %}

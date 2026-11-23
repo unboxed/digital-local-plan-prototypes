@@ -180,3 +180,36 @@
     min-width: 40em;
   }
 }
+
+// --- Responses on general conformity with the SDS (statement-of-compliance/sds.html) ---------
+
+// One consultation phase: what it commented on, then the whole response.
+.dlp-soc-phase {
+  border-top: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+  padding-top: govuk-spacing(4);
+}
+
+.dlp-soc-commented {
+  background: $dlp-panel-background;
+  margin-bottom: govuk-spacing(4);
+  padding: govuk-spacing(3) govuk-spacing(4);
+}
+
+.dlp-soc-commented__item {
+  margin-bottom: govuk-spacing(2);
+
+  .govuk-tag {
+    margin-left: govuk-spacing(1);
+  }
+}
+
+// The response as written, set off from the page like a quoted document.
+.dlp-soc-response {
+  border-left: 4px solid $dlp-border-grey;
+  padding-left: govuk-spacing(4);
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+}

@@ -64,15 +64,15 @@ const REQUIREMENTS = [
   {
     ref: 'Regulation 32(i)',
     title: 'Regard to the matters in section 15CA(6) and regulation 14',
-    description: 'In preparing the proposed local plan, the authority has had regard to the matters in section 15CA(6) of the Act (including gateway advice, consultation responses, national policy and the rest of the development plan) and those in regulation 14 (including the self-assessment summary, local transport policies, major accident hazards and the national waste management plan).',
-    // For the City of London, the rest of the development plan is the London Plan, so its
-    // statement of general conformity is part of the evidence here (see app/data/sds-conformity.js).
-    statement: { text: 'Statement of general conformity with the London Plan', href: SDS_STATEMENT_HREF }
+    description: 'In preparing the proposed local plan, the authority has had regard to the matters in section 15CA(6) of the Act (including gateway advice, consultation responses, national policy and the rest of the development plan) and those in regulation 14 (including the self-assessment summary, local transport policies, major accident hazards and the national waste management plan).'
   },
   {
     ref: 'Regulation 32(j)',
     title: 'Examination submission documents prepared',
-    description: 'The authority has prepared the documents regulation 34(1)(a) and (c) to (i) prescribe for submission to independent examination: the policies map, the consultation and engagement statement, the summary of consultation on the proposed plan, any representations on general conformity with the spatial development strategy, the statements of compliance and soundness, and the environmental report or the reasons none was needed.'
+    description: 'The authority has prepared the documents regulation 34(1)(a) and (c) to (i) prescribe for submission to independent examination: the policies map, the consultation and engagement statement, the summary of consultation on the proposed plan, any representations on general conformity with the spatial development strategy, the statements of compliance and soundness, and the environmental report or the reasons none was needed.',
+    // Copies of the representations made under regulation 28 (34(1)(e)): for the City of London,
+    // the Greater London Authority's, with an optional statement from the authority.
+    statement: { text: 'Representations on general conformity with the London Plan', href: SDS_STATEMENT_HREF }
   },
   {
     ref: 'Regulation 32(k)',
@@ -164,15 +164,16 @@ const REQUIREMENT_DATA = {
       { type: 'Self-assessment taken into account', description: 'Gateway 1 self-assessment summary taken into account in setting the scope of the plan (regulation 14(a)).', date: '28 July 2026', actor: 'Pauline Perrot', status: 'Done', document: 'Gateway 1 self-assessment summary' },
       { type: 'Consultation responses taken into account', description: 'Responses to the consultation on proposed content and evidence considered, and a summary published of how they were taken into account.', date: '27 October 2026', actor: 'Jomo Adeyemi', status: 'Done', document: 'Summary of consultation on proposed content and evidence' },
       { type: 'National policy and other matters checked', description: 'Proposed plan checked against national development management policies, the City’s Transport Strategy, major accident hazards and the national waste management plan.', date: '5 November 2026', actor: 'Daniel Osei', status: 'Done' },
-      { type: 'London Plan conformity checked', description: 'Every London Plan policy checked against the proposed plan, as part of the development plan for the City.', date: '12 January 2027', actor: 'Daniel Osei', status: 'Done', document: 'Statement of general conformity with the London Plan', href: SDS_STATEMENT_HREF }
+      { type: 'London Plan taken into account', description: 'Proposed plan reviewed against the London Plan, as part of the development plan for the City.', date: '12 January 2027', actor: 'Daniel Osei', status: 'Done' }
     ],
     draftEntryCount: 3,
-    plannedActivity: 'Complete the statement of general conformity with the London Plan, planned for January 2027.'
+    plannedActivity: 'Complete the review of the proposed plan against the London Plan, planned for January 2027.'
   },
   'Regulation 32(j)': {
     history: [
       { type: 'Environmental report prepared', description: 'Environmental report prepared under the Environmental Assessment of Plans and Programmes Regulations 2004.', date: '3 November 2026', actor: 'Alys Whitfield', status: 'Done', document: 'Environmental report' },
       { type: 'Consultation statement prepared', description: 'Statement summarising the consultation and engagement carried out in preparing the plan, with the summary of consultation on the proposed plan.', date: '9 March 2027', actor: 'Jomo Adeyemi', status: 'Done', document: 'Consultation and engagement statement' },
+      { type: 'GLA representations compiled', description: 'The Greater London Authority’s representations on general conformity with the London Plan (regulation 28) compiled for submission.', date: '10 March 2027', actor: 'Daniel Osei', status: 'Done', document: 'Representations on general conformity with the London Plan', href: SDS_STATEMENT_HREF },
       { type: 'Statements of compliance and soundness prepared', description: 'Statement of compliance and statement of soundness prepared for submission.', date: '16 March 2027', actor: 'Pauline Perrot', status: 'Done', document: 'Statement of soundness' }
     ],
     draftEntryCount: 1,

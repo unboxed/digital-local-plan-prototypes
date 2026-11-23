@@ -1,9 +1,9 @@
 //
-// Statement of general conformity with the spatial development strategy (SDS), for the Statement
-// of compliance prototype (/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy). It is the
-// evidence for regulation 32(i): in preparing the plan the authority must have regard to the
-// rest of the development plan (section 15CA(6)(g) of the Act), which in London includes the SDS.
-// Regulation 28 separately requires general conformity with the operative SDS.
+// View alignment with London Plan (/plan/make/london-plan-alignment), a Make your plan prototype:
+// every policy of the spatial development strategy (SDS) with the local plan policies linked to
+// it, an authority comment on the linkage and, where a policy isn't addressed, evidence that it
+// needn't be. It began as the statement of compliance's SDS page, which now lists the Greater
+// London Authority's representations instead, because this was too detailed for the statement.
 //
 // The example SDS is the London Plan 2021, which really is the operative SDS for the City of
 // London, whose City Plan 2040 is the local plan throughout this project. Its chapters, policy

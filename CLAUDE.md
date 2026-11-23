@@ -1343,19 +1343,32 @@ preparation. A draft (progress before Gateway 3) and a completed variant (`:socV
   progress check's plan timeline (`getPlanTimeline`) is built from. They are not requirements.
 - MIQs questions name requirements in `compliance` (`miqs.js`); keep those refs in step.
 
-## Statement of compliance: general conformity with the SDS
+### General conformity with the London Plan (regulation 32(j))
 
-`/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy` (`app/views/statement-of-compliance/sds/`)
-is part of the evidence for regulation 32(i), regard to the rest of the development plan
-(section 15CA(6)(g) of the Act, which in London includes the SDS): every policy of the spatial
-development strategy, the local plan policies linked to it, an authority comment on the linkage
-and, where a policy isn't addressed, evidence that it needn't be. The example SDS is the London
-Plan 2021, which really is the City of London's operative SDS. It is listed on the Statement of
-compliance landing page, and 32(i)'s requirement page and audit log entry link to it (a history
-entry's optional `href` overrides the placeholder document viewer).
+`.../statement-of-compliance/spatial-development-strategy` (`statement-of-compliance/sds.html`)
+shows the Greater London Authority's whole response to each consultation phase, latest first
+(`socSdsPhases`, built from the same `consulteeDocument` responses Managing consultation responses
+shows, each linking to its document there). Each phase leads with what it commented on: policies,
+with counts by support, objection and neutral, in the latest round, whose response is set out by
+policy; topics and the policies they relate to in the earlier rounds, set out by topic. There are
+no per-policy representations on the page. It takes an optional short statement from the authority (`_statement`, kept as the plain string
+`socSdsStatement`). It is the evidence for 32(j), because copies of the representations made under
+regulation 28 are a submission document (34(1)(e)); 32(j)'s requirement page and audit log entry
+link to it (a history entry's optional `href` overrides the placeholder document viewer). Its
+routes are registered before `.../statement-of-compliance/:socVariant`, which would otherwise take
+`spatial-development-strategy` as a variant and redirect it away. It replaced a policy by policy
+statement that was too detailed for the statement of compliance, which became View alignment with
+London Plan, below.
 
-- **Registered before `.../statement-of-compliance/:socVariant`**, which would otherwise take
-  `spatial-development-strategy` as a variant and redirect it away.
+## View alignment with London Plan (Make your plan)
+
+`/plan/make/london-plan-alignment` (`app/views/london-plan-alignment/`), listed under Policy
+drafting, connected to evidence: every policy of the spatial development strategy, the local plan
+policies linked to it, an authority comment on the linkage and, where a policy isn't addressed,
+evidence that it needn't be. The example SDS is the London Plan 2021, which really is the City of
+London's operative SDS. Its old addresses under the statement of compliance (`/policies/...`,
+`/evidence/...`) redirect here; the old base address is now the GLA page above.
+
 - **The London Plan's chapters, policy refs and titles are real and complete** (113 policies, in
   `app/data/sds-conformity.js`). Which City Plan policies each is linked to, the comments and the
   evidence extracts are invented, and the pages say so. There are no policy summaries: each page
