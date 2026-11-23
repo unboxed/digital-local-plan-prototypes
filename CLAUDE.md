@@ -159,7 +159,11 @@ Where the prototypes now live (old URL → new; view folders unchanged):
 | `/public-view/...` | `/plan/view/...` |
 | `/gateway-2-progress-check` | `/plan/view/gateway-2-progress-check` |
 | `/examination-inspector-view` | `/plan/view/examination` |
-| `/statement-of-compliance` | `/plan/view/statement-of-compliance` |
+| `/statement-of-compliance` | `/plan/make/gateway-preparation/statement-of-compliance` |
+
+The Statement of compliance was first moved to `/plan/view/statement-of-compliance`, then to
+Make your plan's Gateway preparation feature; both old addresses redirect.
+`/plan/make/gateway-preparation` itself has no page and goes to `/plan/make`.
 
 The old hub pages (`/project-management`, `/evidence`, `/policy-writing`, `/consultations`,
 `/pins-view`, `/public-view`) were replaced by the section pages, and the user stories were
@@ -1322,17 +1326,35 @@ the header.
 - **Inert placeholders:** "View and comment", email updates, contact, and the plan download
   links.
 
+## Statement of compliance
+
+`/plan/make/gateway-preparation/statement-of-compliance` (`app/views/statement-of-compliance/`,
+content in `app/data/statement-of-compliance.js`), listed under Make your plan's Gateway
+preparation. A draft (progress before Gateway 3) and a completed variant (`:socVariant`).
+
+- **The requirements are regulation 32's (a) to (l)** of the 2026 Regulations (SI 2026/186),
+  "Gateway 3: prescribed requirements", referenced as "Regulation 32(a)" and so on, with a link to
+  the regulation (`REGULATION_URL`). References and the sections and regulations they cite are
+  genuine; titles and descriptions are plain English, not quoted. Histories, dates, officers and
+  planned activities are invented.
+- **Statuses are derived** from how much of each requirement's `history` has happened in the
+  draft (`draftEntryCount`).
+- **The old procedural regulations (19 to 26) survive only as `PROCESS_HISTORY`**, which Gateway 2
+  progress check's plan timeline (`getPlanTimeline`) is built from. They are not requirements.
+- MIQs questions name requirements in `compliance` (`miqs.js`); keep those refs in step.
+
 ## Statement of compliance: general conformity with the SDS
 
-`/plan/view/statement-of-compliance/spatial-development-strategy` (`app/views/statement-of-compliance/sds/`)
-is the evidence for Regulation 28: every policy of the spatial development strategy, the local
-plan policies linked to it, an authority comment on the linkage and, where a policy isn't
-addressed, evidence that it needn't be. The example SDS is the London Plan 2021, which really is
-the City of London's operative SDS. It is listed on the Statement of compliance landing page, and
-Regulation 28's requirement page and audit log entry link to it (a history entry's optional `href`
-overrides the placeholder document viewer).
+`/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy` (`app/views/statement-of-compliance/sds/`)
+is part of the evidence for regulation 32(i), regard to the rest of the development plan
+(section 15CA(6)(g) of the Act, which in London includes the SDS): every policy of the spatial
+development strategy, the local plan policies linked to it, an authority comment on the linkage
+and, where a policy isn't addressed, evidence that it needn't be. The example SDS is the London
+Plan 2021, which really is the City of London's operative SDS. It is listed on the Statement of
+compliance landing page, and 32(i)'s requirement page and audit log entry link to it (a history
+entry's optional `href` overrides the placeholder document viewer).
 
-- **Registered before `/plan/view/statement-of-compliance/:socVariant`**, which would otherwise take
+- **Registered before `.../statement-of-compliance/:socVariant`**, which would otherwise take
   `spatial-development-strategy` as a variant and redirect it away.
 - **The London Plan's chapters, policy refs and titles are real and complete** (113 policies, in
   `app/data/sds-conformity.js`). Which City Plan policies each is linked to, the comments and the

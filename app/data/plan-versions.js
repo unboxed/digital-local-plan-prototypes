@@ -387,7 +387,7 @@ const DOCUMENT_SOURCES = [
   {
     id: 'statement-of-compliance',
     heading: 'Statement of compliance',
-    link: { href: '/plan/view/statement-of-compliance', text: 'Open in Statement of compliance' },
+    link: { href: '/plan/make/gateway-preparation/statement-of-compliance', text: 'Open in Statement of compliance' },
     base: [
       'This statement sets out how the City Plan 2040 has been prepared in line with the legal and procedural requirements.',
       'Consultation has followed the Statement of Community Involvement.',

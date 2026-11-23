@@ -36,7 +36,8 @@ const MOVED_URLS = [
   ['/pins-view', '/plan/view'],
   ['/gateway-2-progress-check', '/plan/view/gateway-2-progress-check'],
   ['/examination-inspector-view', '/plan/view/examination'],
-  ['/statement-of-compliance', '/plan/view/statement-of-compliance'],
+  ['/statement-of-compliance', '/plan/make/gateway-preparation/statement-of-compliance'],
+  ['/plan/view/statement-of-compliance', '/plan/make/gateway-preparation/statement-of-compliance'],
   ['/public-view', '/plan/view'],
   ['/user-stories', '/']
 ]
@@ -57,7 +58,7 @@ const MOVED_VIEWS = [
   ['/plan/consultation', 'consultations'],
   ['/plan/view/gateway-2-progress-check', 'gateway-2-progress-check'],
   ['/plan/view/examination', 'examination-inspector-view'],
-  ['/plan/view/statement-of-compliance', 'statement-of-compliance'],
+  ['/plan/make/gateway-preparation/statement-of-compliance', 'statement-of-compliance'],
   ['/plan/view', 'public-view']
 ]
 
@@ -161,7 +162,8 @@ const {
   getHistory: getRequirementHistory,
   getPlannedActivity,
   getPlanTimeline,
-  isKnownDocument
+  isKnownDocument,
+  REGULATION_URL: SOC_REGULATION_URL
 } = require('./data/statement-of-compliance.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
@@ -3332,7 +3334,7 @@ router.get('/plan/view/gateway-2-progress-check/evidence/:source', (req, res) =>
 const SOC_VARIANTS = ['draft', 'completed']
 
 router.param('socVariant', (req, res, next, socVariant) => {
-  if (!SOC_VARIANTS.includes(socVariant)) return res.redirect('/plan/view/statement-of-compliance')
+  if (!SOC_VARIANTS.includes(socVariant)) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance')
   next()
 })
 
@@ -3342,8 +3344,14 @@ const STATEMENT_STATUS_COLOURS = {
   'Fully met': 'green'
 }
 
-router.get('/plan/view/statement-of-compliance', (req, res) => {
+router.get('/plan/make/gateway-preparation/statement-of-compliance', (req, res) => {
   res.render('statement-of-compliance/index.html')
+})
+
+// Gateway preparation is a feature of Make your plan rather than a page of its own, so its
+// address goes to the section page, which lists its prototypes.
+router.get('/plan/make/gateway-preparation', (req, res) => {
+  res.redirect('/plan/make')
 })
 
 // --- Statement of compliance: general conformity with the spatial development strategy ---
@@ -3355,10 +3363,10 @@ router.get('/plan/view/statement-of-compliance', (req, res) => {
 // ({ policies: { <SDS ref>: { links, comment, evidence } }, flash }), read only through
 // getSdsConformity. Statuses are derived (SDSC.getStatus), never stored.
 //
-// These routes are registered before /plan/view/statement-of-compliance/:socVariant, which would
+// These routes are registered before .../statement-of-compliance/:socVariant, which would
 // otherwise take "spatial-development-strategy" as a variant and redirect it away.
 const SDSC = require('./data/sds-conformity.js')
-const SDS_BASE = '/plan/view/statement-of-compliance/spatial-development-strategy'
+const SDS_BASE = '/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy'
 const SDS_CONFORMITY_SCHEMA_VERSION = 1
 
 function getSdsConformity (req) {
@@ -3554,7 +3562,7 @@ function socRequirementRows (variant) {
     ref: requirement.ref,
     title: requirement.title,
     status: getRequirementStatus(requirement.ref, variant),
-    href: '/plan/view/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(requirement.ref)
+    href: '/plan/make/gateway-preparation/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(requirement.ref)
   }))
 }
 
@@ -3565,11 +3573,12 @@ const SOC_PDF = {
   completed: { size: '486 KB', pages: 24 }
 }
 
-router.get('/plan/view/statement-of-compliance/:socVariant', (req, res) => {
+router.get('/plan/make/gateway-preparation/statement-of-compliance/:socVariant', (req, res) => {
   const variant = req.params.socVariant
   res.render('statement-of-compliance/checklist.html', {
     variant,
     requirements: socRequirementRows(variant),
+    regulationUrl: SOC_REGULATION_URL,
     statusColours: STATEMENT_STATUS_COLOURS,
     pdf: {
       ...SOC_PDF[variant],
@@ -3579,16 +3588,17 @@ router.get('/plan/view/statement-of-compliance/:socVariant', (req, res) => {
   })
 })
 
-router.get('/plan/view/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
+router.get('/plan/make/gateway-preparation/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
   const variant = req.params.socVariant
   const requirement = getRequirement(req.params.ref)
-  if (!requirement) return res.redirect('/plan/view/statement-of-compliance/' + variant)
+  if (!requirement) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance/' + variant)
 
   res.render('statement-of-compliance/requirements/show.html', {
     variant,
     requirement,
     status: getRequirementStatus(requirement.ref, variant),
     statusColours: STATEMENT_STATUS_COLOURS,
+    regulationUrl: SOC_REGULATION_URL,
     history: getRequirementHistory(requirement.ref, variant),
     plannedActivity: getPlannedActivity(requirement.ref, variant)
   })
@@ -3597,8 +3607,8 @@ router.get('/plan/view/statement-of-compliance/:socVariant/requirements/:ref', (
 // A placeholder viewer for the materials linked from the audit log (the notice, a consultation
 // summary, the self-assessment, and so on) — there's no real document behind any of them, so
 // this renders the title only rather than pretending to show real content.
-router.get('/plan/view/statement-of-compliance/documents/:title', (req, res) => {
-  if (!isKnownDocument(req.params.title)) return res.redirect('/plan/view/statement-of-compliance')
+router.get('/plan/make/gateway-preparation/statement-of-compliance/documents/:title', (req, res) => {
+  if (!isKnownDocument(req.params.title)) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance')
 
   res.render('statement-of-compliance/documents/show.html', {
     title: req.params.title
@@ -7788,7 +7798,7 @@ function miqCompliance (req, state, question, refs) {
         ref,
         title: requirement ? requirement.title : '',
         status: getRequirementStatus(ref, 'completed'),
-        href: '/plan/view/statement-of-compliance/completed/requirements/' + encodeURIComponent(ref)
+        href: '/plan/make/gateway-preparation/statement-of-compliance/completed/requirements/' + encodeURIComponent(ref)
       }
     }),
     policies: refs.map(miqPolicyView),

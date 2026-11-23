@@ -8,14 +8,14 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <a class="govuk-back-link" href="/plan/view/statement-of-compliance">Back to Statement of compliance</a>
+    <a class="govuk-back-link" href="/plan/make/gateway-preparation/statement-of-compliance">Back to Statement of compliance</a>
 
     <span class="govuk-caption-xl">{{ "Draft" if variant == "draft" else "Completed" }} statement of compliance</span>
     <h1 class="govuk-heading-xl">{{ organisationName }} Local Plan</h1>
 
     {% if variant == "draft" %}
     <p class="govuk-body">
-      This statement is for use at Gateway 2 to check progress. Not every requirement is met
+      This statement is for checking progress before Gateway 3. Not every requirement is met
       yet — see each requirement's evidence for what is planned and when.
     </p>
     {% else %}
@@ -23,6 +23,11 @@
       Every requirement below is fully met, with no further action required.
     </p>
     {% endif %}
+    <p class="govuk-body">
+      The requirements are those prescribed for Gateway 3 by
+      <a class="govuk-link" href="{{ regulationUrl }}" target="_blank" rel="noopener noreferrer">regulation 32 of the Town and Country Planning (Local Planning) (England) Regulations 2026<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>.
+      Each is described in plain English here.
+    </p>
 
     <section class="dlp-attachment" id="soc-pdf" aria-labelledby="soc-pdf-heading">
       <h2 class="govuk-heading-s" id="soc-pdf-heading">PDF version</h2>

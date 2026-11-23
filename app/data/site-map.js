@@ -98,9 +98,15 @@ const SECTIONS = [
         ]
       },
       {
-        slug: 'gateway-preparation',
         title: 'Gateway preparation',
-        description: 'Prepare for each gateway, including creating the documents it needs.'
+        description: 'Prepare for each gateway, including creating the documents it needs.',
+        prototypes: [
+          {
+            title: 'Statement of compliance',
+            href: '/plan/make/gateway-preparation/statement-of-compliance',
+            description: 'A draft statement for Gateway 2, and the completed statement as it would stand once the plan is adopted, with a statement of general conformity with the spatial development strategy.'
+          }
+        ]
       },
       {
         slug: 'share-and-collaborate',
@@ -249,17 +255,6 @@ const SECTIONS = [
           }
         ]
       },
-      {
-        title: 'Statement of compliance',
-        description: 'Show which legal and procedural requirements have been met during plan preparation, and the evidence for each one.',
-        prototypes: [
-          {
-            title: 'Statement of compliance',
-            href: '/plan/view/statement-of-compliance',
-            description: 'A draft statement for Gateway 2, and the completed statement as it would stand once the plan is adopted.'
-          }
-        ]
-      }
     ]
   },
   {

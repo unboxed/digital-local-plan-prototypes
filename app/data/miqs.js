@@ -163,7 +163,7 @@ const MATTERS = [
             text: 'Has consultation on the proposed local plan been carried out in accordance with the Regulations, and have the representations received been taken into account?',
             policies: [],
             tests: ['positively-prepared'],
-            compliance: ['Regulation 23', 'Regulation 27', 'Regulation 30'],
+            compliance: ['Regulation 32(i)', 'Regulation 32(j)'],
             sds: [],
             summary: {
               evidence: 'The Statement of compliance records consultation on the proposed plan content and evidence (May 2024) and on the proposed local plan (8 February to 22 March 2026), with the summaries of responses published for each. The consultation on the proposed local plan received representations from 31 consultees across eight themes.',
@@ -175,7 +175,7 @@ const MATTERS = [
             text: 'Is the plan in general conformity with the London Plan, in particular on the housing target and the location of tall buildings?',
             policies: ['S3', 'S12'],
             tests: ['consistent'],
-            compliance: ['Regulation 28'],
+            compliance: ['Regulation 32(e)', 'Regulation 32(i)'],
             sds: ['H1', 'D9'],
             summary: {
               evidence: 'The statement of general conformity links London Plan H1 to Policies S3 and HS1, which plan to meet the City’s ten-year target of 1,460 homes, and D9 to Policy S12, which defines tall building areas and heights as D9 requires. The Greater London Authority’s representation confirms general conformity.',
@@ -193,7 +193,7 @@ const MATTERS = [
             text: 'What engagement has taken place with neighbouring boroughs on the effect of tall buildings and protected views across the borough boundary, and what is its outcome?',
             policies: ['S12', 'S13'],
             tests: ['effective', 'positively-prepared'],
-            compliance: ['Regulation 27'],
+            compliance: ['Regulation 32(i)'],
             sds: ['D9'],
             summary: {
               evidence: 'The London Borough of Southwark responded on building heights and heritage. The townscape and heritage evidence includes views from the South Bank, and the protected views in S13 follow the London View Management Framework, which already applies across borough boundaries.',
