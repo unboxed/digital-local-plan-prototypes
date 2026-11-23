@@ -5,7 +5,7 @@
 {% from "miqs/partials/macros.html" import miqInsertButton %}
 
 {% if not evidence | length and not representations.total %}
-  <p class="govuk-body">This question is not about a particular policy, so there is no policy evidence or representations for it. See <a class="govuk-link" href="/plan/make/miqs/responses/{{ question.id }}?_tab=soundness#support">statement of soundness</a>.</p>
+  <p class="govuk-body">This question is not about a particular policy, so there is no policy evidence or representations for it. See <a class="govuk-link" href="/plan/make/miqs/responses/{{ question.id }}?_tab=soundness#support">soundness</a>.</p>
 {% endif %}
 
 {% if evidence | length %}

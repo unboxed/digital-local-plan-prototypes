@@ -1,8 +1,9 @@
 {#
   Need 3: how the policy is sound and meets the legal requirements. The statement of soundness
   (its title and published date, SOUNDNESS_STATEMENT_DOCUMENT), with the parts for the question's
-  policies (example statements, MIQD.SOUNDNESS_STATEMENTS), then the Statement of compliance
-  requirements. Nothing here is
+  policies (example statements, MIQD.SOUNDNESS_STATEMENTS), the GLA's response to the
+  consultation on the proposed local plan, under "Strategic authority representations"
+  (miqGlaResponse; the title links to its consultee page in Managing consultation responses), then the Statement of compliance requirements. Nothing here is
   a field, so the tab has no Save button of its own.
 #}
 <h3 class="govuk-heading-m govuk-!-margin-bottom-1">{{ compliance.statementDocument.title }}</h3>
@@ -18,6 +19,14 @@
   </section>
 {% endfor %}
 <p class="govuk-body-s dlp-miq-muted">Example statement, written for the prototype.</p>
+
+<h3 class="govuk-heading-s">Strategic authority representations</h3>
+<ul class="govuk-list dlp-miq-cards">
+  <li class="dlp-miq-card">
+    <p class="govuk-body-s dlp-miq-card__title"><a class="govuk-link" href="{{ compliance.gla.href }}">{{ compliance.gla.title }}</a></p>
+    <p class="govuk-body-s dlp-miq-muted govuk-!-margin-bottom-0">Consultation on the proposed local plan &middot; Received {{ compliance.gla.date }}</p>
+  </li>
+</ul>
 
 {% if compliance.requirements | length %}
   <h3 class="govuk-heading-s">Legal requirements</h3>
