@@ -55,6 +55,95 @@ function getEventType (code) {
   return EVENT_TYPES.find(type => type.code === code)
 }
 
+// --- Create timetable: the staging tool's recreation ---
+//
+// The milestones a timetable is made of, in order, copied from the real service's
+// config/required_timetable_events.yml (github.com/unboxed/digital-local-plans). `key` is its
+// plan-event code and `reference` the suffix added to the plan reference to make each event's
+// reference. Unlike EVENT_TYPES above (the Figma flow), these codes are the service's own.
+const TIMETABLE_EVENTS = [
+  { key: 'public-notice-intention-commence', name: 'Publish notice of intention to commence', reference: 'notice', timing: 'Must be published at least 4 months before Gateway 1' },
+  { key: 'scoping-consultation-start', name: 'Start scoping consultation', reference: 'start-scoping', timing: 'Must run for at least 21 days' },
+  { key: 'scoping-consultation-end', name: 'End scoping consultation', reference: 'end-scoping', timing: 'Must be at least 21 days after the scoping consultation start' },
+  { key: 'gateway-1-self-assessment', name: 'Self-assessment for gateway 1', reference: 'gateway-1', timing: 'Marks formal commencement of the 30-month timeframe' },
+  { key: 'plan-content-evidence-consultation-start', name: 'Start consultation on proposed content and evidence for local plan', reference: 'content-evidence-consult-start', timing: 'Must run for at least 6 weeks' },
+  { key: 'plan-content-evidence-consultation-end', name: 'End consultation on proposed content and evidence for local plan', reference: 'content-evidence-consult-end', timing: 'Must be at least 6 weeks after the consultation start date' },
+  { key: 'gateway-2-advice-sought', name: 'Gateway 2: advice sought', reference: 'gateway-2', timing: 'Should take place between the content and proposed plan consultations' },
+  { key: 'proposed-plan-consultation-start', name: 'Consultation on proposed local plan starts', reference: 'proposed-plan-consult-start', timing: 'Must run for at least 8 weeks' },
+  { key: 'proposed-plan-consultation-end', name: 'Consultation on proposed local plan ends', reference: 'proposed-plan-consult-end', timing: 'Must be at least 8 weeks after the proposed plan consultation start date' },
+  { key: 'gateway-3-advice-sought', name: 'Gateway 3: advice sought', reference: 'gateway-3', timing: 'Takes place after the proposed plan consultation closes, before submission' },
+  { key: 'examination-submitted', name: 'Plan submitted for examination', reference: 'exam-submit', timing: 'Typically around 24 months after commencement (Gateway 1)' },
+  { key: 'adopted', name: 'Plan adopted', reference: 'adopted', timing: 'Typically around 5-6 months after examination submission' }
+]
+
+// Minimum gaps between milestones (the service's MilestoneGapValidator). A draft timetable only
+// warns about them. `days` is the smallest whole number of days that passes: Rails compares
+// against 4.months as a duration, 121.75 days, so 4 months needs 122.
+const TIMETABLE_GAPS = [
+  { from: 'scoping-consultation-start', to: 'scoping-consultation-end', days: 21, label: '21 days' },
+  { from: 'public-notice-intention-commence', to: 'gateway-1-self-assessment', days: 122, label: '4 months' },
+  { from: 'plan-content-evidence-consultation-start', to: 'plan-content-evidence-consultation-end', days: 42, label: '6 weeks' },
+  { from: 'proposed-plan-consultation-start', to: 'proposed-plan-consultation-end', days: 56, label: '8 weeks' }
+]
+
+const TIMETABLE_CHECK_AND_PROVIDE_URL = 'https://provide.planning.data.gov.uk/'
+
+// The committee calendar Create timetable offers as milestones (not part of the service; added in
+// the prototype). Invented dates on the City's real committee names, from December 2026 to the end
+// of 2029, so they cover the whole timetable. Each committee meets on a fixed weekday of the month
+// and skips August. COMMITTEES above is the Figma flow's shorter list.
+const TIMETABLE_COMMITTEE_PATTERNS = [
+  { slug: 'pt', name: 'Planning and Transportation Committee', weekday: 2, week: 3, months: 'all' },
+  { slug: 'lpsc', name: 'Local Plans Sub-Committee', weekday: 3, week: 1, months: 'odd' },
+  { slug: 'pr', name: 'Policy and Resources Committee', weekday: 4, week: 2, months: 'all' },
+  { slug: 'court', name: 'Court of Common Council', weekday: 4, week: 1, months: 'even' }
+]
+
+function timetableCommittees () {
+  const meetings = []
+  for (let year = 2026; year <= 2029; year++) {
+    for (let month = 1; month <= 12; month++) {
+      if ((year === 2026 && month < 12) || month === 8) continue
+      TIMETABLE_COMMITTEE_PATTERNS.forEach(pattern => {
+        if (pattern.months === 'odd' && month % 2 === 0) return
+        if (pattern.months === 'even' && month % 2 === 1) return
+        // The nth given weekday of the month.
+        const first = new Date(Date.UTC(year, month - 1, 1)).getUTCDay()
+        const day = 1 + ((pattern.weekday - first + 7) % 7) + (pattern.week - 1) * 7
+        const date = year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0')
+        meetings.push({ id: pattern.slug + '-' + date, name: pattern.name, date })
+      })
+    }
+  }
+  return meetings.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name))
+}
+
+const TIMETABLE_COMMITTEES = timetableCommittees()
+const TIMETABLE_COMMITTEE_NAMES = TIMETABLE_COMMITTEE_PATTERNS.map(pattern => ({ slug: pattern.slug, name: pattern.name }))
+
+function getTimetableCommittee (id) {
+  return TIMETABLE_COMMITTEES.find(meeting => meeting.id === id)
+}
+
+function getTimetableEvent (key) {
+  return TIMETABLE_EVENTS.find(event => event.key === key)
+}
+
+// One record per milestone, made when the plan's details are first saved, as the service's
+// InitializeTimetableWithEvents does. References are prefilled from the plan reference then,
+// and not changed if the plan reference changes later.
+function timetableToolEvents (planReference) {
+  return TIMETABLE_EVENTS.map(event => ({
+    key: event.key,
+    reference: planReference ? planReference + '-' + event.reference : '',
+    plan: planReference || '',
+    eventDate: '',
+    actualDate: '',
+    entryDate: '',
+    notes: ''
+  }))
+}
+
 // The committee calendar milestones can be scheduled against. Invented dates, on the City's
 // real committee names.
 const COMMITTEES = [
@@ -337,6 +426,10 @@ function startingState () {
     milestones: EVENT_TYPES.map(type => milestone(type.code)),
     committeeItems: committeeItems(),
     timetable: { statement: DEFAULT_STATEMENT, statementSaved: false, published: '' },
+    // Create timetable (the staging tool's recreation): the plan's details, null until first
+    // saved, and one record per TIMETABLE_EVENTS milestone, made at that point. `extras` are the
+    // milestones the officer adds: committee meetings and their own.
+    timetableTool: { details: null, events: [], extras: [] },
     notice: { area: '', timetableLink: '', addresses: '', updates: '', published: '' },
     pid: emptyPid(),
     // Scoping activities: the policy starting points wizard's items, keyed by step slug, and the
@@ -372,6 +465,44 @@ function midwayState () {
   state.committeeItems[0].committee = 'pt-2026-11'
   state.timetable.statementSaved = true
   state.timetable.published = '2026-09-28'
+  // The same dates in Create timetable, plus the three later milestones: 24 months from
+  // Gateway 1 to adoption, inside the 30-month limit.
+  state.timetableTool = {
+    details: {
+      reference: PLAN_REFERENCE,
+      name: 'City Plan 2040',
+      description: 'A new local plan for the City of London, setting out how the Square Mile will grow and change to 2042: offices, homes, culture, the public realm, climate resilience and the historic environment.',
+      periodStartYear: '2027',
+      periodEndYear: '2042',
+      documentationUrl: 'https://www.cityoflondon.example/planning/local-plan',
+      documentUrl: 'https://www.cityoflondon.example/planning/local-plan/city-plan-2040.pdf',
+      notes: ''
+    },
+    events: timetableToolEvents(PLAN_REFERENCE),
+    extras: [
+      { id: 'x1', type: 'committee', committeeId: 'pt-2027-01-19', name: 'Approve the timetable and notice of intention to commence', eventDate: '2027-01-19', notes: '', entryDate: '2026-09-21' },
+      { id: 'x2', type: 'custom', name: 'Member briefing on scoping consultation responses', eventDate: '2027-05-12', notes: 'All-member seminar, Guildhall.', entryDate: '2026-09-21' },
+      { id: 'x3', type: 'committee', committeeId: 'court-2028-04-06', name: 'Agree the proposed plan for consultation', eventDate: '2028-04-06', notes: '', entryDate: '2026-09-21' }
+    ]
+  }
+  const toolDates = {
+    'public-notice-intention-commence': '2027-02-01',
+    'scoping-consultation-start': '2027-03-01',
+    'scoping-consultation-end': '2027-04-12',
+    'gateway-1-self-assessment': '2027-07-30',
+    'plan-content-evidence-consultation-start': '2027-09-06',
+    'plan-content-evidence-consultation-end': '2027-10-18',
+    'gateway-2-advice-sought': '2028-03-01',
+    'proposed-plan-consultation-start': '2028-05-08',
+    'proposed-plan-consultation-end': '2028-07-03',
+    'gateway-3-advice-sought': '2028-09-04',
+    'examination-submitted': '2029-01-08',
+    adopted: '2029-07-02'
+  }
+  state.timetableTool.events.forEach(event => {
+    event.eventDate = toolDates[event.key]
+    event.entryDate = '2026-09-21'
+  })
   state.scopingConsultationStarted = true
   Object.assign(state.pid, {
     planTitle: 'City Plan 2040 review',
@@ -401,6 +532,14 @@ module.exports = {
   EVENT_TYPES,
   PUBLISHED_STAGES,
   getEventType,
+  TIMETABLE_EVENTS,
+  TIMETABLE_GAPS,
+  TIMETABLE_CHECK_AND_PROVIDE_URL,
+  getTimetableEvent,
+  timetableToolEvents,
+  TIMETABLE_COMMITTEES,
+  TIMETABLE_COMMITTEE_NAMES,
+  getTimetableCommittee,
   COMMITTEES,
   COMMITTEE_DATES_URL,
   GUIDANCE_URL,

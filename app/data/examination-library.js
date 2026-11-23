@@ -238,8 +238,8 @@ const SECTIONS = [
         summary: 'The plan’s published timetable, from Getting ready.',
         content: { type: 'paragraphs', paragraphs: ['The timetable is created and published in Getting ready. This record is the version published with the examination library.'] },
         // Every timetable link in Make your plan goes to its placeholder while the flow is rebuilt.
-        listLink: { href: '/plan/manage/getting-ready/timetable-placeholder', text: 'View the plan timetable', note: 'Opens Create and publish timetable in Getting ready.' },
-        links: [{ href: '/plan/manage/getting-ready/timetable-placeholder', text: 'View the plan timetable', note: 'Opens Create and publish timetable in Getting ready.' }],
+        listLink: { href: '/plan/manage/getting-ready/create-timetable', text: 'View the plan timetable', note: 'Opens Create and publish timetable in Getting ready.' },
+        links: [{ href: '/plan/manage/getting-ready/create-timetable', text: 'View the plan timetable', note: 'Opens Create and publish timetable in Getting ready.' }],
         versions: first()
       },
       {

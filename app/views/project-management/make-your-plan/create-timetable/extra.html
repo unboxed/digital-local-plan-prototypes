@@ -1,0 +1,99 @@
+{#
+  Create timetable: add or change a milestone the officer adds. A committee milestone has the
+  meeting's date, shown, not entered; your own milestone takes a date. Not in the real service.
+#}
+
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/summary-list/macro.njk" import govukSummaryList %}
+
+{% set isCommittee = extra.type == "committee" %}
+{% if editing %}
+  {% set heading = "Change milestone" %}
+{% elif isCommittee %}
+  {% set heading = "Add a committee meeting as a milestone" %}
+{% else %}
+  {% set heading = "Add your own milestone" %}
+{% endif %}
+{% set pageName = heading %}
+
+{% set retry = errorList.length > 0 %}
+{% set f = {
+  name: values.name if retry else extra.name,
+  notes: values.notes if retry else extra.notes,
+  eventDate: values.eventDate if retry else dateParts(extra.eventDate)
+} %}
+
+{% block pageContent %}
+
+{{ govukBackLink({ text: "Back", href: (ttBase if editing else ttBase + "/add") }) }}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-l">{{ heading }}</h1>
+
+    <form method="post" action="{{ action }}" novalidate>
+      <div class="dlp-tt-outline">
+        {% if isCommittee and meeting %}
+          {{ govukSummaryList({
+            classes: "govuk-!-margin-bottom-6",
+            rows: [
+              { key: { text: "Committee" }, value: { text: meeting.name } },
+              { key: { text: "Date" }, value: { text: formatDate(meeting.date) } }
+            ]
+          }) }}
+        {% endif %}
+
+        {{ govukInput({
+          id: "name",
+          name: "_name",
+          label: { text: "Milestone name", classes: "govuk-label--m" },
+          hint: { text: "Say what the committee will be asked to do. For example, ‘Approve the proposed plan for consultation’." if isCommittee else "For example, ‘Member briefing on consultation responses’." },
+          value: f.name,
+          errorMessage: { text: errors.name } if errors.name
+        }) }}
+
+        {% if not isCommittee %}
+          {{ govukDateInput({
+            id: "eventDate",
+            namePrefix: "_eventDate",
+            fieldset: { legend: { text: "Planned date", classes: "govuk-fieldset__legend--m" } },
+            hint: { text: "For example, 27 3 2027" },
+            items: [
+              { name: "day", classes: "govuk-input--width-2" + (" govuk-input--error" if errors.eventDate else ""), value: f.eventDate.day },
+              { name: "month", classes: "govuk-input--width-2" + (" govuk-input--error" if errors.eventDate else ""), value: f.eventDate.month },
+              { name: "year", classes: "govuk-input--width-4" + (" govuk-input--error" if errors.eventDate else ""), value: f.eventDate.year }
+            ],
+            errorMessage: { text: errors.eventDate } if errors.eventDate
+          }) }}
+        {% endif %}
+
+        {{ govukTextarea({
+          id: "notes",
+          name: "_notes",
+          label: { text: "Notes", classes: "govuk-label--m" },
+          hint: { text: "Enter any comments about this milestone (optional)." },
+          value: f.notes,
+          classes: "govuk-!-margin-bottom-0"
+        }) }}
+      </div>
+
+      <div class="govuk-!-margin-top-6 govuk-button-group">
+        {{ govukButton({ text: "Save" if editing else "Add milestone" }) }}
+        <a class="govuk-link" href="{{ ttBase }}">Cancel</a>
+      </div>
+    </form>
+
+    {% if editing %}
+      <form method="post" action="{{ ttBase }}/extra/{{ extra.id }}/remove" novalidate>
+        {{ govukButton({ text: "Remove milestone", classes: "govuk-button--warning" }) }}
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

@@ -299,7 +299,7 @@ const DOCUMENT_SOURCES = [
   {
     id: 'timetable',
     heading: 'Local plan timetable',
-    link: { href: '/plan/manage/getting-ready/timetable-placeholder', text: 'Open in Make your plan' },
+    link: { href: '/plan/manage/getting-ready/create-timetable', text: 'Open in Make your plan' },
     base: [
       'This timetable sets out the key stages for preparing the City Plan 2040 under the new plan-making system, and when each is expected.',
       'Scoping consultation will run for six weeks from July 2025. Gateway 1 is expected in August 2025.',

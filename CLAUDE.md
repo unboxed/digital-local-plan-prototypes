@@ -1006,9 +1006,37 @@ area's hub, listing it under Current prototypes.
   Enter submits with the first button in the form, which would otherwise be a row's Remove.
   Approval's check-your-answers rows come from `pmPidSummary`. A "Prototype only" panel stands in
   for the three approvers signing it off.
-- **Timetable placeholder:** the overview card, sidebar item and the PID's Timetable section all
-  link to `/timetable-placeholder` ("Coded prototype is being built for this flow"). The existing
-  timetable flow under `/timetable` is still there, reachable by URL.
+- **Create timetable** (`/create-timetable`, `create-timetable/` views) is a **recreation of the
+  real service's timetable tool** in staging, rebuilt from its Rails source
+  (github.com/unboxed/digital-local-plans: `timetables/`, `timetable_events/`, the two validators
+  and `config/required_timetable_events.yml`). The overview card, sidebar item and the PID's
+  Timetable section all link to it; `/timetable-placeholder` redirects there. Keep it faithful to
+  the service rather than the Figma frames: its copy, its 12 milestones (`TIMETABLE_EVENTS`, with
+  the service's own plan-event codes, which differ from `EVENT_TYPES`), its back links and its
+  `govuk-heading-l` headings.
+  - State is `projectManagement.timetableTool`: `details` (null until the details form is first
+    saved, which is when the milestone records are made, references prefilled from the plan
+    reference) and `events`. Midway seeds it fully dated (24 months from Gateway 1 to adoption).
+  - Validation follows the service: reference and a future planned date (before 2050) required;
+    dates out of order are errors; minimum gaps (`TIMETABLE_GAPS`) are warnings, shown in a
+    "Warning" banner with "Save anyway". Two deliberate differences: the gap warning is worded the
+    right way round (the service's reads backwards), and an unreadable actual or entry date is an
+    error rather than silently dropped.
+  - The service has no published state, so the prototype counts the timetable **Completed** once
+    every milestone has a planned date. That status drives the overview, the PID section and the
+    notice (which now needs it finished, and takes its scoping dates from it).
+  - "Export and open Check and Provide service" opens provide.planning.data.gov.uk in a new tab
+    and downloads `/create-timetable/export.zip` (data and metadata CSVs, the service's columns)
+    via `data-dlp-export-download`; the zip is written by a small stored-zip helper in routes.js.
+  - **Added milestones** (not in the service; a prototype addition): "Add a milestone" goes to
+    `/create-timetable/add`, the upcoming committee meetings (`TIMETABLE_COMMITTEES`, an invented
+    calendar on the City's real committee names, Dec 2026–2029), filtered by committee and year,
+    grouped by month with the timetable's own milestones in that month. A meeting becomes a
+    milestone with the officer's name for it and the meeting's date; "Add your own milestone" takes
+    a name and a date. They live in `timetableTool.extras`, slot into the table by date, and are
+    kept out of the service's validators, the status and the export (the data standard has no
+    plan-event for them).
+  - The earlier, Figma-based flow under `/timetable` is still there, reachable by URL only.
 - **Scoping activities is the policy starting points wizard** (`/scoping-activities/:step`),
   the same `STARTING_POINT_STEPS`, handlers and step body as `/plan/make/policy-writing/:variant/starting-points`.
   The handlers (`spSaveItem`, `spConnect` …) take a *journey*: a policy-writing variant, or

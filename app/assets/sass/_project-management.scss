@@ -699,3 +699,81 @@
   border-left: 0;
   padding-left: 0;
 }
+
+// --- Create timetable (the real service's timetable tool, recreated) ---
+//
+// Classes follow the service's own (app-page-header__title-row, app-duration-ribbon,
+// app-container-outline, app-table__header--bold-black), renamed with this project's prefix.
+
+.dlp-tt-title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(3);
+  margin-bottom: govuk-spacing(3);
+}
+
+.dlp-tt-duration {
+  background-color: #fffdf2;
+  border-left: 6px solid #ffe640;
+  margin-bottom: govuk-spacing(5);
+  padding: govuk-spacing(4);
+}
+
+.dlp-tt-table__header {
+  border-bottom: 3px solid govuk-colour("black");
+}
+
+.dlp-tt-table__action {
+  white-space: nowrap;
+  width: 7%;
+}
+
+.dlp-tt-outline {
+  border: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(4);
+}
+
+.dlp-tt-export {
+  border-bottom: 1px solid $dlp-border-grey;
+  border-top: 1px solid $dlp-border-grey;
+  padding: govuk-spacing(4);
+}
+
+.dlp-tt-warning .govuk-notification-banner__content > .govuk-body {
+  max-width: none;
+}
+
+// Added milestones: committee meetings and the officer's own, among the required ones.
+.dlp-tt-extra {
+  background-color: govuk-colour("black", $variant: "tint-95");
+}
+
+.dlp-tt-filters {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 govuk-spacing(4);
+  margin-bottom: govuk-spacing(4);
+}
+
+.govuk-frontend-supported .dlp-tt-filters__button {
+  display: none;
+}
+
+.dlp-tt-month {
+  border-top: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(2);
+  padding-top: govuk-spacing(3);
+}
+
+.dlp-tt-month__milestones {
+  @include govuk-font($size: 16);
+  border-left: 4px solid $dlp-border-grey;
+  padding-left: govuk-spacing(2);
+}
+
+.dlp-tt-committees__date {
+  white-space: nowrap;
+  width: 30%;
+}
