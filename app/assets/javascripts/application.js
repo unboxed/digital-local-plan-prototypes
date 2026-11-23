@@ -88,6 +88,7 @@ window.GOVUKPrototypeKit.documentReady(() => {
   document.querySelectorAll('[data-dlp-rich-text]').forEach(safeInit(initRichText))
   document.querySelectorAll('[data-dlp-insert-text]').forEach(safeInit(initInsertText))
   document.querySelectorAll('[data-dlp-mod-edit]').forEach(safeInit(initModEdit))
+  document.querySelectorAll('[data-dlp-export-download]').forEach(safeInit(initExportDownload))
 
   // Opens the evidence search dialog from a button elsewhere on the page — in the v2 writer,
   // "+ Add source" in the sources rail. The search box lives inside the dialog, so this opens
@@ -2481,6 +2482,17 @@ function initSuggestSearch (root) {
 //
 // For filter selects: the change applies at once instead of waiting for a button. The button
 // stays in the markup for anyone without JavaScript.
+// --- Export and open another service -----------------------------------------------------------
+//
+// A link that opens another service in a new tab (its own href) and downloads a file in this tab
+// at the same time, as Create timetable's "Export and open Check and Provide service" does in the
+// real service.
+function initExportDownload (link) {
+  link.addEventListener('click', () => {
+    window.location.href = link.dataset.dlpExportDownload
+  })
+}
+
 function initAutosubmit (root) {
   root.addEventListener('change', event => {
     const form = event.target.form

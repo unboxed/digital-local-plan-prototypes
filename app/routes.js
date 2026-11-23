@@ -5149,7 +5149,9 @@ router.post(CR + '/inspector/:repId', (req, res) => {
 
 const PM = '/plan/manage/getting-ready'
 // 2 added scoping activities' starting points and GIS connection.
-const PROJECT_MANAGEMENT_SCHEMA_VERSION = 3
+// 4 added timetableTool, Create timetable's state.
+// 5 added timetableTool.extras, milestones the officer adds.
+const PROJECT_MANAGEMENT_SCHEMA_VERSION = 5
 const PMD = require('./data/project-management.js')
 
 function getProjectManagement (req) {
@@ -5367,10 +5369,9 @@ const PM_PID_SECTIONS = [
   {
     slug: 'timetable',
     title: 'Timetable',
-    link: PM + '/timetable-placeholder',
+    link: PM + '/create-timetable',
     linkText: 'Go to timetable',
-    status: (pid, state) => state.timetable.published ? 'Completed' : pmCountStatus(
-      pmTimetableSteps(state).filter(step => step.status !== 'Not started').length ? 1 : 0, 2)
+    status: (pid, state) => pmTimetableToolStatus(state).status
   },
   {
     slug: 'governance',
@@ -5442,10 +5443,8 @@ function pmPidOutstanding (state) {
 }
 
 function pmStatuses (state) {
-  const steps = pmTimetableSteps(state)
-  const timetableDone = Boolean(state.timetable.published)
-  const stepsDone = steps.filter(step => step.status === 'Completed').length
-  const timetableStarted = steps.some(step => step.status !== 'Not started')
+  const timetable = pmTimetableToolStatus(state)
+  const timetableDone = timetable.status === 'Completed'
 
   const sections = pmPidSections(state).filter(section => !section.link)
   const pidDone = Boolean(state.pid.approval.approved)
@@ -5463,10 +5462,7 @@ function pmStatuses (state) {
   const scopingDone = scopingSteps.filter(step => step.status === 'Completed').length
 
   return {
-    timetable: {
-      status: timetableDone ? 'Completed' : (timetableStarted ? 'In progress' : 'Not started'),
-      progress: timetableDone ? 1 : stepsDone / steps.length
-    },
+    timetable,
     pid: {
       status: pidDone ? 'Completed' : (pidStarted ? 'In progress' : 'Not started'),
       progress: pidDone ? 1 : pidCompleted / sections.length
@@ -5498,7 +5494,7 @@ function pmTasks (state) {
       key: 'timetable',
       title: 'Timetable',
       description: 'Create and publish your timetable',
-      href: PM + '/timetable-placeholder',
+      href: PM + '/create-timetable',
       assignees: [team.dd, team.sm]
     },
     {
@@ -5539,7 +5535,7 @@ function pmTasks (state) {
 function buildPmSidebar (state, active, activeStep) {
   const statuses = pmStatuses(state)
   const items = [
-    { key: 'timetable', text: 'Create and publish timetable', href: PM + '/timetable-placeholder' },
+    { key: 'timetable', text: 'Create and publish timetable', href: PM + '/create-timetable' },
     { key: 'pid', text: 'Project Initiation Documentation', href: PM + '/pid' },
     { key: 'scopingActivities', text: 'Scoping activities', href: PM + '/scoping-activities' },
     { key: 'scopingConsultation', text: 'Scoping consultation', href: PM + '/scoping-consultation' },
@@ -5735,15 +5731,480 @@ router.post(PM + '/readiness-checker/:readinessCheckId/note', (req, res) => {
 
 // --- Timetable ---
 
-// The timetable's entry points (overview card, sidebar, PID) go here while its coded prototype
-// is rebuilt. The flow below is still reachable by URL.
-router.get(PM + '/timetable-placeholder', (req, res) => {
-  renderPm(req, res, 'not-designed', 'timetable', {
-    title: 'Timetable',
-    text: 'Coded prototype is being built for this flow.',
-    standIn: false
+// --- Create timetable: a recreation of the real service's timetable tool ---
+//
+// Rebuilt from github.com/unboxed/digital-local-plans (the Rails app in staging): its plan
+// details form, its "Enter dates for your timetable" table, its milestone edit form with the same
+// validation, and its export. See CLAUDE.md. The timetable's entry points (overview card, sidebar,
+// PID) come here; the Figma-based flow under /timetable is still reachable by URL.
+//
+//   /create-timetable                    the milestones table (the details form if none yet)
+//   /create-timetable/details            enter or change the plan's details
+//   /create-timetable/milestones/:ttKey  add or change one milestone's dates
+//   /create-timetable/export.zip         the timetable and its metadata as two CSVs
+
+const PM_TT = PM + '/create-timetable'
+
+router.get(PM + '/timetable-placeholder', (req, res) => res.redirect(PM_TT))
+
+function pmTimetableTool (state) {
+  return state.timetableTool
+}
+
+// Not started until the plan's details are saved; complete once every milestone has a planned
+// date. The service has no published state for a timetable yet, so this is the prototype's.
+function pmTimetableToolStatus (state) {
+  const tool = pmTimetableTool(state)
+  if (!tool.details) return { status: 'Not started', progress: 0 }
+  const dated = tool.events.filter(event => event.eventDate).length
+  if (dated === tool.events.length) return { status: 'Completed', progress: 1 }
+  return { status: 'In progress', progress: dated / tool.events.length }
+}
+
+// Whole months from Gateway 1 (commencement) to adoption, as the service's plan_duration counts
+// them: the difference in calendar months, ignoring the day.
+function pmTimetableDuration (events) {
+  const date = key => (events.find(event => event.key === key) || {}).eventDate
+  const start = date('gateway-1-self-assessment')
+  const end = date('adopted')
+  if (!start || !end) return null
+  const months = iso => Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7))
+  return months(end) - months(start)
+}
+
+function pmDaysBetween (fromIso, toIso) {
+  return Math.round((Date.parse(toIso) - Date.parse(fromIso)) / 86400000)
+}
+
+// The service's two timetable validators, run over the events as they would be after a save,
+// keeping only what concerns the milestone being saved. Out-of-order dates are errors; gaps that
+// are too short are warnings, which the officer can save past ("Save anyway").
+//
+// The service words a gap warning the wrong way round ("Start scoping consultation should come at
+// least 21 days after End scoping consultation"), so it reads correctly here.
+function pmTimetableChecks (events, key) {
+  const name = k => PMD.getTimetableEvent(k).name
+  const dated = PMD.TIMETABLE_EVENTS
+    .map(milestone => events.find(event => event.key === milestone.key && event.eventDate))
+    .filter(Boolean)
+  const errors = []
+  for (let i = 1; i < dated.length; i++) {
+    const earlier = dated[i - 1]
+    const later = dated[i]
+    if (later.eventDate < earlier.eventDate && (earlier.key === key || later.key === key)) {
+      errors.push(name(later.key) + ' cannot come before ' + name(earlier.key))
+    }
+  }
+  const warnings = []
+  if (!errors.length) {
+    PMD.TIMETABLE_GAPS.forEach(gap => {
+      if (gap.from !== key && gap.to !== key) return
+      const from = events.find(event => event.key === gap.from)
+      const to = events.find(event => event.key === gap.to)
+      if (!from.eventDate || !to.eventDate) return
+      if (pmDaysBetween(from.eventDate, to.eventDate) < gap.days) {
+        warnings.push(name(gap.to) + ' should be at least ' + gap.label + ' after ' + name(gap.from) + '.')
+      }
+    })
+  }
+  return { errors, warnings }
+}
+
+function renderPmTimetable (req, res, view, locals) {
+  renderPm(req, res, 'create-timetable/' + view, 'timetable', Object.assign({
+    ttBase: PM_TT,
+    tool: pmTimetableTool(getProjectManagement(req)),
+    checkAndProvideUrl: PMD.TIMETABLE_CHECK_AND_PROVIDE_URL
+  }, locals))
+}
+
+router.get(PM_TT, (req, res) => {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  if (!tool.details) return res.redirect(PM_TT + '/details')
+  renderPmTimetable(req, res, 'index', {
+    duration: pmTimetableDuration(tool.events),
+    rows: pmTimetableRows(tool)
   })
 })
+
+// The required milestones in the service's order, with the officer's own milestones slotted in by
+// date: each goes just before the first dated required milestone that comes after it.
+function pmTimetableRows (tool) {
+  const pending = tool.extras.slice().sort((a, b) => a.eventDate.localeCompare(b.eventDate))
+    .map(extra => Object.assign({ extra: true }, extra, {
+      committee: extra.type === 'committee' ? PMD.getTimetableCommittee(extra.committeeId) : null
+    }))
+  const rows = []
+  PMD.TIMETABLE_EVENTS.forEach((milestone, index) => {
+    const event = tool.events.find(item => item.key === milestone.key)
+    while (event.eventDate && pending.length && pending[0].eventDate < event.eventDate) rows.push(pending.shift())
+    rows.push(Object.assign({ number: index + 1 }, milestone, event))
+  })
+  return rows.concat(pending)
+}
+
+// --- Added milestones: committee meetings and the officer's own ---
+//
+// Not in the service: added in the prototype. Kept apart from the required milestones, so the
+// service's validators and the export see only those.
+//
+//   /create-timetable/add                  upcoming committee meetings (?_committee, ?_year)
+//   /create-timetable/add/committee/:ttCommitteeId   name a committee meeting as a milestone
+//   /create-timetable/add/custom           add your own milestone
+//   /create-timetable/extra/:ttExtraId     change one; /remove to remove it
+
+router.get(PM_TT + '/add', (req, res) => {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  if (!tool.details) return res.redirect(PM_TT)
+  const today = pmToday()
+  const committee = PMD.TIMETABLE_COMMITTEE_NAMES.find(item => item.slug === req.query._committee)
+  const year = /^\d{4}$/.test(req.query._year || '') ? req.query._year : ''
+  // By default, the next 12 months.
+  const until = String(Number(today.slice(0, 4)) + 1) + today.slice(4)
+  const upcoming = PMD.TIMETABLE_COMMITTEES.filter(meeting => meeting.date >= today)
+  const shown = upcoming.filter(meeting =>
+    (!committee || meeting.name === committee.name) &&
+    (year ? meeting.date.startsWith(year) : meeting.date <= until))
+  const added = {}
+  tool.extras.filter(extra => extra.committeeId).forEach(extra => { added[extra.committeeId] = extra })
+
+  // Grouped by month, each month showing the timetable's own milestones that fall in it, so the
+  // officer can see which meeting comes before a milestone.
+  const months = []
+  shown.forEach(meeting => {
+    const month = meeting.date.slice(0, 7)
+    let group = months.find(item => item.month === month)
+    if (!group) {
+      group = {
+        month,
+        title: PM_MONTHS[Number(month.slice(5)) - 1] + ' ' + month.slice(0, 4),
+        meetings: [],
+        milestones: pmTimetableRows(tool).filter(row => row.eventDate && row.eventDate.startsWith(month))
+      }
+      months.push(group)
+    }
+    group.meetings.push(Object.assign({}, meeting, { added: added[meeting.id] }))
+  })
+
+  renderPmTimetable(req, res, 'add', {
+    months,
+    committees: PMD.TIMETABLE_COMMITTEE_NAMES,
+    selectedCommittee: committee ? committee.slug : '',
+    years: [...new Set(upcoming.map(meeting => meeting.date.slice(0, 4)))],
+    selectedYear: year
+  })
+})
+
+function pmTimetableExtraForm (req, res, extra, locals) {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  if (!tool.details) return res.redirect(PM_TT)
+  renderPmTimetable(req, res, 'extra', Object.assign({ extra }, locals))
+}
+
+router.get(PM_TT + '/add/committee/:ttCommitteeId', (req, res) => {
+  const meeting = PMD.getTimetableCommittee(req.params.ttCommitteeId)
+  if (!meeting || meeting.date < pmToday()) return res.redirect(PM_TT + '/add')
+  pmTimetableExtraForm(req, res, { type: 'committee', committeeId: meeting.id, eventDate: meeting.date, name: '', notes: '' }, {
+    meeting,
+    action: PM_TT + '/add/committee/' + meeting.id
+  })
+})
+
+router.get(PM_TT + '/add/custom', (req, res) => {
+  pmTimetableExtraForm(req, res, { type: 'custom', name: '', eventDate: '', notes: '' }, {
+    action: PM_TT + '/add/custom'
+  })
+})
+
+router.get(PM_TT + '/extra/:ttExtraId', (req, res) => {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  const extra = tool.extras.find(item => item.id === req.params.ttExtraId)
+  if (!extra) return res.redirect(PM_TT)
+  pmTimetableExtraForm(req, res, extra, {
+    meeting: extra.type === 'committee' ? PMD.getTimetableCommittee(extra.committeeId) : null,
+    action: PM_TT + '/extra/' + extra.id,
+    editing: true
+  })
+})
+
+// One handler for adding and changing. A committee milestone's date is the meeting's, so only its
+// name and notes are read; your own milestone needs a future date too.
+function pmSaveTimetableExtra (req, res, extra, back, isNew) {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  if (!tool.details) return res.redirect(PM_TT)
+  const name = pmText(req.body._name)
+  const notes = pmText(req.body._notes)
+  const values = { name, notes }
+  const errors = {}
+  if (!name) errors.name = 'Enter a name for the milestone'
+  let eventDate = extra.eventDate
+  if (extra.type === 'custom') {
+    const date = pmReadDate(req.body, '_eventDate')
+    values.eventDate = date.parts
+    const { day, month, year } = date.parts
+    if (!day || !month || !year) errors.eventDate = 'Enter a planned date'
+    else if (date.invalid) errors.eventDate = 'Enter a valid planned date'
+    else if (date.iso < pmToday()) errors.eventDate = 'The planned date must be in the future'
+    else if (Number(year) > 2050) errors.eventDate = 'The planned date must be before 2050'
+    eventDate = date.iso
+  }
+  if (Object.keys(errors).length) {
+    pmSetErrors(req, errors, values)
+    return res.redirect(back)
+  }
+  Object.assign(extra, { name, notes, eventDate, entryDate: pmToday() })
+  if (isNew) {
+    extra.id = pmNextId('x')
+    tool.extras.push(extra)
+  }
+  pmFlash(req, name + (isNew ? ' added' : ' updated'))
+  res.redirect(PM_TT)
+}
+
+router.post(PM_TT + '/add/committee/:ttCommitteeId', (req, res) => {
+  const meeting = PMD.getTimetableCommittee(req.params.ttCommitteeId)
+  if (!meeting || meeting.date < pmToday()) return res.redirect(PM_TT + '/add')
+  pmSaveTimetableExtra(req, res, { type: 'committee', committeeId: meeting.id, eventDate: meeting.date },
+    PM_TT + '/add/committee/' + meeting.id, true)
+})
+
+router.post(PM_TT + '/add/custom', (req, res) => {
+  pmSaveTimetableExtra(req, res, { type: 'custom' }, PM_TT + '/add/custom', true)
+})
+
+router.post(PM_TT + '/extra/:ttExtraId', (req, res) => {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  const extra = tool.extras.find(item => item.id === req.params.ttExtraId)
+  if (!extra) return res.redirect(PM_TT)
+  pmSaveTimetableExtra(req, res, extra, PM_TT + '/extra/' + extra.id, false)
+})
+
+router.post(PM_TT + '/extra/:ttExtraId/remove', (req, res) => {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  const extra = tool.extras.find(item => item.id === req.params.ttExtraId)
+  if (extra) {
+    tool.extras.splice(tool.extras.indexOf(extra), 1)
+    pmFlash(req, extra.name + ' removed')
+  }
+  res.redirect(PM_TT)
+})
+
+// --- Plan details ---
+
+const PM_TT_DETAIL_FIELDS = ['reference', 'name', 'description', 'periodStartYear', 'periodEndYear',
+  'documentationUrl', 'documentUrl', 'notes']
+
+router.get(PM_TT + '/details', (req, res) => {
+  renderPmTimetable(req, res, 'details')
+})
+
+// Every field is optional while the timetable is a draft, as in the service; only the years are
+// checked. Saving for the first time makes the milestone records.
+router.post(PM_TT + '/details', (req, res) => {
+  const state = getProjectManagement(req)
+  const tool = pmTimetableTool(state)
+  const values = {}
+  PM_TT_DETAIL_FIELDS.forEach(field => { values[field] = pmText(req.body['_' + field]) })
+
+  const errors = {}
+  const yearMessage = 'Enter a year in the format YYYY, for example 2024'
+  const year = value => /^\d+$/.test(value) && Number(value) >= 1900 && Number(value) <= 2100
+  if (values.periodStartYear && !year(values.periodStartYear)) errors.periodStartYear = yearMessage
+  if (values.periodEndYear && !year(values.periodEndYear)) errors.periodEndYear = yearMessage
+  if (!errors.periodStartYear && !errors.periodEndYear && values.periodStartYear && values.periodEndYear &&
+      Number(values.periodEndYear) < Number(values.periodStartYear)) {
+    errors.periodEndYear = 'Plan period end year must be the same as or after the start year'
+  }
+  if (!errors.periodEndYear && values.periodEndYear && Number(values.periodEndYear) <= Number(pmToday().slice(0, 4))) {
+    errors.periodEndYear = 'Plan period end year must be in the future'
+  }
+  if (Object.keys(errors).length) {
+    pmSetErrors(req, errors, values)
+    return res.redirect(PM_TT + '/details')
+  }
+
+  if (!tool.details) tool.events = PMD.timetableToolEvents(values.reference)
+  tool.details = values
+  res.redirect(PM_TT)
+})
+
+// --- One milestone ---
+
+function pmTimetableEventFor (req, res) {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  const event = tool.details && tool.events.find(item => item.key === req.params.ttKey)
+  if (!event) {
+    res.redirect(PM_TT)
+    return null
+  }
+  return { tool, event, milestone: PMD.getTimetableEvent(event.key) }
+}
+
+router.get(PM_TT + '/milestones/:ttKey', (req, res) => {
+  const found = pmTimetableEventFor(req, res)
+  if (!found) return
+  const index = PMD.TIMETABLE_EVENTS.indexOf(found.milestone)
+  const neighbours = [PMD.TIMETABLE_EVENTS[index - 1], PMD.TIMETABLE_EVENTS[index + 1]].filter(Boolean)
+  renderPmTimetable(req, res, 'milestone', {
+    event: found.event,
+    milestone: found.milestone,
+    adjacent: neighbours.map(milestone => ({
+      name: milestone.name,
+      eventDate: found.tool.events.find(event => event.key === milestone.key).eventDate
+    }))
+  })
+})
+
+router.post(PM_TT + '/milestones/:ttKey', (req, res) => {
+  const found = pmTimetableEventFor(req, res)
+  if (!found) return
+  const { tool, event, milestone } = found
+  const back = PM_TT + '/milestones/' + encodeURIComponent(event.key)
+
+  const reference = pmText(req.body._reference)
+  const notes = pmText(req.body._notes)
+  const eventDate = pmReadDate(req.body, '_eventDate')
+  const actualDate = pmReadDate(req.body, '_actualDate')
+  const entryDate = pmReadDate(req.body, '_entryDate')
+  const values = {
+    reference,
+    notes,
+    eventDate: eventDate.parts,
+    actualDate: actualDate.parts,
+    entryDate: entryDate.parts
+  }
+
+  const errors = {}
+  if (!reference) errors.reference = 'Enter a unique reference'
+  const { day, month, year } = eventDate.parts
+  if (!day || !month || !year) errors.eventDate = 'Enter a planned date'
+  else if (eventDate.invalid) errors.eventDate = 'Enter a valid planned date'
+  else if (eventDate.iso < pmToday()) errors.eventDate = 'The planned date must be in the future'
+  else if (Number(year) > 2050) errors.eventDate = 'The planned date must be before 2050'
+  // The service quietly drops a date it can't read; the prototype says so instead.
+  if (actualDate.invalid) errors.actualDate = 'Enter a valid actual date'
+  if (entryDate.invalid) errors.entryDate = 'Enter a valid entry date'
+
+  let warnings = []
+  if (!Object.keys(errors).length) {
+    const after = tool.events.map(item => item.key === event.key ? Object.assign({}, item, { eventDate: eventDate.iso }) : item)
+    const checks = pmTimetableChecks(after, event.key)
+    if (checks.errors.length) errors.eventDate = checks.errors.join('. ')
+    warnings = checks.warnings
+  }
+  if (Object.keys(errors).length) {
+    pmSetErrors(req, errors, values)
+    return res.redirect(back)
+  }
+  if (warnings.length && req.body._warningsConfirmed !== 'true') {
+    pmSetErrors(req, {}, Object.assign(values, { warnings }))
+    return res.redirect(back)
+  }
+
+  const changes = { reference, notes, eventDate: eventDate.iso, actualDate: actualDate.iso }
+  const changed = Object.keys(changes).some(field => changes[field] !== (event[field] || ''))
+  Object.assign(event, changes)
+  // As the service does: any change besides the entry date itself makes the entry date today.
+  event.entryDate = changed ? pmToday() : entryDate.iso
+  pmFlash(req, milestone.name + ' updated')
+  res.redirect(PM_TT)
+})
+
+// --- Export ---
+//
+// The service sends a zip of two CSVs: the timetable (one row per milestone) and its metadata.
+// Column names are the service's, which follow planning.data.gov.uk's local plan datasets.
+
+// A minimal zip writer (stored, not compressed), so the export needs no new dependency.
+const PM_CRC_TABLE = (() => {
+  const table = []
+  for (let n = 0; n < 256; n++) {
+    let c = n
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1
+    table.push(c >>> 0)
+  }
+  return table
+})()
+
+function pmCrc32 (buffer) {
+  let crc = 0xFFFFFFFF
+  for (const byte of buffer) crc = PM_CRC_TABLE[(crc ^ byte) & 0xFF] ^ (crc >>> 8)
+  return (crc ^ 0xFFFFFFFF) >>> 0
+}
+
+function pmZip (files) {
+  const locals = []
+  const centrals = []
+  let offset = 0
+  files.forEach(file => {
+    const name = Buffer.from(file.name)
+    const data = Buffer.from(file.content)
+    const crc = pmCrc32(data)
+    const local = Buffer.alloc(30)
+    local.writeUInt32LE(0x04034b50, 0)
+    local.writeUInt16LE(20, 4)
+    local.writeUInt16LE(0x0800, 6) // UTF-8 names
+    local.writeUInt32LE(crc, 14)
+    local.writeUInt32LE(data.length, 18)
+    local.writeUInt32LE(data.length, 22)
+    local.writeUInt16LE(name.length, 26)
+    const central = Buffer.alloc(46)
+    central.writeUInt32LE(0x02014b50, 0)
+    central.writeUInt16LE(20, 4)
+    central.writeUInt16LE(20, 6)
+    central.writeUInt16LE(0x0800, 8)
+    central.writeUInt32LE(crc, 16)
+    central.writeUInt32LE(data.length, 20)
+    central.writeUInt32LE(data.length, 24)
+    central.writeUInt16LE(name.length, 28)
+    central.writeUInt32LE(offset, 42)
+    locals.push(local, name, data)
+    centrals.push(central, name)
+    offset += local.length + name.length + data.length
+  })
+  const directory = Buffer.concat(centrals)
+  const end = Buffer.alloc(22)
+  end.writeUInt32LE(0x06054b50, 0)
+  end.writeUInt16LE(files.length, 8)
+  end.writeUInt16LE(files.length, 10)
+  end.writeUInt32LE(directory.length, 12)
+  end.writeUInt32LE(offset, 16)
+  return Buffer.concat(locals.concat([directory, end]))
+}
+
+function pmCsv (header, rows) {
+  return [header].concat(rows).map(row => row.map(pmCsvCell).join(',')).join('\n') + '\n'
+}
+
+router.get(PM_TT + '/export.zip', (req, res) => {
+  const tool = pmTimetableTool(getProjectManagement(req))
+  if (!tool.details) return res.redirect(PM_TT)
+  const details = tool.details
+  const timetableCsv = pmCsv(
+    ['reference', 'plan', 'plan-event', 'event-date', 'actual-date', 'entry-date', 'notes'],
+    PMD.TIMETABLE_EVENTS.map(milestone => {
+      const event = tool.events.find(item => item.key === milestone.key)
+      return [event.reference, event.plan, event.key, event.eventDate, event.actualDate, event.entryDate, event.notes]
+    })
+  )
+  // local-planning-authorities, required-housing and entry-date aren't on the details form; the
+  // service leaves them empty on a draft too.
+  const metadataCsv = pmCsv(
+    ['reference', 'name', 'dataset', 'description', 'local-planning-authorities', 'period-start-date',
+      'period-end-date', 'documentation-url', 'document-url', 'required-housing', 'entry-date', 'notes'],
+    [[details.reference, details.name, 'local-plan', details.description, '', details.periodStartYear,
+      details.periodEndYear, details.documentationUrl, details.documentUrl, '', '', details.notes]]
+  )
+  const prefix = 'timetable-' + (details.reference || 'timetable') + '-' + pmToday()
+  res.set('Content-Type', 'application/zip')
+  res.set('Content-Disposition', 'attachment; filename="' + prefix.replace(/[^\w.-]/g, '-') + '.zip"')
+  res.send(pmZip([
+    { name: prefix + '-data.csv', content: timetableCsv },
+    { name: prefix + '-metadata.csv', content: metadataCsv }
+  ]))
+})
+
+// --- Timetable (the earlier, Figma-based flow; reachable by URL only) ---
 
 router.get(PM + '/timetable', (req, res) => {
   renderPm(req, res, 'timetable/index', 'timetable')
@@ -6275,12 +6736,18 @@ router.post(PM + '/pid/:section', (req, res) => {
 
 // --- Publish notice of intention to commence ---
 
+// The scoping consultation's dates for the notice, from Create timetable.
+function pmTimetableScoping (state) {
+  const date = key => pmFormatDate((pmTimetableTool(state).events.find(event => event.key === key) || {}).eventDate)
+  return { date: date('scoping-consultation-start'), endDate: date('scoping-consultation-end') }
+}
+
 function pmNoticeLocals (state) {
   return {
     noticeStatus: pmStatuses(state).notice,
-    timetablePublished: Boolean(state.timetable.published),
+    timetablePublished: pmTimetableToolStatus(state).status === 'Completed',
     pidApproved: Boolean(state.pid.approval.approved),
-    scoping: buildPublishedTimetable(state).find(stage => stage.stage === 'scoping')
+    scoping: pmTimetableScoping(state)
   }
 }
 
@@ -6307,7 +6774,7 @@ router.post(PM + '/notice/publish', (req, res) => {
   const state = getProjectManagement(req)
   const errors = {}
   if (PM_NOTICE_FIELDS.some(field => !pmText(state.notice[field]))) errors.notice = 'Fill in every detail of the notice before you publish it'
-  if (!state.timetable.published) errors.timetable = 'Publish your timetable before or at the same time as this notice'
+  if (pmTimetableToolStatus(state).status !== 'Completed') errors.timetable = 'Finish your timetable before or at the same time as this notice'
   if (!state.pid.approval.approved) errors.pid = 'The Project Initiation Documentation must be approved before you publish the notice'
   if (Object.keys(errors).length) {
     pmSetErrors(req, errors)

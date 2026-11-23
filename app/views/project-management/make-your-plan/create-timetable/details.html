@@ -1,0 +1,71 @@
+{#
+  Create timetable: "Enter details for your plan", recreated from the real service's
+  app/views/timetables/new.html.erb and edit.html.erb (the same form). Everything is optional
+  while the timetable is a draft; only the years are checked.
+#}
+
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+
+{% set pageName = "Enter details for your plan" %}
+
+{# What was typed, if the last save failed; otherwise what's saved. #}
+{% set d = values if errorList.length else (tool.details or {}) %}
+
+{% macro field(id, label, hint, extra) %}
+  {{ govukInput({
+    id: id,
+    name: "_" + id,
+    label: { text: label, classes: "govuk-label--m" },
+    hint: { text: hint },
+    value: d[id],
+    classes: extra.classes if extra else "",
+    inputmode: extra.inputmode if extra else undefined,
+    spellcheck: false if extra else undefined,
+    errorMessage: { text: errors[id] } if errors[id]
+  }) }}
+{% endmacro %}
+
+{% macro area(id, label, hint) %}
+  {{ govukTextarea({
+    id: id,
+    name: "_" + id,
+    label: { text: label, classes: "govuk-label--m" },
+    hint: { text: hint },
+    value: d[id],
+    errorMessage: { text: errors[id] } if errors[id]
+  }) }}
+{% endmacro %}
+
+{% block pageContent %}
+
+{{ govukBackLink({ text: "Back", href: (ttBase if tool.details else pmBase + "/overview") }) }}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-l govuk-!-margin-bottom-6">Enter details for your plan</h1>
+
+    <form method="post" action="{{ ttBase }}/details" novalidate>
+      <div class="dlp-tt-outline">
+        <div class="govuk-grid-row">
+          <div class="govuk-grid-column-two-thirds">
+            {{ field("reference", "Reference", "Give each plan a unique reference. For example: 'LP-BRX-2024' or 'barnet-local-plan-2021-2036'") }}
+            {{ field("name", "Name", "Use the title of the plan. For example: 'York Local Plan'") }}
+            {{ area("description", "Description", "Enter a short description of the matters that the plan is to deal with.") }}
+            {{ field("periodStartYear", "Plan period start year", "For example, 2024", { classes: "govuk-input--width-4", inputmode: "numeric" }) }}
+            {{ field("periodEndYear", "Plan period end year", "For example, 2040", { classes: "govuk-input--width-4", inputmode: "numeric" }) }}
+            {{ field("documentationUrl", "Documentation URL", "Enter the URL of the webpage which links to your main or core plan document.") }}
+            {{ field("documentUrl", "Document URL", "Enter the URL for the relevant plan document, which is usually a hosted PDF file.") }}
+            {{ area("notes", "Notes", "You may provide notes on how you made this data to help users differentiate the plan from others with a similar name. For example, Barnsley’s Local Plan as adopted by Full Council on 3 January 2019.") }}
+          </div>
+        </div>
+        {{ govukButton({ text: "Continue", classes: "govuk-!-margin-bottom-0" }) }}
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

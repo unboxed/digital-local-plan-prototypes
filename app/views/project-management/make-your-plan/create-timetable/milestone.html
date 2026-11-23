@@ -1,0 +1,129 @@
+{#
+  Create timetable: "Add or change plan milestones" for one milestone, recreated from the real
+  service's app/views/timetable_events/edit.html.erb and _form.html.erb. Dates out of order are
+  errors; gaps shorter than the minimum are a warning, which "Save anyway" saves past.
+#}
+
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/input/macro.njk" import govukInput %}
+{% from "govuk/components/date-input/macro.njk" import govukDateInput %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+
+{% set pageName = "Add details for " + milestone.name %}
+
+{% set warnings = values.warnings or [] %}
+{# What was typed, if the last save was stopped; otherwise the saved record. #}
+{% set retry = errorList.length > 0 or warnings.length > 0 %}
+{% set f = {
+  reference: values.reference if retry else event.reference,
+  notes: values.notes if retry else event.notes,
+  eventDate: values.eventDate if retry else dateParts(event.eventDate),
+  actualDate: values.actualDate if retry else dateParts(event.actualDate),
+  entryDate: values.entryDate if retry else dateParts(event.entryDate)
+} %}
+
+{% macro dateField(id, legend, hint, parts) %}
+  {{ govukDateInput({
+    id: id,
+    namePrefix: "_" + id,
+    fieldset: { legend: { text: legend, classes: "govuk-fieldset__legend--m" } },
+    hint: { text: hint },
+    items: [
+      { name: "day", classes: "govuk-input--width-2" + (" govuk-input--error" if errors[id] else ""), value: parts.day },
+      { name: "month", classes: "govuk-input--width-2" + (" govuk-input--error" if errors[id] else ""), value: parts.month },
+      { name: "year", classes: "govuk-input--width-4" + (" govuk-input--error" if errors[id] else ""), value: parts.year }
+    ],
+    errorMessage: { text: errors[id] } if errors[id]
+  }) }}
+{% endmacro %}
+
+{% block pageContent %}
+
+{{ govukBackLink({ text: "Back", href: ttBase }) }}
+
+{% if warnings.length %}
+  {% set warningHtml %}
+    <p class="govuk-notification-banner__heading">Some dates do not meet requirements</p>
+    <p class="govuk-body">{{ warnings | join(" ") }}</p>
+  {% endset %}
+  {{ govukNotificationBanner({ titleText: "Warning", html: warningHtml, classes: "dlp-tt-warning", role: "alert" }) }}
+{% endif %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <form method="post" action="{{ ttBase }}/milestones/{{ event.key }}" novalidate>
+      <div class="dlp-tt-title-row govuk-!-margin-bottom-3">
+        <h1 class="govuk-heading-l govuk-!-margin-bottom-0">Add or change plan milestones</h1>
+        {{ govukTag({ text: "In progress", classes: "govuk-tag--blue" }) }}
+      </div>
+      <p class="govuk-body govuk-hint">The whole process should take no longer than 30 months.</p>
+
+      <h2 class="govuk-heading-m">{{ milestone.name }}</h2>
+
+      {% if adjacent.length %}
+        {% set insetHtml %}
+          {% for item in adjacent %}
+            <p class="govuk-body">
+              {% if item.eventDate %}
+                You entered <strong>{{ formatDate(item.eventDate) }}</strong> as the planned date for {{ item.name }}.
+              {% else %}
+                You have not yet entered a planned date for {{ item.name }}.
+              {% endif %}
+            </p>
+          {% endfor %}
+        {% endset %}
+        {{ govukInsetText({ html: insetHtml, classes: "dlp-tt-inset" }) }}
+      {% endif %}
+
+      <div class="dlp-tt-outline">
+        <div class="govuk-grid-row">
+          <div class="govuk-grid-column-three-quarters">
+            {{ govukInput({
+              id: "reference",
+              name: "_reference",
+              label: { text: "Reference", classes: "govuk-label--m" },
+              hint: { text: "This is created automatically." },
+              value: f.reference,
+              errorMessage: { text: errors.reference } if errors.reference
+            }) }}
+
+            {{ govukInput({
+              id: "planReference",
+              name: "_planReference",
+              label: { text: "Plan reference", classes: "govuk-label--m" },
+              hint: { text: "This is the reference of the plan this event belongs to" },
+              value: event.plan,
+              disabled: true
+            }) }}
+
+            {{ dateField("eventDate", "Planned date", "Enter the date when you expect this event to take place. You can change this later.", f.eventDate) }}
+            {{ dateField("actualDate", "Actual date (if applicable)", "Once the event has happened, enter the date that it took place.", f.actualDate) }}
+            {{ dateField("entryDate", "Entry date", "The date you created or last modified this record.", f.entryDate) }}
+
+            {{ govukTextarea({
+              id: "notes",
+              name: "_notes",
+              label: { text: "Notes", classes: "govuk-label--m" },
+              hint: { text: "Enter any comments related to this event date (optional). These will be stored in the CSV." },
+              value: f.notes
+            }) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="govuk-!-margin-top-6 govuk-button-group">
+        {% if warnings.length %}
+          {{ govukButton({ text: "Save anyway", name: "_warningsConfirmed", value: "true" }) }}
+        {% else %}
+          {{ govukButton({ text: "Save" }) }}
+        {% endif %}
+        <a class="govuk-link" href="{{ ttBase }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

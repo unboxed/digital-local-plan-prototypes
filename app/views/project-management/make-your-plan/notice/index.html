@@ -7,11 +7,11 @@
 
 {% macro noticeWarnings() %}
   {% if not timetablePublished %}
-    <div class="dlp-pm-alert" role="region" aria-label="Timetable not published">
+    <div class="dlp-pm-alert" role="region" aria-label="Timetable not finished">
       <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">
-        You have not published your timetable. You must publish your timetable before or at the same time as this notice.
+        You have not finished your timetable. Enter a planned date for every milestone before or at the same time as this notice.
       </p>
-      <p class="govuk-body govuk-!-margin-bottom-0"><a class="govuk-link govuk-!-font-weight-bold" href="{{ pmBase }}/timetable/check">Publish timetable</a></p>
+      <p class="govuk-body govuk-!-margin-bottom-0"><a class="govuk-link govuk-!-font-weight-bold" href="{{ pmBase }}/create-timetable">Go to timetable</a></p>
     </div>
   {% endif %}
   {% if not pidApproved %}

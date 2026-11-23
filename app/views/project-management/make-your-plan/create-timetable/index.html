@@ -1,0 +1,77 @@
+{#
+  Create timetable: "Enter dates for your timetable", recreated from the real service's
+  app/views/timetables/show.html.erb. One row per milestone, in the service's order.
+#}
+
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+
+{% set pageName = "Create timetable" %}
+
+{% block pageContent %}
+
+{{ govukBackLink({ text: "Back", href: pmBase + "/overview" }) }}
+
+<div class="dlp-tt-title-row">
+  <h1 class="govuk-heading-l govuk-!-margin-bottom-0">Enter dates for your timetable</h1>
+  {{ govukTag({ text: "In progress", classes: "govuk-tag--blue" }) }}
+</div>
+<p class="govuk-body govuk-hint">The process of creating a local plan from commencement to adoption should take no longer than 30 months.</p>
+
+{% if duration !== null %}
+  <div class="dlp-tt-duration govuk-body-s govuk-!-font-weight-bold">Your timetable is currently {{ duration }} months from commencement to adoption</div>
+{% endif %}
+
+<table class="govuk-table">
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header dlp-tt-table__header">Milestone</th>
+      <th scope="col" class="govuk-table__header dlp-tt-table__header">Date</th>
+      <th scope="col" class="govuk-table__header dlp-tt-table__header">Detail</th>
+      <th scope="col" class="govuk-table__header dlp-tt-table__header dlp-tt-table__action">Action</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for row in rows %}
+      {% if row.extra %}
+      <tr class="govuk-table__row dlp-tt-extra">
+        <td class="govuk-table__cell">{{ row.name }}</td>
+        <td class="govuk-table__cell govuk-hint">{{ formatDate(row.eventDate) }}</td>
+        <td class="govuk-table__cell govuk-hint">{{ row.committee.name if row.committee else "Your own milestone" }}</td>
+        <td class="govuk-table__cell">
+          <a class="govuk-link" href="{{ ttBase }}/extra/{{ row.id }}">Change<span class="govuk-visually-hidden"> {{ row.name }}</span></a>
+        </td>
+      </tr>
+      {% else %}
+      <tr class="govuk-table__row">
+        <td class="govuk-table__cell govuk-!-font-weight-bold">{{ row.number }}. {{ row.name }}</td>
+        <td class="govuk-table__cell govuk-hint">{{ formatDate(row.eventDate) if row.eventDate else "Not yet completed" }}</td>
+        <td class="govuk-table__cell govuk-hint">{{ row.timing }}</td>
+        <td class="govuk-table__cell">
+          <a class="govuk-link" href="{{ ttBase }}/milestones/{{ row.key }}">{{ "Change" if row.eventDate else "Add date" }}<span class="govuk-visually-hidden"> for {{ row.name }}</span></a>
+        </td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+
+{{ govukButton({ text: "Add a milestone", href: ttBase + "/add", classes: "govuk-button--secondary" }) }}
+
+<div class="govuk-!-margin-bottom-6 dlp-tt-export">
+  <h2 class="govuk-heading-m govuk-!-margin-bottom-2">Export data</h2>
+  {# As in the service: the link opens Check and Provide in a new tab while this tab downloads the
+     export (data-dlp-export-download). Without JavaScript, the download link below still works. #}
+  <a class="govuk-link govuk-body-m" href="{{ checkAndProvideUrl }}" target="_blank" rel="noopener noreferrer"
+     data-dlp-export-download="{{ ttBase }}/export.zip">Export and open Check and Provide service<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>
+  <p class="govuk-body govuk-hint govuk-!-margin-top-2">This will export your timetable as a CSV and open the Check and Provide service in a new tab, where you can upload your CSV.</p>
+  {% if tool.extras.length %}
+    <p class="govuk-body govuk-hint">Committee meetings and milestones you have added are for planning your work. They are not part of the timetable data, so they are not exported.</p>
+  {% endif %}
+  <p class="govuk-body-s govuk-!-margin-bottom-0"><a class="govuk-link" href="{{ ttBase }}/export.zip" download>Download the CSV files only</a></p>
+</div>
+
+<p class="govuk-body"><a class="govuk-link" href="{{ ttBase }}/details">View and update your digital local plan metadata</a></p>
+
+{% endblock %}

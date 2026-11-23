@@ -1,0 +1,104 @@
+{#
+  Create timetable: "Add a milestone". Upcoming committee meetings, filtered by committee and
+  year (a GET form; JavaScript applies it on change), grouped by month alongside the timetable's
+  own milestones in that month. Each meeting can be added as a milestone; or add your own.
+  Not in the real service: added in the prototype.
+#}
+
+{% extends "project-management/make-your-plan/partials/layout.html" %}
+
+{% from "govuk/components/back-link/macro.njk" import govukBackLink %}
+{% from "govuk/components/select/macro.njk" import govukSelect %}
+
+{% set pageName = "Add a milestone" %}
+
+{% block pageContent %}
+
+{{ govukBackLink({ text: "Back", href: ttBase }) }}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h1 class="govuk-heading-l">Add a milestone</h1>
+    <p class="govuk-body">Add a new milestone to your timetable. Choose a committee date or create a new milestone. These milestones will not be exported to Check and Provide.</p>
+    <p class="govuk-body govuk-!-margin-bottom-6">
+      <a class="govuk-link" href="{{ ttBase }}/add/custom">Add your own milestone</a>
+    </p>
+
+    <h2 class="govuk-heading-m">Upcoming committee dates</h2>
+
+    <form method="get" action="{{ ttBase }}/add" class="dlp-tt-filters" data-dlp-autosubmit novalidate>
+      {% set committeeItems = [{ value: "", text: "All committees" }] %}
+      {% for item in committees %}
+        {% set committeeItems = (committeeItems.push({ value: item.slug, text: item.name, selected: item.slug == selectedCommittee }), committeeItems) %}
+      {% endfor %}
+      {{ govukSelect({
+        id: "committee-filter",
+        name: "_committee",
+        label: { text: "Committee", classes: "govuk-label--s" },
+        items: committeeItems
+      }) }}
+
+      {% set yearItems = [{ value: "", text: "Next 12 months" }] %}
+      {% for year in years %}
+        {% set yearItems = (yearItems.push({ value: year, text: year, selected: year == selectedYear }), yearItems) %}
+      {% endfor %}
+      {{ govukSelect({
+        id: "year-filter",
+        name: "_year",
+        label: { text: "When", classes: "govuk-label--s" },
+        items: yearItems
+      }) }}
+
+      {{ govukButton({ text: "Show dates", classes: "govuk-button--secondary dlp-tt-filters__button" }) }}
+    </form>
+
+    {% if not months.length %}
+      <p class="govuk-body">There are no meetings of this committee in that period.</p>
+    {% endif %}
+
+    {% for group in months %}
+      <h3 class="govuk-heading-s dlp-tt-month">{{ group.title }}</h3>
+
+      {% if group.milestones.length %}
+        <ul class="govuk-list dlp-tt-month__milestones">
+          {% for row in group.milestones %}
+            <li><span class="govuk-hint govuk-!-margin-bottom-0">{{ formatDate(row.eventDate) }}:</span> {{ row.name }}{% if row.extra %} <span class="govuk-hint">(added milestone)</span>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <table class="govuk-table dlp-tt-committees">
+        <caption class="govuk-table__caption govuk-visually-hidden">Committee meetings in {{ group.title }}</caption>
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">Date</th>
+            <th scope="col" class="govuk-table__header">Committee</th>
+            <th scope="col" class="govuk-table__header dlp-tt-table__action"><span class="govuk-visually-hidden">Action</span></th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for meeting in group.meetings %}
+            <tr class="govuk-table__row">
+              <td class="govuk-table__cell dlp-tt-committees__date">{{ formatDate(meeting.date) }}</td>
+              <td class="govuk-table__cell">
+                {{ meeting.name }}
+                {% if meeting.added %}<br><span class="govuk-hint">In your timetable: {{ meeting.added.name }}</span>{% endif %}
+              </td>
+              <td class="govuk-table__cell">
+                {% if meeting.added %}
+                  {{ govukTag({ text: "Added", classes: "govuk-tag--green" }) }}
+                {% else %}
+                  <a class="govuk-link" href="{{ ttBase }}/add/committee/{{ meeting.id }}">Add as milestone<span class="govuk-visually-hidden">: {{ meeting.name }}, {{ formatDate(meeting.date) }}</span></a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
+
+    <p class="govuk-body govuk-hint">Committee dates are taken from the council’s committee calendar.</p>
+  </div>
+</div>
+
+{% endblock %}
