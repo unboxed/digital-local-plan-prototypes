@@ -167,7 +167,12 @@ const {
   getPlannedActivity,
   getPlanTimeline,
   isKnownDocument,
-  REGULATION_URL: SOC_REGULATION_URL
+  REGULATION_URL: SOC_REGULATION_URL,
+  DEVELOPMENT_POLICY_REFS: SOC_DEVELOPMENT_POLICY_REFS,
+  resolveLink: socResolveLink,
+  getLinkRows: socLinkRows,
+  startingLinks: socStartingLinks,
+  linkOptions: socLinkOptions
 } = require('./data/statement-of-compliance.js')
 
 // --- Evidence prototype (E2US3 / E2US4) ---
@@ -3450,6 +3455,41 @@ router.post(SOC_SDS, (req, res) => {
   res.redirect(SOC_SDS + '#authority-statement')
 })
 
+// --- Statement of compliance: every policy in the proposed plan ---
+//
+// Linked from regulation 32(a) and its audit log. Every City Plan 2040 policy by policy area, in
+// plan order, with the ones that set the amount, type, location or timing of development marked.
+// Each policy has an id (policy-<ref>) so audit log entries can link to it. Registered before
+// .../statement-of-compliance/:socVariant, which would otherwise take "policies" as a variant.
+router.get('/plan/make/gateway-preparation/statement-of-compliance/policies', (req, res) => {
+  const base = '/plan/make/gateway-preparation/statement-of-compliance'
+  const areas = []
+  POLICIES.forEach(policy => {
+    let area = areas.find(candidate => candidate.name === policy.policyArea)
+    if (!area) areas.push(area = { name: policy.policyArea, policies: [] })
+    area.policies.push({
+      ref: policy.ref,
+      title: policy.title,
+      summary: policy.summary,
+      development: SOC_DEVELOPMENT_POLICY_REFS.includes(policy.ref),
+      href: getPolicy(policy.ref) ? '/plan/make/policy-writing/policy-summary?ref=' + encodeURIComponent(policy.ref) : null
+    })
+  })
+  // Back to wherever in the statement the user came from (a requirement page, usually).
+  let backHref = base
+  try {
+    const from = new URL(req.get('referer') || '')
+    if (from.pathname.startsWith(base + '/') && from.pathname !== req.path) backHref = from.pathname
+  } catch (error) {}
+
+  res.render('statement-of-compliance/policies.html', {
+    areas,
+    total: POLICIES.length,
+    developmentCount: SOC_DEVELOPMENT_POLICY_REFS.length,
+    backHref
+  })
+})
+
 // --- View alignment with London Plan (Make your plan) ---
 //
 // Every policy of the SDS (the London Plan 2021, for the City of London's City Plan 2040), with
@@ -3682,20 +3722,72 @@ router.get('/plan/make/gateway-preparation/statement-of-compliance/:socVariant',
   })
 })
 
+// Where each requirement is met: the links officers add to each part of a requirement, as
+// { <requirement ref>: { <row id>: [link keys] } }, seeded from the data file's LINK_ROWS and
+// stamped like the other prototypes' state. Shared by the draft and completed statements: where
+// a requirement is met doesn't depend on which snapshot you're reading.
+const SOC_LINKS_SCHEMA_VERSION = 2
+
+function getSocLinks (req) {
+  if (req.session.data.socLinksSchemaVersion !== SOC_LINKS_SCHEMA_VERSION) {
+    req.session.data.socLinks = socStartingLinks()
+    req.session.data.socLinksSchemaVersion = SOC_LINKS_SCHEMA_VERSION
+  }
+  return req.session.data.socLinks
+}
+
+function socRequirementHref (variant, ref) {
+  return '/plan/make/gateway-preparation/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(ref)
+}
+
 router.get('/plan/make/gateway-preparation/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
   const variant = req.params.socVariant
   const requirement = getRequirement(req.params.ref)
   if (!requirement) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance/' + variant)
 
+  const links = getSocLinks(req)[requirement.ref] || {}
   res.render('statement-of-compliance/requirements/show.html', {
     variant,
     requirement,
+    linkRows: socLinkRows(requirement.ref).map(row => ({
+      id: row.id,
+      requirement: row.requirement,
+      links: (links[row.id] || []).map(socResolveLink).filter(Boolean)
+    })),
+    linkOptions: socLinkOptions(),
     status: getRequirementStatus(requirement.ref, variant),
     statusColours: STATEMENT_STATUS_COLOURS,
     regulationUrl: SOC_REGULATION_URL,
     history: getRequirementHistory(requirement.ref, variant),
     plannedActivity: getPlannedActivity(requirement.ref, variant)
   })
+})
+
+// One form for the table: `_action` is `add` (with `_row` and `_link`) or
+// `remove:<row id>:<link key>`. A link already in the row isn't added twice.
+router.post('/plan/make/gateway-preparation/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
+  const variant = req.params.socVariant
+  const requirement = getRequirement(req.params.ref)
+  if (!requirement) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance/' + variant)
+
+  const state = getSocLinks(req)
+  const links = state[requirement.ref] || (state[requirement.ref] = {})
+  const rowIds = socLinkRows(requirement.ref).map(row => row.id)
+  const action = String(req.body._action || '')
+
+  if (action === 'add') {
+    const rowId = String(req.body._row || rowIds[0] || '')
+    const key = String(req.body._link || '')
+    if (rowIds.includes(rowId) && socResolveLink(key)) {
+      links[rowId] = links[rowId] || []
+      if (!links[rowId].includes(key)) links[rowId].push(key)
+    }
+  } else if (action.startsWith('remove:')) {
+    const [rowId, ...rest] = action.slice('remove:'.length).split(':')
+    const key = rest.join(':')
+    if (links[rowId]) links[rowId] = links[rowId].filter(candidate => candidate !== key)
+  }
+  res.redirect(socRequirementHref(variant, requirement.ref) + '#where-met')
 })
 
 // A placeholder viewer for the materials linked from the audit log (the notice, a consultation

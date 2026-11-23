@@ -18,6 +18,9 @@
     when present the entry's marker fills in and the status text shows, e.g. "Done".
   params.entries[].link: { href, text, newTab? } (optional) — a link under the entry, e.g. to
     view the version it records. newTab adds target, rel and a visually hidden warning.
+  params.legislationLinks: true (optional) — runs each description through the
+    `legislationLinks` filter (app/filters.js), so references such as "section 15C(3)" link to
+    legislation.gov.uk. Used by the Statement of compliance.
   params.caption: string (optional) — defaults to a stock "this is example content" caveat,
     since most consumers are read-only illustrative content rather than a real log. Pass
     `false` to show no caption, for a log that does record what the user does.
@@ -36,7 +39,7 @@
         {% endif %}
       </p>
 
-      <p class="app-timeline__text">{{ entry.description }}</p>
+      <p class="app-timeline__text">{% if params.legislationLinks %}{{ entry.description | legislationLinks }}{% else %}{{ entry.description }}{% endif %}</p>
       {% if entry.document and entry.documentHref %}
         <p class="app-timeline__text"><a class="govuk-link" href="{{ entry.documentHref }}">{{ entry.document }}</a></p>
       {% endif %}

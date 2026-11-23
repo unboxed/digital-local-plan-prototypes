@@ -1342,6 +1342,29 @@ preparation. A draft (progress before Gateway 3) and a completed variant (`:socV
 - **The old procedural regulations (19 to 26) survive only as `PROCESS_HISTORY`**, which Gateway 2
   progress check's plan timeline (`getPlanTimeline`) is built from. They are not requirements.
 - MIQs questions name requirements in `compliance` (`miqs.js`); keep those refs in step.
+- **Every requirement has a "Where this requirement is met" table**: one row per part of the
+  requirement (`LINK_ROWS` in the data file), each with **any number of links that officers add
+  and remove** on the page (one form: `_action` `add` with `_row` and `_link`, or
+  `remove:<row id>:<key>`; a visually hidden Add comes first so Enter doesn't press a Remove).
+  The links are session data, `socLinks` (`{<ref>: {<row id>: [keys]}}`), read only through
+  `getSocLinks`, seeded by `startingLinks()` and stamped with `SOC_LINKS_SCHEMA_VERSION` (**bump it
+  when `LINK_ROWS` changes**). They are shared by the draft and completed statements. A link is
+  stored as a key and resolved by `resolveLink`, never copied: `policy:<ref>` (a policy on
+  **Policies in the proposed plan**, `.../statement-of-compliance/policies`, every City Plan 2040
+  policy by area with `DEVELOPMENT_POLICY_REFS` marked and an id `policy-<ref>` each, registered
+  before `:socVariant`), `page:<id>` (`LINK_PAGES`: real pages elsewhere in the prototypes, such
+  as Gateway 2 progress check, the policy map, the SHMA and the Local nature recovery strategy in
+  Evidence review; the timetable goes to its placeholder, as every timetable link does) or
+  `document:<title>` (the placeholder document viewer). `linkOptions()` is what the Add select
+  offers.
+- **A requirement can carry a `confirmation`** (`{text, name, role, date}`), a sign-off shown on
+  its page: given in the completed statement, "Not confirmed yet" in the draft. 32(f) has the
+  plan making manager's (Pauline Perrot's) confirmation that the plan includes only allowable
+  content, also recorded as the last entry of its audit log.
+- **Audit log entries link to what they record** (`document` as the link text, `href`), using the
+  same targets as the table. An entry with a `document` and no `href` opens the placeholder
+  viewer, named by its title. Placeholder titles used only in a table are added to
+  `DOCUMENT_TITLES` too, so the viewer accepts them.
 
 ### General conformity with the London Plan (regulation 32(j))
 

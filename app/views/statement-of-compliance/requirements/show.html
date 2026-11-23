@@ -18,22 +18,105 @@
       <strong class="govuk-tag{% if statusColours[status] %} govuk-tag--{{ statusColours[status] }}{% endif %}">{{ status }}</strong>
     </p>
 
-    <p class="govuk-body">{{ requirement.description }}</p>
+    <p class="govuk-body">{{ requirement.description | legislationLinks }}</p>
     <p class="govuk-body">
       <a class="govuk-link" href="{{ regulationUrl }}" target="_blank" rel="noopener noreferrer">Read regulation 32 on legislation.gov.uk<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>
     </p>
 
-    {% if requirement.statement %}
-    <p class="govuk-body">
-      <a class="govuk-link" href="{{ requirement.statement.href }}">{{ requirement.statement.text }}</a>
-    </p>
+    {% if requirement.confirmation %}
+    <section class="dlp-soc-confirmation{% if variant == 'draft' %} dlp-soc-confirmation--pending{% endif %}" aria-labelledby="soc-confirmation-heading">
+      <h2 class="govuk-heading-m" id="soc-confirmation-heading">Confirmation from the {{ requirement.confirmation.role | lower }}</h2>
+      {% if variant == "draft" %}
+      <p class="govuk-body govuk-!-margin-bottom-0">Not confirmed yet. The {{ requirement.confirmation.role | lower }} confirms this once the legal review is complete.</p>
+      {% else %}
+      <blockquote class="dlp-soc-confirmation__quote">
+        <p class="govuk-body">{{ requirement.confirmation.text | legislationLinks }}</p>
+      </blockquote>
+      <p class="govuk-body govuk-!-margin-bottom-0">
+        <strong>{{ requirement.confirmation.name }}</strong>, {{ requirement.confirmation.role }}<br>
+        <span class="dlp-pd-muted">Confirmed {{ requirement.confirmation.date }}</span>
+      </p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if linkRows.length %}
+    {# One form: the Remove buttons in the table and the Add a link controls below it. #}
+    <form method="post" action="" novalidate id="where-met">
+      {# Pressing Enter submits with the form's first button, which would otherwise be a Remove. #}
+      <button type="submit" name="_action" value="add" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Add link</button>
+
+      <table class="govuk-table">
+        <caption class="govuk-table__caption govuk-table__caption--m">Where this requirement is met</caption>
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">Requirement</th>
+            <th scope="col" class="govuk-table__header">Links</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for row in linkRows %}
+          <tr class="govuk-table__row">
+            <th scope="row" class="govuk-table__header govuk-!-font-weight-regular">{{ row.requirement | legislationLinks }}</th>
+            <td class="govuk-table__cell">
+              {% if row.links.length %}
+              <ul class="govuk-list dlp-soc-links">
+                {% for link in row.links %}
+                <li class="dlp-soc-links__item">
+                  <a class="govuk-link" href="{{ link.href }}"{% if link.newTab %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ link.text }}{% if link.newTab %}<span class="govuk-visually-hidden"> (opens in a new tab)</span>{% endif %}</a>
+                  <button type="submit" name="_action" value="remove:{{ row.id }}:{{ link.key }}" class="dlp-link-button dlp-soc-links__remove">
+                    Remove<span class="govuk-visually-hidden"> {{ link.text }} from {{ row.requirement | lower }}</span>
+                  </button>
+                </li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <span class="dlp-pd-muted">None linked</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <fieldset class="govuk-fieldset dlp-soc-add-link">
+        <legend class="govuk-fieldset__legend govuk-fieldset__legend--s">Add a link</legend>
+        <div class="dlp-pd-inline-field">
+          {% if linkRows.length > 1 %}
+          <div class="govuk-form-group dlp-sds-field">
+            <label class="govuk-label" for="soc-link-row">Part of the requirement</label>
+            <select class="govuk-select dlp-sds-select" id="soc-link-row" name="_row">
+              {% for row in linkRows %}
+              <option value="{{ row.id }}">{{ row.requirement }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% else %}
+          <input type="hidden" name="_row" value="{{ linkRows[0].id }}">
+          {% endif %}
+          <div class="govuk-form-group dlp-sds-field">
+            <label class="govuk-label" for="soc-link">Policy, page or document</label>
+            <select class="govuk-select dlp-sds-select" id="soc-link" name="_link">
+              {% for group in linkOptions %}
+              <optgroup label="{{ group.label }}">
+                {% for option in group.options %}
+                <option value="{{ option.value }}">{{ option.text }}</option>
+                {% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" name="_action" value="add" class="govuk-button govuk-button--secondary" data-module="govuk-button">Add link</button>
+        </div>
+      </fieldset>
+    </form>
     {% endif %}
 
     {% if variant == "draft" %}
     <h2 class="govuk-heading-m govuk-!-margin-top-6">Planned activities</h2>
     {% if plannedActivity %}
     <div class="govuk-inset-text">
-      <p class="govuk-body">{{ plannedActivity }}</p>
+      <p class="govuk-body">{{ plannedActivity | legislationLinks }}</p>
     </div>
     {% else %}
     <p class="govuk-body-s dlp-document-hint">No further activities planned for this requirement.</p>
@@ -46,7 +129,7 @@
 
     <h2 class="govuk-heading-m govuk-!-margin-top-6">Evidence</h2>
     {% if history.length %}
-      {{ appTimeline({ entries: history | reverse, caption: "Audit log of actions taken to justify compliance with this requirement." }) }}
+      {{ appTimeline({ entries: history | reverse, caption: "Audit log of actions taken to justify compliance with this requirement.", legislationLinks: true }) }}
     {% else %}
       <p class="govuk-body-s dlp-document-hint">No actions recorded against this requirement yet.</p>
     {% endif %}

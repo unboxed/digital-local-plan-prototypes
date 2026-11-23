@@ -16,9 +16,134 @@
 // "completed" variant always shows the full history and "Fully met" for every requirement.
 //
 
+const { POLICIES } = require('./policies.js')
+
 const REGULATION_URL = 'https://www.legislation.gov.uk/uksi/2026/186/regulation/32/made'
 
 const SDS_STATEMENT_HREF = '/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy'
+const POLICIES_HREF = '/plan/make/gateway-preparation/statement-of-compliance/policies'
+// Every timetable link in the prototypes goes to the timetable's placeholder while its flow is
+// rebuilt (see CLAUDE.md, Getting ready).
+const TIMETABLE_HREF = '/plan/manage/getting-ready/timetable-placeholder'
+
+const SOC_BASE = '/plan/make/gateway-preparation/statement-of-compliance'
+
+// Pages elsewhere in the prototypes that a requirement is met by. Anything with no page of its
+// own opens in the statement's placeholder document viewer (documentHref).
+const PLACES = {
+  gateway2: '/plan/view/gateway-2-progress-check',
+  gateway1Summary: '/plan/manage/versions/documents/gateway-1',
+  consultationResponses: '/plan/consultation/managing-responses',
+  consultationStatement: '/plan/manage/versions/examination-library/items/lp-05',
+  londonPlanAlignment: '/plan/make/london-plan-alignment',
+  shma: '/plan/sources/review?source=' + encodeURIComponent('Strategic Housing Market Assessment'),
+  lnrs: '/plan/sources/review?source=' + encodeURIComponent('Local nature recovery strategy'),
+  policyMap: '/plan/manage/versions/documents/policy-map',
+  policyLayers: '/plan/sources/gis-layers',
+  environmentalReport: '/plan/manage/versions/documents/sea',
+  examinationLibrary: '/plan/manage/versions/examination-library',
+  nppf: require('./policy-drafting.js').NPPF_URL
+}
+
+function policyHref (ref) {
+  return POLICIES_HREF + '#policy-' + ref
+}
+
+function documentHref (title) {
+  return SOC_BASE + '/documents/' + encodeURIComponent(title)
+}
+
+// The City Plan 2040 policies that set the amount, type, location or timing of development,
+// which regulation 32(a) is about. Marked on the policies page.
+const DEVELOPMENT_POLICY_REFS = ['S3', 'HS1', 'S4', 'OF1', 'OF2', 'S5', 'RE1', 'CV4', 'S12']
+
+// --- Where each requirement is met ---------------------------------------------------------
+//
+// Each requirement's page has a table: one row per part of the requirement, each with any number
+// of links to where it is met. Officers add and remove links on the page, so the rows' links are
+// session data (getSocLinks in routes.js), seeded from LINK_ROWS below. A link is stored as a key
+// and resolved here, so its text and address are never copied into the session:
+//   policy:<ref>       a policy on Policies in the proposed plan
+//   page:<id>          a page elsewhere in the prototypes (LINK_PAGES)
+//   document:<title>   a document with no page, shown in the placeholder document viewer
+const LINK_PAGES = {
+  allPolicies: { text: 'View all policies', href: POLICIES_HREF },
+  timetable: { text: 'View the timetable', href: TIMETABLE_HREF },
+  shma: { text: 'View the Strategic Housing Market Assessment', href: PLACES.shma },
+  lnrs: { text: 'View the Local nature recovery strategy', href: PLACES.lnrs },
+  gateway2: { text: 'View the Gateway 2 progress check', href: PLACES.gateway2 },
+  gateway1Summary: { text: 'View the Gateway 1 self-assessment summary', href: PLACES.gateway1Summary },
+  consultationResponses: { text: 'View consultation responses', href: PLACES.consultationResponses },
+  consultationStatement: { text: 'View the consultation statement', href: PLACES.consultationStatement },
+  londonPlanAlignment: { text: 'View alignment with London Plan', href: PLACES.londonPlanAlignment },
+  sds: { text: 'View the Greater London Authority’s responses', href: SDS_STATEMENT_HREF },
+  nppf: { text: 'View the National Planning Policy Framework', href: PLACES.nppf, newTab: true },
+  policyMap: { text: 'View the policy map', href: PLACES.policyMap },
+  policyLayers: { text: 'View the policy layers', href: PLACES.policyLayers },
+  environmentalReport: { text: 'View the strategic environmental assessment', href: PLACES.environmentalReport },
+  examinationLibrary: { text: 'View the examination library', href: PLACES.examinationLibrary },
+  statementOfCompliance: { text: 'View the statement of compliance', href: SOC_BASE }
+}
+
+const LINK_ROWS = {
+  'Regulation 32(a)': [
+    { id: 'policies', requirement: 'Policies on the amount, type and location of development', links: ['page:allPolicies'] },
+    { id: 'timetable', requirement: 'Timetable for development', links: ['page:timetable'] }
+  ],
+  'Regulation 32(b)': [
+    { id: 'vision', requirement: 'A vision for how the area will change over the plan period', links: ['document:Vision and measurable outcomes'] },
+    { id: 'outcomes', requirement: 'No more than ten measurable outcomes', links: ['document:Vision and measurable outcomes'] },
+    { id: 'superseded', requirement: 'Policies the plan supersedes (regulation 11(4))', links: ['document:Schedule of superseded policies'] }
+  ],
+  'Regulation 32(c)': [
+    { id: 'mitigation', requirement: 'Mitigation of climate change', links: ['policy:DE1', 'policy:S16', 'policy:CE1'] },
+    { id: 'adaptation', requirement: 'Adaptation to climate change', links: ['policy:S15', 'policy:CR1', 'policy:CR2', 'policy:CR3'] },
+    { id: 'assessment', requirement: 'Assessment of the plan’s contribution', links: ['document:Climate change mitigation and adaptation assessment'] }
+  ],
+  'Regulation 32(d)': [
+    { id: 'strategy', requirement: 'Taking account of the local nature recovery strategy', links: ['page:lnrs'] },
+    { id: 'policies', requirement: 'Policies on nature recovery', links: ['policy:S14', 'policy:OS2', 'policy:OS3', 'policy:OS4', 'policy:OS5'] }
+  ],
+  'Regulation 32(e)': [
+    { id: 'assessment', requirement: 'Assessment of the amount and type of housing needed, including affordable housing', links: ['page:shma'] },
+    { id: 'policies', requirement: 'Policies that take account of it', links: ['policy:S3', 'policy:HS1'] }
+  ],
+  'Regulation 32(f)': [
+    { id: 'content', requirement: 'The plan’s content', links: ['page:allPolicies'] },
+    { id: 'review', requirement: 'Review of what the plan may contain', links: ['document:Legal review of plan content'] }
+  ],
+  'Regulation 32(g)': [
+    { id: 'gateway-2', requirement: 'Gateway 2 (regulation 26)', links: ['page:gateway2'] },
+    { id: 'gateway-3', requirement: 'Gateway 3 prescribed requirements assessment (regulation 31)', links: ['document:Gateway 3 completion statement'] }
+  ],
+  'Regulation 32(h)': [
+    { id: 'published', requirement: 'Gateway 2 observations and advice, published', links: ['document:Gateway 2 observations and advice'] }
+  ],
+  'Regulation 32(i)': [
+    { id: 'advice', requirement: 'Gateway observations and advice (section 15CA(6)(a))', links: ['page:gateway2'] },
+    { id: 'consultation', requirement: 'Consultation responses (section 15CA(6)(b))', links: ['page:consultationResponses'] },
+    { id: 'national-policy', requirement: 'National policy (section 15CA(6)(c) and (d))', links: ['page:nppf'] },
+    { id: 'development-plan', requirement: 'The rest of the development plan (section 15CA(6)(g))', links: ['page:sds'] },
+    { id: 'self-assessment', requirement: 'The self-assessment summary (regulation 14(a))', links: ['page:gateway1Summary'] }
+  ],
+  'Regulation 32(j)': [
+    { id: 'policy-map', requirement: 'Map of proposed local plan policies (34(1)(a))', links: ['page:policyMap'] },
+    { id: 'consultation-statement', requirement: 'Consultation and engagement statement (34(1)(c))', links: ['page:consultationStatement'] },
+    { id: 'consultation-summary', requirement: 'Summary of consultation on the proposed plan (34(1)(d))', links: ['page:consultationResponses'] },
+    { id: 'sds', requirement: 'Representations on general conformity with the spatial development strategy (34(1)(e))', links: ['page:sds'] },
+    { id: 'statement-of-compliance', requirement: 'Statement of compliance (34(1)(f))', links: ['page:statementOfCompliance'] },
+    { id: 'statement-of-soundness', requirement: 'Statement of soundness (34(1)(g))', links: ['document:Statement of soundness'] },
+    { id: 'environmental-report', requirement: 'Environmental report (34(1)(h) and (i))', links: ['page:environmentalReport'] }
+  ],
+  'Regulation 32(k)': [
+    { id: 'map', requirement: 'Map of proposed local plan policies', links: ['page:policyMap'] },
+    { id: 'layers', requirement: 'Policies that apply to part of the area', links: ['page:policyLayers'] }
+  ],
+  'Regulation 32(l)': [
+    { id: 'readiness', requirement: 'Readiness for independent examination', links: ['document:Gateway 3 completion statement'] },
+    { id: 'submission', requirement: 'Submission for examination', links: ['page:examinationLibrary'] }
+  ]
+}
 
 const REQUIREMENTS = [
   {
@@ -49,7 +174,15 @@ const REQUIREMENTS = [
   {
     ref: 'Regulation 32(f)',
     title: 'Only content the Act and regulation 11 permit',
-    description: 'The proposed local plan includes nothing that is not permitted or required by section 15C(3) to (5) or (10) of the Act or by regulation 11, in line with section 15C(9)(a) of the Act.'
+    description: 'The proposed local plan includes nothing that is not permitted or required by section 15C(3) to (5) or (10) of the Act or by regulation 11, in line with section 15C(9)(a) of the Act.',
+    // A sign-off shown on the requirement's page: in the completed statement as given, in the
+    // draft as still to come. Recorded in the audit log too, as the requirement's last entry.
+    confirmation: {
+      text: 'I confirm that the proposed local plan includes only content that section 15C(3) to (5) or (10) of the Act and regulation 11 permit or require.',
+      name: 'Pauline Perrot',
+      role: 'Plan making manager',
+      date: '12 January 2027'
+    }
   },
   {
     ref: 'Regulation 32(g)',
@@ -69,10 +202,7 @@ const REQUIREMENTS = [
   {
     ref: 'Regulation 32(j)',
     title: 'Examination submission documents prepared',
-    description: 'The authority has prepared the documents regulation 34(1)(a) and (c) to (i) prescribe for submission to independent examination: the policies map, the consultation and engagement statement, the summary of consultation on the proposed plan, any representations on general conformity with the spatial development strategy, the statements of compliance and soundness, and the environmental report or the reasons none was needed.',
-    // Copies of the representations made under regulation 28 (34(1)(e)): for the City of London,
-    // the Greater London Authority's, with an optional statement from the authority.
-    statement: { text: 'Representations on general conformity with the London Plan', href: SDS_STATEMENT_HREF }
+    description: 'The authority has prepared the documents regulation 34(1)(a) and (c) to (i) prescribe for submission to independent examination: the policies map, the consultation and engagement statement, the summary of consultation on the proposed plan, any representations on general conformity with the spatial development strategy, the statements of compliance and soundness, and the environmental report or the reasons none was needed.'
   },
   {
     ref: 'Regulation 32(k)',
@@ -95,12 +225,15 @@ const REQUIREMENTS = [
 const REQUIREMENT_DATA = {
   'Regulation 32(a)': {
     history: [
-      { type: 'Strategic policies drafted', description: 'Strategic policies drafted, setting the amount, type and location of development, with housing and office floorspace trajectories for the plan period.', date: '20 August 2026', actor: 'Femi Okonkwo', status: 'Done', document: 'Proposed local plan' },
-      { type: 'Trajectories updated', description: 'Housing and office floorspace trajectories updated after the consultation on proposed content and evidence.', date: '3 November 2026', actor: 'Femi Okonkwo', status: 'Done' },
-      { type: 'Confirmed for Gateway 3', description: 'Policies checked against section 15C(3) of the Act and recorded in the Gateway 3 completion statement.', date: '2 March 2027', actor: 'Pauline Perrot', status: 'Done', document: 'Gateway 3 completion statement' }
+      { type: 'Strategic policies drafted', description: 'Strategic policies drafted, setting the amount, type and location of development: housing (S3), offices (S4), retail (S5) and tall buildings (S12).', date: '20 August 2026', actor: 'Femi Okonkwo', status: 'Done', document: 'View all policies', href: POLICIES_HREF },
+      { type: 'Timetable published', description: 'Local Plan timetable published, setting out when each stage of the plan will take place.', date: '28 September 2026', actor: 'Danny Dyer', status: 'Done', document: 'View the timetable', href: TIMETABLE_HREF },
+      { type: 'Policy S3 Housing updated', description: 'Housing trajectory in Policy S3 updated after the consultation on proposed content and evidence, phasing delivery over the plan period.', date: '3 November 2026', actor: 'Femi Okonkwo', status: 'Done', document: 'View Policy S3 Housing', href: POLICIES_HREF + '#policy-S3' },
+      { type: 'Policy S4 Offices updated', description: 'Office floorspace target and trajectory in Policy S4 updated after the consultation on proposed content and evidence.', date: '3 November 2026', actor: 'Femi Okonkwo', status: 'Done', document: 'View Policy S4 Offices', href: POLICIES_HREF + '#policy-S4' },
+      { type: 'Timetable updated', description: 'Local Plan timetable updated with the dates for Gateway 3 and submission for examination.', date: '19 January 2027', actor: 'Danny Dyer', status: 'Done', document: 'View the timetable', href: TIMETABLE_HREF },
+      { type: 'Confirmed for Gateway 3', description: 'Policies and timetable checked against section 15C(3) of the Act and recorded in the Gateway 3 completion statement.', date: '2 March 2027', actor: 'Pauline Perrot', status: 'Done', document: 'Gateway 3 completion statement' }
     ],
-    draftEntryCount: 2,
-    plannedActivity: 'Confirm the policies against section 15C(3) in the Gateway 3 completion statement, planned for March 2027.'
+    draftEntryCount: 4,
+    plannedActivity: 'Update the timetable with the dates for Gateway 3 and submission, planned for January 2027, then confirm the policies and timetable against section 15C(3) in the Gateway 3 completion statement, planned for March 2027.'
   },
   'Regulation 32(b)': {
     history: [
@@ -113,7 +246,7 @@ const REQUIREMENT_DATA = {
   },
   'Regulation 32(c)': {
     history: [
-      { type: 'Climate policies drafted', description: 'Policies on sustainable design and whole life-cycle carbon, climate resilience and flood risk, and the circular economy drafted.', date: '30 July 2026', actor: 'Femi Okonkwo', status: 'Done' },
+      { type: 'Climate policies drafted', description: 'Policies on sustainable design and whole life-cycle carbon, climate resilience and flood risk, and the circular economy drafted.', date: '30 July 2026', actor: 'Femi Okonkwo', status: 'Done', document: 'View Policy S15 Climate Resilience and Flood Risk', href: policyHref('S15') },
       { type: 'Climate assessment published', description: 'Assessment of how the plan contributes to the mitigation of, and adaptation to, climate change published with the evidence base.', date: '14 October 2026', actor: 'Femi Okonkwo', status: 'Done', document: 'Climate change mitigation and adaptation assessment' }
     ],
     draftEntryCount: 2,
@@ -122,30 +255,31 @@ const REQUIREMENT_DATA = {
   'Regulation 32(d)': {
     history: [
       { type: 'Strategy reviewed', description: 'The London local nature recovery strategy reviewed for its priorities and the potential measures it maps in the City.', date: '18 August 2026', actor: 'Alys Whitfield', status: 'Done' },
-      { type: 'Topic paper published', description: 'Topic paper published showing how the open space, urban greening, biodiversity and tree policies take account of the strategy.', date: '30 November 2026', actor: 'Alys Whitfield', status: 'Done', document: 'Local nature recovery strategy topic paper' }
+      { type: 'Strategy added to the evidence base', description: 'The local nature recovery strategy added to the evidence base, with how the open space, urban greening, biodiversity and tree policies take account of it.', date: '30 November 2026', actor: 'Alys Whitfield', status: 'Done', document: 'View the Local nature recovery strategy', href: PLACES.lnrs }
     ],
     draftEntryCount: 1,
-    plannedActivity: 'Publish the topic paper showing how the plan takes account of the local nature recovery strategy, planned for 30 November 2026.'
+    plannedActivity: 'Add the local nature recovery strategy to the evidence base, with how the plan takes account of it, planned for 30 November 2026.'
   },
   'Regulation 32(e)': {
     history: [
-      { type: 'Housing need assessed', description: 'Strategic Housing Market Assessment published, setting out the amount and type of housing needed, including affordable housing.', date: 'September 2023', actor: 'Femi Okonkwo', status: 'Done', document: 'Strategic Housing Market Assessment' },
-      { type: 'Housing policies drafted', description: 'Housing policies drafted to take account of the assessed need and to meet the London Plan target of 1,460 homes.', date: '20 August 2026', actor: 'Femi Okonkwo', status: 'Done' }
+      { type: 'Housing need assessed', description: 'Strategic Housing Market Assessment published, setting out the amount and type of housing needed, including affordable housing.', date: 'September 2023', actor: 'Femi Okonkwo', status: 'Done', document: 'View the Strategic Housing Market Assessment', href: PLACES.shma },
+      { type: 'Housing policies drafted', description: 'Housing policies drafted to take account of the assessed need and to meet the London Plan target of 1,460 homes.', date: '20 August 2026', actor: 'Femi Okonkwo', status: 'Done', document: 'View Policy S3 Housing', href: policyHref('S3') }
     ],
     draftEntryCount: 2,
     plannedActivity: null
   },
   'Regulation 32(f)': {
     history: [
-      { type: 'Content reviewed', description: 'Proposed plan reviewed against what section 15C of the Act and regulation 11 permit, and matters already covered by national development management policies removed.', date: '4 November 2026', actor: 'Daniel Osei', status: 'Done' },
-      { type: 'Legal review completed', description: 'Legal review confirming that everything in the proposed plan is permitted or required.', date: '8 January 2027', actor: 'Daniel Osei', status: 'Done', document: 'Legal review of plan content' }
+      { type: 'Content reviewed', description: 'Proposed plan reviewed against what section 15C of the Act and regulation 11 permit, and matters already covered by national development management policies removed.', date: '4 November 2026', actor: 'Daniel Osei', status: 'Done', document: 'View all policies', href: POLICIES_HREF },
+      { type: 'Legal review completed', description: 'Legal review confirming that everything in the proposed plan is permitted or required.', date: '8 January 2027', actor: 'Daniel Osei', status: 'Done', document: 'Legal review of plan content' },
+      { type: 'Confirmed by the plan making manager', description: 'Plan making manager confirmed that the proposed local plan includes only content that section 15C(3) to (5) or (10) of the Act and regulation 11 permit or require.', date: '12 January 2027', actor: 'Pauline Perrot', status: 'Done' }
     ],
     draftEntryCount: 1,
-    plannedActivity: 'Complete the legal review of the proposed plan’s content, planned for January 2027.'
+    plannedActivity: 'Complete the legal review of the proposed plan’s content, then the plan making manager’s confirmation that it includes only allowable content, planned for January 2027.'
   },
   'Regulation 32(g)': {
     history: [
-      { type: 'Gateway 2 advice sought', description: 'Observations and advice sought from the appointed person at gateway 2 (regulation 26).', date: '17 November 2026', actor: 'Pauline Perrot', status: 'Done' },
+      { type: 'Gateway 2 advice sought', description: 'Observations and advice sought from the appointed person at gateway 2 (regulation 26).', date: '17 November 2026', actor: 'Pauline Perrot', status: 'Done', document: 'View the Gateway 2 progress check', href: PLACES.gateway2 },
       { type: 'Gateway 3 assessment requested', description: 'Gateway 3 prescribed requirements assessment requested from the appointed person (regulation 31).', date: '2 March 2027', actor: 'Pauline Perrot', status: 'Done' }
     ],
     draftEntryCount: 1,
@@ -161,19 +295,19 @@ const REQUIREMENT_DATA = {
   },
   'Regulation 32(i)': {
     history: [
-      { type: 'Self-assessment taken into account', description: 'Gateway 1 self-assessment summary taken into account in setting the scope of the plan (regulation 14(a)).', date: '28 July 2026', actor: 'Pauline Perrot', status: 'Done', document: 'Gateway 1 self-assessment summary' },
-      { type: 'Consultation responses taken into account', description: 'Responses to the consultation on proposed content and evidence considered, and a summary published of how they were taken into account.', date: '27 October 2026', actor: 'Jomo Adeyemi', status: 'Done', document: 'Summary of consultation on proposed content and evidence' },
+      { type: 'Self-assessment taken into account', description: 'Gateway 1 self-assessment summary taken into account in setting the scope of the plan (regulation 14(a)).', date: '28 July 2026', actor: 'Pauline Perrot', status: 'Done', document: 'View the Gateway 1 self-assessment summary', href: PLACES.gateway1Summary },
+      { type: 'Consultation responses taken into account', description: 'Responses to the consultation on proposed content and evidence considered, and a summary published of how they were taken into account.', date: '27 October 2026', actor: 'Jomo Adeyemi', status: 'Done', document: 'View consultation responses', href: PLACES.consultationResponses },
       { type: 'National policy and other matters checked', description: 'Proposed plan checked against national development management policies, the City’s Transport Strategy, major accident hazards and the national waste management plan.', date: '5 November 2026', actor: 'Daniel Osei', status: 'Done' },
-      { type: 'London Plan taken into account', description: 'Proposed plan reviewed against the London Plan, as part of the development plan for the City.', date: '12 January 2027', actor: 'Daniel Osei', status: 'Done' }
+      { type: 'London Plan taken into account', description: 'Proposed plan reviewed against the London Plan, as part of the development plan for the City.', date: '12 January 2027', actor: 'Daniel Osei', status: 'Done', document: 'View alignment with London Plan', href: PLACES.londonPlanAlignment }
     ],
     draftEntryCount: 3,
     plannedActivity: 'Complete the review of the proposed plan against the London Plan, planned for January 2027.'
   },
   'Regulation 32(j)': {
     history: [
-      { type: 'Environmental report prepared', description: 'Environmental report prepared under the Environmental Assessment of Plans and Programmes Regulations 2004.', date: '3 November 2026', actor: 'Alys Whitfield', status: 'Done', document: 'Environmental report' },
-      { type: 'Consultation statement prepared', description: 'Statement summarising the consultation and engagement carried out in preparing the plan, with the summary of consultation on the proposed plan.', date: '9 March 2027', actor: 'Jomo Adeyemi', status: 'Done', document: 'Consultation and engagement statement' },
-      { type: 'GLA representations compiled', description: 'The Greater London Authority’s representations on general conformity with the London Plan (regulation 28) compiled for submission.', date: '10 March 2027', actor: 'Daniel Osei', status: 'Done', document: 'Representations on general conformity with the London Plan', href: SDS_STATEMENT_HREF },
+      { type: 'Environmental report prepared', description: 'Environmental report prepared under the Environmental Assessment of Plans and Programmes Regulations 2004.', date: '3 November 2026', actor: 'Alys Whitfield', status: 'Done', document: 'View the strategic environmental assessment', href: PLACES.environmentalReport },
+      { type: 'Consultation statement prepared', description: 'Statement summarising the consultation and engagement carried out in preparing the plan, with the summary of consultation on the proposed plan.', date: '9 March 2027', actor: 'Jomo Adeyemi', status: 'Done', document: 'View the consultation statement', href: PLACES.consultationStatement },
+      { type: 'GLA representations compiled', description: 'The Greater London Authority’s representations on general conformity with the London Plan (regulation 28) compiled for submission.', date: '10 March 2027', actor: 'Daniel Osei', status: 'Done', document: 'View the Greater London Authority’s responses', href: SDS_STATEMENT_HREF },
       { type: 'Statements of compliance and soundness prepared', description: 'Statement of compliance and statement of soundness prepared for submission.', date: '16 March 2027', actor: 'Pauline Perrot', status: 'Done', document: 'Statement of soundness' }
     ],
     draftEntryCount: 1,
@@ -182,7 +316,7 @@ const REQUIREMENT_DATA = {
   'Regulation 32(k)': {
     history: [
       { type: 'Map drafted', description: 'Draft policies map prepared, covering the majority of the policies that apply to part of the City.', date: '3 November 2026', actor: 'Alys Whitfield', status: 'Done' },
-      { type: 'Map checked and finalised', description: 'Policies map checked against every policy that applies to part of the City and finalised for the proposed plan.', date: '24 November 2026', actor: 'Alys Whitfield', status: 'Done', document: 'Policies map' }
+      { type: 'Map checked and finalised', description: 'Policies map checked against every policy that applies to part of the City and finalised for the proposed plan.', date: '24 November 2026', actor: 'Alys Whitfield', status: 'Done', document: 'View the policy map', href: PLACES.policyMap }
     ],
     draftEntryCount: 1,
     plannedActivity: 'Check the policies map against every area-based policy and finalise it, planned for 24 November 2026.'
@@ -190,7 +324,7 @@ const REQUIREMENT_DATA = {
   'Regulation 32(l)': {
     history: [
       { type: 'Gateway 3 completion statement prepared', description: 'Gateway 3 completion statement prepared, confirming the plan is ready for examination.', date: '2 March 2027', actor: 'Pauline Perrot', status: 'Done', document: 'Gateway 3 completion statement' },
-      { type: 'Approved for submission', description: 'Court of Common Council approved the proposed plan for submission for independent examination.', date: '18 March 2027', actor: 'Marta Nowak', status: 'Done' }
+      { type: 'Approved for submission', description: 'Court of Common Council approved the proposed plan for submission for independent examination.', date: '18 March 2027', actor: 'Marta Nowak', status: 'Done', document: 'View the examination library', href: PLACES.examinationLibrary }
     ],
     draftEntryCount: 0,
     plannedActivity: 'Prepare the Gateway 3 completion statement and seek approval to submit the plan for examination, planned for March 2027.'
@@ -244,7 +378,7 @@ function getStatus (ref, variant) {
 // spaces and punctuation that need encoding for the URL.
 function withDocumentHref (entry) {
   return Object.assign({}, entry, {
-    documentHref: entry.document ? (entry.href || '/plan/make/gateway-preparation/statement-of-compliance/documents/' + encodeURIComponent(entry.document)) : null
+    documentHref: entry.document ? (entry.href || documentHref(entry.document)) : null
   })
 }
 
@@ -342,14 +476,65 @@ const DOCUMENT_TITLES = Array.from(new Set(
     .concat(Object.values(PROCESS_HISTORY).flat())
     .filter(entry => entry.document && !entry.href)
     .map(entry => entry.document)
+    .concat(Object.values(LINK_ROWS).flat().flatMap(row => row.links)
+      .filter(key => key.startsWith('document:'))
+      .map(key => key.slice('document:'.length)))
 ))
 
 function isKnownDocument (title) {
   return DOCUMENT_TITLES.includes(title)
 }
 
+// A stored link key as { key, text, href, newTab }, or null if it no longer resolves.
+function resolveLink (key) {
+  const [kind, ...rest] = String(key).split(':')
+  const value = rest.join(':')
+  if (kind === 'policy') {
+    const policy = POLICIES.find(candidate => candidate.ref === value)
+    return policy ? { key, text: 'Policy ' + policy.ref + ' ' + policy.title, href: policyHref(policy.ref) } : null
+  }
+  if (kind === 'page' && LINK_PAGES[value]) return Object.assign({ key }, LINK_PAGES[value])
+  if (kind === 'document' && DOCUMENT_TITLES.includes(value)) return { key, text: value, href: documentHref(value) }
+  return null
+}
+
+function getLinkRows (ref) {
+  return LINK_ROWS[ref] || []
+}
+
+// The seed for session data: { <requirement ref>: { <row id>: [link keys] } }.
+function startingLinks () {
+  const state = {}
+  Object.keys(LINK_ROWS).forEach(ref => {
+    state[ref] = {}
+    LINK_ROWS[ref].forEach(row => { state[ref][row.id] = row.links.slice() })
+  })
+  return state
+}
+
+// Everything a link can be added to, grouped for the select's optgroups: pages and documents,
+// then every policy by policy area in plan order.
+function linkOptions () {
+  const groups = [{
+    label: 'Pages and documents',
+    options: Object.keys(LINK_PAGES).map(id => ({ value: 'page:' + id, text: LINK_PAGES[id].text }))
+      .concat(DOCUMENT_TITLES.map(title => ({ value: 'document:' + title, text: title })))
+  }]
+  POLICIES.forEach(policy => {
+    let group = groups.find(candidate => candidate.label === policy.policyArea)
+    if (!group) groups.push(group = { label: policy.policyArea, options: [] })
+    group.options.push({ value: 'policy:' + policy.ref, text: 'Policy ' + policy.ref + ' ' + policy.title })
+  })
+  return groups
+}
+
 module.exports = {
+  resolveLink,
+  getLinkRows,
+  startingLinks,
+  linkOptions,
   REGULATION_URL,
+  DEVELOPMENT_POLICY_REFS,
   REQUIREMENTS,
   DOCUMENT_TITLES,
   getRequirements,
