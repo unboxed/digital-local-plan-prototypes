@@ -1,0 +1,45 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Policies in the proposed plan" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="{{ backHref }}">Back</a>
+
+    <span class="govuk-caption-xl">Statement of compliance</span>
+    <h1 class="govuk-heading-xl">Policies in the proposed plan</h1>
+
+    <p class="govuk-body">
+      All {{ total }} policies in {{ organisationName }} Local Plan, by policy area. The
+      {{ developmentCount }} marked “Amount, type, location or timing of development” are the ones
+      regulation 32(a) is about.
+    </p>
+    <p class="govuk-body-s dlp-pd-muted">
+      Policy references and titles are the City Plan 2040’s own. The summaries are written for this
+      prototype.
+    </p>
+
+    {% for area in areas %}
+    <h2 class="govuk-heading-m govuk-!-margin-top-8">{{ area.name }}</h2>
+    <ul class="govuk-list dlp-soc-policies">
+      {% for policy in area.policies %}
+      <li class="dlp-soc-policies__item" id="policy-{{ policy.ref }}">
+        <h3 class="govuk-heading-s govuk-!-margin-bottom-1">
+          {% if policy.href %}<a class="govuk-link" href="{{ policy.href }}">{{ policy.ref }} {{ policy.title }}</a>{% else %}{{ policy.ref }} {{ policy.title }}{% endif %}
+        </h3>
+        {% if policy.development %}
+        <p class="govuk-!-margin-bottom-1"><strong class="govuk-tag govuk-tag--blue">Amount, type, location or timing of development</strong></p>
+        {% endif %}
+        <p class="govuk-body-s govuk-!-margin-bottom-0">{{ policy.summary }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endfor %}
+
+  </div>
+</div>
+
+{% endblock %}

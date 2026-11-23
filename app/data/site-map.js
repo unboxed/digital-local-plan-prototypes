@@ -94,13 +94,24 @@ const SECTIONS = [
             title: 'Write policy without starting points',
             href: '/plan/make/policy-writing/blank/starting-points/adopted-plan-chapters',
             description: 'The same journey from a blank slate.'
+          },
+          {
+            title: 'View alignment with London Plan',
+            href: '/plan/make/london-plan-alignment',
+            description: 'Every policy of the London Plan, the spatial development strategy, with the local plan policies that deliver it and the authority’s comment on each, or evidence of why it needs no local plan policy.'
           }
         ]
       },
       {
-        slug: 'gateway-preparation',
         title: 'Gateway preparation',
-        description: 'Prepare for each gateway, including creating the documents it needs.'
+        description: 'Prepare for each gateway, including creating the documents it needs.',
+        prototypes: [
+          {
+            title: 'Statement of compliance',
+            href: '/plan/make/gateway-preparation/statement-of-compliance',
+            description: 'The Gateway 3 requirements of regulation 32 and the evidence for each, as a draft for checking progress and as completed for submission, with the Greater London Authority’s representations on general conformity with the London Plan.'
+          }
+        ]
       },
       {
         slug: 'share-and-collaborate',
@@ -249,17 +260,6 @@ const SECTIONS = [
           }
         ]
       },
-      {
-        title: 'Statement of compliance',
-        description: 'Show which legal and procedural requirements have been met during plan preparation, and the evidence for each one.',
-        prototypes: [
-          {
-            title: 'Statement of compliance',
-            href: '/plan/view/statement-of-compliance',
-            description: 'A draft statement for Gateway 2, and the completed statement as it would stand once the plan is adopted.'
-          }
-        ]
-      }
     ]
   },
   {

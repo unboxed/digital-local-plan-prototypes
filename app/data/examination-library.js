@@ -180,7 +180,7 @@ const SECTIONS = [
         ref: 'CS-01',
         title: 'Statement of compliance',
         kind: 'Document',
-        summary: 'The legal and procedural requirements met during plan preparation, and the evidence for each.',
+        summary: 'How the plan meets the requirements prescribed for Gateway 3 by regulation 32, and the evidence for each.',
         // The Statement of compliance prototype's completed statement, shown in the record page.
         content: { type: 'compliance', variant: 'completed' },
         versions: first()

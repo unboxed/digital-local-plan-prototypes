@@ -1,13 +1,13 @@
 {% extends "layouts/main.html" %}
 
-{% set pageName = "General conformity with the " + sds.shortName %}
+{% set pageName = "Alignment with the " + sds.shortName %}
 
 {% block content %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-full">
 
-    <a class="govuk-back-link" href="/plan/view/statement-of-compliance">Back to Statement of compliance</a>
+    <a class="govuk-back-link" href="/plan/make">Back to Make your plan</a>
 
     {% if flash %}
     <div class="govuk-notification-banner govuk-notification-banner--success" role="alert" aria-labelledby="sds-flash-title" data-module="govuk-notification-banner">
@@ -23,13 +23,13 @@
     </div>
     {% endif %}
 
-    <span class="govuk-caption-xl">Statement of compliance: Regulation 28</span>
-    <h1 class="govuk-heading-xl">General conformity with the {{ sds.shortName }}</h1>
+    <span class="govuk-caption-xl">Make your plan</span>
+    <h1 class="govuk-heading-xl">Alignment with the {{ sds.shortName }}</h1>
 
     <div class="dlp-pd-measure">
       <p class="govuk-body">
-        {{ organisationName }} Local Plan must be in general conformity with the operative spatial
-        development strategy for its area: <a class="govuk-link" href="{{ sds.url }}" target="_blank" rel="noopener noreferrer">{{ sds.name }}<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>,
+        {{ organisationName }} Local Plan must be in general conformity with the spatial development
+        strategy for its area: <a class="govuk-link" href="{{ sds.url }}" target="_blank" rel="noopener noreferrer">{{ sds.name }}<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>,
         the spatial development strategy for Greater London, published by the {{ sds.author }} in {{ sds.published }}.
       </p>
       <p class="govuk-body">
@@ -142,7 +142,7 @@
 
     <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
 
-    <form method="post" action="/plan/view/statement-of-compliance/spatial-development-strategy/reset">
+    <form method="post" action="/plan/make/london-plan-alignment/reset">
       <button type="submit" class="govuk-button govuk-button--secondary" data-module="govuk-button">Reset to the example statement</button>
     </form>
 
