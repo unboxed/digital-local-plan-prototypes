@@ -3380,19 +3380,35 @@ const SOC_SDS_CONSULTEE = 'greater-london-authority'
 // Managing consultation responses shows (crConsulteeDocument). `commentedOn` is what each one
 // comments on: policies in the latest round, whose response is set out by policy, and topics
 // with the policies they relate to in the earlier rounds, whose responses are set out by topic.
+//
+// Referenced as the MIQs check page references the inspector's document: each response has a
+// document reference (<abbr>-<nn>, numbered in date order, so the scoping response is GLA-01), a
+// file name starting with it, and numbered sections and comments (1, 1.1, 1.2 …), each comment
+// with the policies it is about.
+function socSdsDate (iso) {
+  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 function socSdsPhases (consultee) {
   const policyTitle = ref => (POLICIES.find(policy => policy.ref === ref) || {}).title || ''
-  return CR_CONSULTATIONS
+  const policyView = ref => ({ ref, title: policyTitle(ref) })
+  const reps = getCrRepresentations().filter(rep => rep.consulteeId === consultee.id)
+  const rounds = CR_CONSULTATIONS
     .filter(round => round.id === CR_CONSULTATION.id || (consultee.earlier || []).includes(round.id))
-    .reverse()
+  return rounds
     .map(round => {
       const current = round.id === CR_CONSULTATION.id
       const document = crConsulteeDocument(consultee, round.id)
+      const ref = consultee.abbr + '-' + String(rounds.indexOf(round) + 1).padStart(2, '0')
+      const lastRep = reps.map(rep => rep.date).sort().pop()
       const phase = {
         id: round.id,
+        ref,
         title: round.title,
+        documentTitle: document.title,
         when: current ? CR_CONSULTATION.dates : round.month,
-        fileName: document.fileName,
+        received: socSdsDate(current ? lastRep : round.date),
+        fileName: ref + '_' + document.fileName.replace(new RegExp('^' + consultee.abbr + '_'), ''),
         docHref: CR + '/consultees/' + consultee.id + '?_doc=' + round.id,
         intro: document.intro,
         current,
@@ -3401,7 +3417,6 @@ function socSdsPhases (consultee) {
       }
       if (current) {
         // The representations, gathered under the policy each is about, in plan order.
-        const reps = getCrRepresentations().filter(rep => rep.consulteeId === consultee.id)
         POLICIES.filter(policy => reps.some(rep => rep.policyRef === policy.ref)).forEach(policy => {
           const onPolicy = reps.filter(rep => rep.policyRef === policy.ref).sort((a, b) => a.date < b.date ? -1 : 1)
           phase.commentedOn.push({
@@ -3412,7 +3427,7 @@ function socSdsPhases (consultee) {
           })
           phase.sections.push({
             heading: 'Policy ' + policy.ref + ': ' + policy.title,
-            paragraphs: onPolicy.map(rep => ({ text: rep.text, ref: rep.id, type: rep.commentType, colour: CR_COMMENT_COLOURS[rep.commentType] }))
+            comments: onPolicy.map(rep => ({ text: rep.text, rep: rep.id, type: rep.commentType, colour: CR_COMMENT_COLOURS[rep.commentType], policies: [policyView(policy.ref)] }))
           })
         })
       } else {
@@ -3426,12 +3441,18 @@ function socSdsPhases (consultee) {
           })
           phase.sections.push({
             heading: theme.title,
-            paragraphs: [{ text: theme.previous.text, type, colour: CR_COMMENT_COLOURS[type] }]
+            comments: [{ text: theme.previous.text, type, colour: CR_COMMENT_COLOURS[type], policies: theme.policies.map(policyView) }]
           })
         })
       }
+      // Numbered as the MIQs are: sections 1, 2 …, comments 1.1, 1.2 …
+      phase.sections.forEach((section, index) => {
+        section.number = String(index + 1)
+        section.comments.forEach((comment, commentIndex) => { comment.number = section.number + '.' + (commentIndex + 1) })
+      })
       return phase
     })
+    .reverse()
 }
 
 router.get(SOC_SDS, (req, res) => {

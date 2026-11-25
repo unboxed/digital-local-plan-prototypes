@@ -37,11 +37,31 @@
 
     {% for phase in phases %}
     <section class="dlp-soc-phase" aria-labelledby="phase-{{ phase.id }}">
-      <h3 class="govuk-heading-m govuk-!-margin-bottom-1" id="phase-{{ phase.id }}">{{ phase.title }}</h3>
-      <p class="govuk-body-s dlp-pd-muted">
-        {{ phase.when }} ·
-        <a class="govuk-link" href="{{ phase.docHref }}">{{ phase.fileName }}<span class="govuk-visually-hidden"> ({{ phase.title }} response)</span></a>
-      </p>
+      <h3 class="govuk-heading-m" id="phase-{{ phase.id }}">{{ phase.title }}</h3>
+
+      {# Referenced as the MIQs check page references the inspector's document. #}
+      <dl class="govuk-summary-list">
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Document</dt>
+          <dd class="govuk-summary-list__value">
+            {{ phase.ref }} {{ phase.documentTitle }}
+            <span class="govuk-body-s dlp-miq-muted govuk-!-display-block govuk-!-margin-bottom-1">{{ phase.fileName }}</span>
+            <a class="govuk-link govuk-body-s" href="{{ phase.docHref }}">View the whole response<span class="govuk-visually-hidden"> {{ phase.ref }}</span></a>
+          </dd>
+        </div>
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">From</dt>
+          <dd class="govuk-summary-list__value">{{ consultee.name }}</dd>
+        </div>
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Received</dt>
+          <dd class="govuk-summary-list__value">{{ phase.received }}</dd>
+        </div>
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Consultation</dt>
+          <dd class="govuk-summary-list__value">{{ phase.when }}</dd>
+        </div>
+      </dl>
 
       <div class="dlp-soc-commented">
         <h4 class="govuk-heading-s govuk-!-margin-bottom-2">{{ "Policies commented on" if phase.current else "Topics commented on" }}</h4>
@@ -58,18 +78,22 @@
         </ul>
       </div>
 
-      <div class="dlp-soc-response">
-        <p class="govuk-body">{{ phase.intro }}</p>
-        {% for section in phase.sections %}
-        <h4 class="govuk-heading-s govuk-!-margin-bottom-2">{{ section.heading }}</h4>
-        {% for paragraph in section.paragraphs %}
-        <p class="govuk-body">
-          {{ paragraph.text }}
-          <span class="govuk-body-s dlp-pd-muted">({% if paragraph.ref %}{{ paragraph.ref }}, {% endif %}{{ paragraph.type | lower }})</span>
-        </p>
+      <p class="govuk-body">{{ phase.intro }}</p>
+      {% for section in phase.sections %}
+      <h4 class="govuk-heading-s dlp-miq-issue">{{ section.number }}: {{ section.heading }}</h4>
+      <ol class="dlp-miq-questions">
+        {% for comment in section.comments %}
+        <li class="dlp-miq-questions__item" id="{{ phase.ref }}-{{ comment.number | replace('.', '-') }}">
+          <p class="govuk-body dlp-miq-questions__text"><span class="dlp-miq-questions__number">{{ comment.number }}</span> {{ comment.text }}</p>
+          <p class="govuk-body-s dlp-miq-questions__meta">
+            Policies: {% for policy in comment.policies %}<strong>{{ policy.ref }}</strong> {{ policy.title }}{% if not loop.last %}, {% endif %}{% endfor %}
+            &middot; <strong class="govuk-tag govuk-tag--{{ comment.colour }}">{{ comment.type }}</strong>
+            {% if comment.rep %}&middot; {{ comment.rep }}{% endif %}
+          </p>
+        </li>
         {% endfor %}
-        {% endfor %}
-      </div>
+      </ol>
+      {% endfor %}
     </section>
     {% endfor %}
 

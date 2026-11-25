@@ -204,16 +204,6 @@
   }
 }
 
-// The response as written, set off from the page like a quoted document.
-.dlp-soc-response {
-  border-left: 4px solid $dlp-border-grey;
-  padding-left: govuk-spacing(4);
-
-  > :last-child {
-    margin-bottom: 0;
-  }
-}
-
 // --- Policies in the proposed plan (statement-of-compliance/policies.html) -----------------
 
 .dlp-soc-policies__item {

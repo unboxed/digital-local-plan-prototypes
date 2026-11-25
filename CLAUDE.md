@@ -1373,8 +1373,12 @@ shows the Greater London Authority's whole response to each consultation phase, 
 (`socSdsPhases`, built from the same `consulteeDocument` responses Managing consultation responses
 shows, each linking to its document there). Each phase leads with what it commented on: policies,
 with counts by support, objection and neutral, in the latest round, whose response is set out by
-policy; topics and the policies they relate to in the earlier rounds, set out by topic. There are
-no per-policy representations on the page. It takes an optional short statement from the authority (`_statement`, kept as the plain string
+policy; topics and the policies they relate to in the earlier rounds, set out by topic. **Each
+response is referenced as the MIQs check page references the inspector's document**: a summary
+list (Document with a reference such as GLA-03, numbered in date order, its title and a file name
+starting with the reference; From; Received; Consultation), then numbered sections and comments
+(1, 1.1, 1.2 …, the `dlp-miq-questions` styles), each comment with a "Policies:" line, whether
+it's support, an objection or neutral, and its representation number in the latest round. It takes an optional short statement from the authority (`_statement`, kept as the plain string
 `socSdsStatement`). It is the evidence for 32(j), because copies of the representations made under
 regulation 28 are a submission document (34(1)(e)); 32(j)'s requirement page and audit log entry
 link to it (a history entry's optional `href` overrides the placeholder document viewer). Its
