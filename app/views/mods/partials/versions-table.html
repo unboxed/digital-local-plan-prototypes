@@ -21,7 +21,7 @@
             {% else %}Not published<br><span class="dlp-ppv-muted">Shared internally {{ version.sharedAt }}</span>{% endif %}
           </td>
           <td class="govuk-table__cell">{{ version.exportedBy }}</td>
-          <td class="govuk-table__cell"><a class="govuk-link" href="/plan/make/mods/versions/{{ version.id }}">View version<span class="govuk-visually-hidden">: {{ version.title }}</span></a></td>
+          <td class="govuk-table__cell"><a class="govuk-link" href="/plan/make/mods/versions/{{ version.id }}">View tracked changes<span class="govuk-visually-hidden">: {{ version.title }}</span></a></td>
         </tr>
       {% endfor %}
     </tbody>

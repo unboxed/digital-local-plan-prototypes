@@ -8,8 +8,9 @@
   <strong class="govuk-tag govuk-tag--{{ colours[status] | default('grey') }}">{{ status }}</strong>
 {%- endmacro %}
 
-{# A modification's number (MM3, AM1), or just its type, in its label style, with the full
-   type name for screen readers. #}
+{# A modification's number (MM3, AM1, Typo 2), or just its type, in its label style, with the
+   full type name for screen readers. #}
 {% macro modTypeTag(type, ref) %}
-  <span class="dlp-mod-label dlp-mod-label--{{ type | lower }}"><span class="govuk-visually-hidden">{{ "Main modification" if type == "MM" else "Additional modification" }} </span>{{ ref or type }}</span>
+  {%- set names = { MM: "Main modification", AM: "Additional modification", TYPO: "Minor change" } -%}
+  <span class="dlp-mod-label dlp-mod-label--{{ type | lower }}"><span class="govuk-visually-hidden">{{ names[type] }} </span>{{ ref or ("Typo" if type == "TYPO" else type) }}</span>
 {%- endmacro %}

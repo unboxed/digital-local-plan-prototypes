@@ -1,0 +1,38 @@
+{# The workspace's first tab: the suggested changes about this part, or that it wasn't one. #}
+{% if suggestions | length %}
+  {% for suggestion in suggestions %}
+    <div class="dlp-mod-suggestion">
+      <h3 class="govuk-heading-s govuk-!-margin-bottom-1">{{ suggestion.byName }} suggested</h3>
+      <p class="govuk-body">{{ suggestion.text }}</p>
+      <dl class="govuk-summary-list govuk-summary-list--no-border govuk-body-s">
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Kind</dt>
+          <dd class="govuk-summary-list__value">{{ suggestion.kindText }}</dd>
+        </div>
+        <div class="govuk-summary-list__row">
+          <dt class="govuk-summary-list__key">Suggested by</dt>
+          <dd class="govuk-summary-list__value">{{ suggestion.byName }}, {{ suggestion.byRole }}, {{ suggestion.at }}</dd>
+        </div>
+        {% if suggestion.matter %}
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Matter</dt>
+            <dd class="govuk-summary-list__value">Matter {{ suggestion.matter.id }}: {{ suggestion.matter.title }}</dd>
+          </div>
+        {% endif %}
+        {% if suggestion.question %}
+          <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">Question</dt>
+            <dd class="govuk-summary-list__value">
+              {{ suggestion.question.id }} {{ suggestion.question.text }}
+              <a class="govuk-link govuk-!-display-block" href="{{ suggestion.questionHref }}">The council’s response to question {{ suggestion.question.id }}</a>
+            </dd>
+          </div>
+        {% endif %}
+      </dl>
+      <p class="govuk-body-s"><a class="govuk-link" href="/plan/make/mods/suggestions#suggestion-{{ suggestion.id }}">See it in the suggested changes</a></p>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="govuk-body">This wasn’t a suggested change: it was added while drafting.</p>
+  {% for kind in kinds %}{% if kind.value == item.type %}<p class="govuk-body">{{ kind.text }}: {{ kind.hint }}</p>{% endif %}{% endfor %}
+{% endif %}

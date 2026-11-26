@@ -884,45 +884,66 @@ under "Manage MODs and MIQs" and copies its structure: `mods/partials/layout.htm
 - **The examples are after the consultation.** `TODAY` is 20 April 2027. The modifications were
   agreed in February (`agreedModifications()`), a version was published for consultation on
   1 Mar 2027 (closed `CONSULTATION.closes`), and since the responses some have been reopened or
-  sent for review. Every inspector's request has a modification, so none is Not started.
+  sent for review. The suggested changes captured at the hearings (13–14 January) are seeded:
+  the inspector's six and three additional ones have modifications; a typo has been drafted
+  since; four (two of them unassigned) are Not started.
 - **Nothing is required.** No field blocks an action: a new modification with no part or type
   takes the first free part (`modFirstFreeTarget`) and AM; sending for review or agreeing needs
   no wording change or reason; a blank comment or reply is ignored. There is no error summary in
   use. Nothing is ever locked.
-- **Pages in the menu:**
-  1. Inspector's suggested modifications: the post-hearing letter's requests, each linked to
-     its MIQs matter and question.
-  2. Draft modifications: the list, "Add a modification", and the drafting workspace.
-  3. Schedule of modifications.
-  4. View and publish changes (`/plan`): an inert "Publish this version" button (no publishing flow
+- **Pages in the menu** (this order, by request):
+  1. Capture suggested changes (`/suggestions`; it replaced the inspector's post-hearing letter,
+     and `/letter` redirects there): notes taken during the hearings. Each has a description, a
+     kind (`KINDS`: main modification, additional modification, or minor change or typo; no
+     hints on the radios, by request), the policy (part) it relates to, **required**, and who
+     suggested it, **captured from who is signed in**, never
+     entered. A "Prototype only" switcher (`state.actingAs`, `SUGGESTERS`) signs you in as a
+     policy officer, the policy manager (Helen Marsh, `MANAGER_ID`), the planning director or the
+     inspector. **Only the manager sees the Assign controls**, which assign to any officer but the
+     manager; once drafted, assigning also reassigns the modification. Drafting isn't done here.
+  2. Draft modifications: "Suggested changes to draft" (the undrafted suggestions), each with a
+     Start drafting button (`POST /drafts/start`) that makes the modification and goes straight to
+     its policy. There is no screen for choosing a part while drafting a suggestion, by request:
+     that is done when it's captured. Then the drafts, "Add a modification" (from scratch), and
+     the drafting workspace. A schedule row not drafted yet links to its row here
+     (`/drafts#suggestion-<id>`).
+  3. View and publish changes (`/plan`): an inert "Publish this version" button (no publishing flow
      yet), the versions table, then the current version with the latest tracked changes.
-  5. View comments (`/comments`): respondents to the consultation version, then "Send comments
+  4. View comments (`/comments`): respondents to the consultation version, then "Send comments
      to inspector" with Preview (`/comments/preview`) and Send (`POST /comments/send`).
+  5. Schedule of modifications.
 
-  `/consult` and `/responses` redirect to the last two.
-- **Static content** is in `app/data/mods.js`: the letter, six requests, the seeded wording and
-  reasons, the team (MIQs' Priya Shah, then Policy drafting's `OFFICERS` less Priya Sharma),
-  the consultation responses and `startingState()`. All
+  `/consult` and `/responses` redirect to 3 and 4.
+- **Static content** is in `app/data/mods.js`: the seeded suggested changes (`SUGGESTIONS`), the
+  seeded wording and reasons, the team (MIQs' Priya Shah, then Policy drafting's `OFFICERS` less
+  Priya Sharma, with Helen Marsh as Planning Policy Manager), `PEOPLE` (the team plus the planning
+  director and the inspector), the consultation responses and `startingState()`. All
   of it is invented. The prototype's "today" is fixed at `TODAY` (20 April 2027), after the
-  MIQs' January 2027 hearings, so new actions don't date from before the letter.
+  MIQs' January 2027 hearings, so new actions don't date from before the suggestions.
 - **State** is one object, `mods`, read only through `getMods` and stamped with
   `MODS_SCHEMA_VERSION`, so **bump that when the shape changes**.
-  - A modification stores `{id, type, requestId, target, after, reason, status, assignee,
-    updatedAt, updatedBy, comments}`.
+  - A modification stores `{id, type, target, after, reason, status, assignee, updatedAt,
+    updatedBy, comments}`. `type` is `MM`, `AM` or `TYPO`.
+  - A suggestion stores `{id, kind, target, by, at, assignee, text}` (and `matterId`,
+    `questionId` for the inspector's). It isn't linked to a modification by id: **a suggestion's
+    modification is its part's** (`modForTarget`), so its status is derived from that, and removing
+    the modification puts it back to Not started.
   - It never stores the current wording: that is always read from `POLICY_TEXT`.
   - `status` is `draft`, `review` or `agreed`, shown as Draft, Ready for review and Agreed.
-    A request with no draft is Not started.
+    A suggestion with no draft is Not started.
 - **Only policies with full wording can be modified:** S3 and HS1–HS8 (`MODD.POLICY_REFS`).
   - `modParts` breaks them into parts in plan order: supporting text (`S3.exp`, from
     `POLICY_PARAGRAPHS`), introduction (`S3.intro`), clauses (`S3.2`) and lettered items
     (`S3.2a`).
   - There is **one modification per part**. Adding one to a part that already has one opens
     that one instead.
-  - Adding one to a part the inspector asked about makes it that request's main modification.
-- **MM and AM numbers are derived, never stored** (`modsSchedule`). They are counted
-  separately in plan order, so adding a modification earlier in the plan renumbers the ones
-  after it. Requests not drafted yet are in the schedule as Not started, so they are numbered
-  too.
+  - A new modification to a part with an undrafted suggestion takes the suggestion's kind and
+    assignee, however it's started (including by editing the wording in the workspace).
+- **MM, AM and Typo numbers are derived, never stored** (`modsSchedule`, `modRefText`). They
+  are counted separately in plan order, so adding a modification earlier in the plan renumbers
+  the ones after it. A minor change is labelled "Typo 1", never MM or AM, with a grey dotted
+  style (`dlp-mod--typo`). Suggestions not drafted yet are in the schedule as Not started, so
+  they are numbered too.
 - **Tracked changes are a word-level comparison** (`modDiff`, a longest common subsequence over
   words).
   - It runs in routes.js for every page, and again in application.js (`modDiff` and
@@ -956,11 +977,14 @@ under "Manage MODs and MIQs" and copies its structure: `mods/partials/layout.htm
     `form="mod-form"`, so every action saves the typing first.
   - `_action` is `save`, `ready`, `agree`, `reopen`, `remove` (council modifications only),
     `comment`, `reply:<id>` (field `_reply-<id>`) or `resolve:<id>`.
-  - The tabs are links (`crTabs`): Inspector's request, Comments and Evidence (`miqEvidence`).
+  - The tabs are links (`crTabs`): Suggested change (every suggestion about the part, with who
+    made it and, for the inspector's, the MIQs matter and question), Comments and Evidence
+    (`miqEvidence`). Any modification can be removed, and its kind changed to any of the three.
   - Comments reuse the commissioned evidence comment card's `dlp-ce-comment` styles, not its
     `ceComment` macro, which posts to that prototype's routes.
 - **The schedule** reuses the SDS conformity count tiles and filters. The sticky kit fields are
-  `modType`, `modPolicy` and `modStatus`, applied on change by `initAutosubmit`. A version line
+  `modType`, `modPolicy`, `modAssignee` (an officer, or `none` for Not assigned) and `modStatus`,
+  applied on change by `initAutosubmit`. It has an Assigned to column. A version line
   ("Last updated … by …", `state.lastChange`) heads it.
 - **The tracked changes plan** (`modsPlanPolicies`, shared by View and publish changes and a version's
   page through `partials/plan-body.html`) renders the policies in the public view's policy text
@@ -975,12 +999,13 @@ under "Manage MODs and MIQs" and copies its structure: `mods/partials/layout.htm
 - **Versions follow Publish plan versions**: `state.versions`, each `{id, title, versionDate,
   published, sharedAt, closes, exportedBy, modifications}`, shown in that prototype's history
   table format (`partials/versions-table.html`, `dlp-ppv-table`, short-month dates), with "View
-  version" at `/versions/:versionId`. **A version keeps its own copy of the modifications**, so it
+  tracked changes" at `/versions/:versionId`. **A version keeps its own copy of the modifications**, so it
   still shows what was published after the working copy moves on. Seeded: an internal review
   (19 Feb) and the consultation version (published 1 Mar).
 - **View comments** reads the published version with a `closes` date (`modsConsultation`):
-  respondents from `RESPONSES` (by part key, names from `CONSULTEES`), with the MM numbers of
-  that version. "View response" links are `#`: viewing a response isn't built (it would follow
+  respondents from `RESPONSES` (by part key, names from `CONSULTEES`), with the MM and AM numbers of
+  that version (additional modifications aren't consulted on, but some respondents comment on
+  them). "View response" links are `#`: viewing a response isn't built (it would follow
   Managing consultation responses). The preview counts support, objection and neutral per MM.
 
 ## Getting ready (Manage your plan; formerly "Make your plan")
