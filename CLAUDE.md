@@ -816,8 +816,10 @@ exist: the inspector and participants appear in "Prototype only" panels.
   `_stage` (`received`, `drafting`, `ready`). Every status and count is derived (`miqStatuses`,
   `miqQuestionStatus`, `miqMatterProgress`). A step that needs an earlier one has no status
   (`null`), so the sidebar shows no icon for it: no lock, by design request.
-- **Hearing statements received is a plain list**, by request: who sent it, the file name (a
-  link to `/statements/:id`, which stands in for the PDF with who sent it and when; there are no
+- **Hearing statements received is a plain list**, by request: who sent it (a link to the
+  consultee's past consultation responses in Managing consultation responses), the file name (a
+  link to `/statements/:id`, with the policies the statement comments on under it: those linked to
+  the questions it responds to, as corrected in step 1, in step 1's `miqPolicyList` format, which stands in for the PDF with who sent it and when; there are no
   summaries of statements, by request, as the council wouldn't know what they say), when it arrived and Remove. No matter filter and no "responds to" column; the
   questions a statement answers are still stored, and are what puts it beside those questions
   in the workspace. "Add another statement" adds one by hand.
