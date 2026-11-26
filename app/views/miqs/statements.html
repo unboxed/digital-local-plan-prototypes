@@ -39,11 +39,16 @@
       {% for statement in statements %}
         <tr class="govuk-table__row">
           <td class="govuk-table__cell">
-            <strong>{{ statement.consulteeName }}</strong>
+            {% if statement.consulteeHref %}
+              <a class="govuk-link govuk-!-font-weight-bold" href="{{ statement.consulteeHref }}">{{ statement.consulteeName }}<span class="govuk-visually-hidden">: past consultation responses</span></a>
+            {% else %}
+              <strong>{{ statement.consulteeName }}</strong>
+            {% endif %}
             <span class="dlp-miq-muted govuk-body-s govuk-!-display-block govuk-!-margin-bottom-0">{{ statement.respondentType }}</span>
           </td>
           <td class="govuk-table__cell govuk-body-s">
             <a class="govuk-link dlp-miq-file-link" href="/plan/make/miqs/statements/{{ statement.id }}">{{ statement.fileName }}<span class="govuk-visually-hidden">, statement from {{ statement.consulteeName }}</span></a>
+            <p class="govuk-body-s dlp-miq-questions__meta govuk-!-margin-top-1 govuk-!-margin-bottom-0">Policies: {{ miqPolicyList(statement.policies) }}</p>
           </td>
           <td class="govuk-table__cell govuk-body-s">{{ statement.received }}</td>
           {% if not state.sent %}

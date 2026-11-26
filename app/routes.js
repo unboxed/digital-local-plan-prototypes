@@ -8381,12 +8381,24 @@ function miqMatterViews (state) {
   }))
 }
 
-function miqStatementView (statement) {
+// With `state`, also the policies the statement comments on: those linked to the questions it
+// responds to, as corrected in step 1, each once, in the order the questions come.
+function miqStatementView (statement, state) {
   const consultee = getCrConsultee(statement.consulteeId)
-  return Object.assign({}, statement, {
+  const view = Object.assign({}, statement, {
     consulteeName: consultee ? consultee.name : statement.consulteeId,
-    respondentType: consultee ? consultee.type : ''
+    respondentType: consultee ? consultee.type : '',
+    // The consultee's past consultation responses, in Managing consultation responses.
+    consulteeHref: consultee ? '/plan/consultation/managing-responses/consultees/' + consultee.id : ''
   })
+  if (state) {
+    const refs = []
+    MIQD.QUESTIONS.filter(question => statement.questions.includes(question.id)).forEach(question => {
+      miqPolicyRefs(state, question).forEach(ref => { if (!refs.includes(ref)) refs.push(ref) })
+    })
+    view.policies = refs.map(miqPolicyView)
+  }
+  return view
 }
 
 function renderMiq (req, res, view, active, locals) {
@@ -8651,7 +8663,7 @@ router.get(MIQ + '/statements', (req, res) => {
   const state = getMiqs(req)
   if (!state.published) return res.redirect(MIQ + '/publish')
   renderMiq(req, res, 'statements', 'statements', {
-    statements: state.statements.map(miqStatementView),
+    statements: state.statements.map(statement => miqStatementView(statement, state)),
     questions: MIQD.QUESTIONS,
     consultees: CR_CONSULTEES,
     waiting: MIQD.HEARING_STATEMENTS.filter(seed => !state.statements.some(statement => statement.id === seed.id)).length,
@@ -8768,7 +8780,7 @@ router.get(MIQ + '/responses/:miqQuestionId', (req, res) => {
     evidence: miqEvidence(refs),
     representations: miqRepresentations(refs),
     themes: miqThemes(refs).map(theme => ({ id: theme.id, title: theme.title, summary: theme.summary, respondents: theme.respondents, href: CR + '/themes/' + theme.id })),
-    statements: state.statements.filter(statement => statement.questions.includes(question.id)).map(miqStatementView),
+    statements: state.statements.filter(statement => statement.questions.includes(question.id)).map(statement => miqStatementView(statement)),
     compliance: miqCompliance(req, state, question, refs),
     previous: MIQD.QUESTIONS[index - 1] || null,
     next: MIQD.QUESTIONS[index + 1] || null
@@ -8854,7 +8866,7 @@ router.get(MIQ + '/send', (req, res) => {
   renderMiq(req, res, 'send', 'send', {
     rows,
     allComplete: miqAllComplete(state),
-    statements: state.statements.map(miqStatementView),
+    statements: state.statements.map(statement => miqStatementView(statement)),
     programmeOfficer: MIQD.PROGRAMME_OFFICER,
     inspector: MIQD.INSPECTOR
   })
