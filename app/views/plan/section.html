@@ -5,11 +5,13 @@
   A section of the service (app/data/site-map.js): each of its features, with the prototypes that
   explore it, or a link to its "not built yet" page.
 #}
-{% macro prototypeList(items) %}
+{# An item with no href isn't built yet: it links to its "not built yet" page, by slug. #}
+{% macro prototypeList(items, sectionHref) %}
 <ul class="govuk-list dlp-site-prototypes">
   {% for item in items %}
   <li class="dlp-site-prototypes__item">
-    <a class="govuk-link govuk-!-font-weight-bold" href="{{ item.href }}">{{ item.title }}</a>
+    <a class="govuk-link govuk-!-font-weight-bold" href="{{ item.href or (sectionHref + '/' + item.slug) }}">{{ item.title }}</a>
+    {% if not item.href %}<strong class="govuk-tag govuk-tag--grey govuk-!-margin-left-1">Not built yet</strong>{% endif %}
     <p class="govuk-body-s govuk-!-margin-top-1 govuk-!-margin-bottom-0">{{ item.description }}</p>
   </li>
   {% endfor %}
@@ -37,14 +39,14 @@
       </h2>
       <p class="govuk-body">{{ feature.description }}</p>
       {% if feature.prototypes %}
-        {{ prototypeList(feature.prototypes) }}
+        {{ prototypeList(feature.prototypes, section.href) }}
       {% elif not feature.earlier %}
         <p class="govuk-body"><strong class="govuk-tag govuk-tag--grey">Not built yet</strong></p>
       {% endif %}
       {% if feature.earlier %}
         <h3 class="govuk-heading-s govuk-!-margin-top-4 govuk-!-margin-bottom-2">Earlier versions</h3>
         <p class="govuk-body-s dlp-site-muted">Prototypes we’ve tested through design feedback sessions and other informal tests.</p>
-        {{ prototypeList(feature.earlier) }}
+        {{ prototypeList(feature.earlier, section.href) }}
       {% endif %}
     </div>
     {% endfor %}

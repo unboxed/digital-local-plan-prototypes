@@ -142,7 +142,9 @@ can find a prototype where its feature would sit in the service.
   haven’t built a prototype for this feature yet."
 - All of this comes from **`app/data/site-map.js`** (`SECTIONS`, `DASHBOARD_FEATURES`). To add
   a prototype, add it to its feature's `prototypes` there; to add a feature with
-  nothing built, give it a `slug` and no prototypes.
+  nothing built, give it a `slug` and no prototypes. A single prototype can be listed as not built
+  the same way: a `slug` and no `href` in its feature's `prototypes` (e.g. Gateways' "Planning to
+  meet requirements"); the section page tags it "Not built yet" and links its not built page.
 
 Where the prototypes now live (old URL → new; view folders unchanged):
 
@@ -159,11 +161,28 @@ Where the prototypes now live (old URL → new; view folders unchanged):
 | `/public-view/...` | `/plan/view/...` |
 | `/gateway-2-progress-check` | `/plan/view/gateway-2-progress-check` |
 | `/examination-inspector-view` | `/plan/view/examination` |
-| `/statement-of-compliance` | `/plan/make/gateway-preparation/statement-of-compliance` |
+| `/statement-of-compliance` | `/plan/make/gateways/statement-of-compliance/…` |
 
 The Statement of compliance was first moved to `/plan/view/statement-of-compliance`, then to
-Make your plan's Gateway preparation feature; both old addresses redirect.
-`/plan/make/gateway-preparation` itself has no page and goes to `/plan/make`.
+`/plan/make/gateway-preparation/...`, and now sits under `/plan/make/gateways/...`; every old
+address redirects. See "Gateways" below.
+
+## Gateways (Make your plan)
+
+The Gateways feature (formerly "Gateway preparation") is for preparing for, submitting to and
+completing Gateways 2 and 3. It lists three prototypes in `site-map.js`:
+
+- **Planning to meet requirements**: not built yet (`/plan/make/planning-to-meet-requirements`).
+- **Gateway 2 process** (`/plan/make/gateways/gateway-2`, `views/gateways/gateway-2.html`): a
+  landing page for the draft statement of compliance and Gateway 2 progress check (which is also
+  still listed under View the plan).
+- **Gateway 3 process** (`/plan/make/gateways/gateway-3`): the completed statement of compliance
+  and the statement of general conformity with the London Plan (the GLA page below).
+
+The statement of compliance has no landing page of its own any more: its checklist's back link
+goes to Gateway 2 (draft) or Gateway 3 (completed). `/plan/make/gateways` and
+`/plan/make/gateways/statement-of-compliance` go to `/plan/make`, and `MOVED_URLS` sends
+`/plan/make/gateway-preparation/...` to the same path under `/plan/make/gateways`.
 
 The old hub pages (`/project-management`, `/evidence`, `/policy-writing`, `/consultations`,
 `/pins-view`, `/public-view`) were replaced by the section pages, and the user stories were
@@ -1237,7 +1256,8 @@ It is the public site for the examination, read by the inspector, participants a
   - CS-01 shows the Statement of compliance prototype's completed statement in its record page,
     with the version details beside it. The list is `statement-of-compliance/partials/requirement-list.html`
     (`socRequirementList`), built from `socRequirementRows(variant)` and shared with the checklist,
-    so the two can't drift. Each "See evidence" opens that prototype's requirement page.
+    so the two can't drift. It is a table (Regulation, Summary, Status, and a link): the checklist
+    says "View and update", the library passes `actionText: "View"`.
 - **The library search has type-ahead:** `initSuggestSearch` is fed every item and evidence
   record, each with its `href`, so choosing a suggestion opens it. Without JavaScript, or on
   Enter, `_q` runs the full search.
@@ -1328,9 +1348,15 @@ the header.
 
 ## Statement of compliance
 
-`/plan/make/gateway-preparation/statement-of-compliance` (`app/views/statement-of-compliance/`,
-content in `app/data/statement-of-compliance.js`), listed under Make your plan's Gateway
-preparation. A draft (progress before Gateway 3) and a completed variant (`:socVariant`).
+`/plan/make/gateways/statement-of-compliance/:socVariant` (`app/views/statement-of-compliance/`,
+content in `app/data/statement-of-compliance.js`). A draft (progress at Gateway 2, ahead of
+Gateway 3), linked from Gateway 2 process, and a completed variant, linked from Gateway 3 process.
+
+- **The checklist is a table**, full width under the intro: Regulation (e.g. "32(a)", linked to
+  regulation 32 on legislation.gov.uk, which has no anchors for the lettered paragraphs), the
+  requirement's `title` as its summary, its status tag, and "View and update" to its page. The
+  table scrolls inside `.dlp-soc-table-wrap`, which is `position: relative` so the cells'
+  visually hidden text can't escape it and widen the page on a phone.
 
 - **The requirements are regulation 32's (a) to (l)** of the 2026 Regulations (SI 2026/186),
   "Gateway 3: prescribed requirements", referenced as "Regulation 32(a)" and so on, with a link to
@@ -1342,7 +1368,10 @@ preparation. A draft (progress before Gateway 3) and a completed variant (`:socV
 - **The old procedural regulations (19 to 26) survive only as `PROCESS_HISTORY`**, which Gateway 2
   progress check's plan timeline (`getPlanTimeline`) is built from. They are not requirements.
 - MIQs questions name requirements in `compliance` (`miqs.js`); keep those refs in step.
-- **Every requirement has a "Where this requirement is met" table**: one row per part of the
+- **Each requirement page reads, in order:** the description, "Read regulation 32", **Plan to
+  meet requirement** (the planned activity in the draft, "No further action required" in the
+  completed statement), any confirmation, then the evidence table and the audit log.
+- **Every requirement has an "Evidence of meeting requirement" table**: one row per part of the
   requirement (`LINK_ROWS` in the data file), each with **any number of links that officers add
   and remove** on the page (one form: `_action` `add` with `_row` and `_link`, or
   `remove:<row id>:<key>`; a visually hidden Add comes first so Enter doesn't press a Remove).

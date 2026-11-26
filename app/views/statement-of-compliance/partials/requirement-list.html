@@ -1,25 +1,44 @@
 {#
-  The statement's requirements, each with its status and a link to its evidence. Shared by the
-  checklist and by the Examination library's Statement of compliance record (CS-01), which shows
-  the completed statement with its version details beside it. `headingLevel` defaults to 2.
+  The statement's requirements as a table: the regulation (linked to legislation.gov.uk), a
+  summary of it, its status and a link to its page. Shared by the checklist and by the Examination
+  library's Statement of compliance record (CS-01), which shows the completed statement with its
+  version details beside it, so the two can't drift.
 
-  requirements: rows from socRequirementRows(variant) in app/routes.js — { ref, title, status, href }
+  requirements: rows from socRequirementRows(variant) in app/routes.js —
+                { ref, title, status, regulationHref, href }
+  options:      { caption, actionText } — actionText defaults to "View and update"; the library,
+                read by people outside the council, passes "View".
 #}
-{% macro socRequirementList(requirements, statusColours, headingLevel) %}
-{% set h = headingLevel or 2 %}
-<ul class="govuk-list">
-  {% for requirement in requirements %}
-  <li class="govuk-!-margin-bottom-6">
-    <h{{ h }} class="govuk-heading-m govuk-!-margin-bottom-2">
-      <span class="govuk-!-font-weight-bold">{{ requirement.ref }}</span> {{ requirement.title }}
-    </h{{ h }}>
-    <p class="govuk-body">
-      <strong class="govuk-tag{% if statusColours[requirement.status] %} govuk-tag--{{ statusColours[requirement.status] }}{% endif %}">{{ requirement.status }}</strong>
-    </p>
-    <p class="govuk-body">
-      <a class="govuk-link" href="{{ requirement.href }}">See evidence<span class="govuk-visually-hidden"> for {{ requirement.ref }}</span></a>
-    </p>
-  </li>
-  {% endfor %}
-</ul>
+{% macro socRequirementList(requirements, statusColours, options) %}
+{% set opts = options or {} %}
+{% set actionText = opts.actionText or "View and update" %}
+<div class="dlp-soc-table-wrap">
+<table class="govuk-table dlp-soc-requirements">
+  {% if opts.caption %}<caption class="govuk-table__caption govuk-table__caption--m">{{ opts.caption }}</caption>{% endif %}
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header dlp-soc-requirements__ref">Regulation</th>
+      <th scope="col" class="govuk-table__header">Summary</th>
+      <th scope="col" class="govuk-table__header">Status</th>
+      <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Action</span></th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for requirement in requirements %}
+    <tr class="govuk-table__row">
+      <th scope="row" class="govuk-table__header dlp-soc-requirements__ref">
+        <a class="govuk-link" href="{{ requirement.regulationHref }}" target="_blank" rel="noopener noreferrer">{{ requirement.ref | replace("Regulation ", "") }}<span class="govuk-visually-hidden"> of regulation 32 on legislation.gov.uk (opens in a new tab)</span></a>
+      </th>
+      <td class="govuk-table__cell">{{ requirement.title }}</td>
+      <td class="govuk-table__cell">
+        <strong class="govuk-tag{% if statusColours[requirement.status] %} govuk-tag--{{ statusColours[requirement.status] }}{% endif %}">{{ requirement.status }}</strong>
+      </td>
+      <td class="govuk-table__cell dlp-soc-requirements__action">
+        <a class="govuk-link" href="{{ requirement.href }}">{{ actionText }}<span class="govuk-visually-hidden"> {{ requirement.ref }}</span></a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
 {% endmacro %}

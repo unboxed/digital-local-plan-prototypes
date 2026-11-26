@@ -7,9 +7,9 @@
 {% block content %}
 
 <div class="govuk-grid-row">
-  <div class="govuk-grid-column-two-thirds">
+  <div class="govuk-grid-column-full">
 
-    <a class="govuk-back-link" href="/plan/make/gateway-preparation/statement-of-compliance/{{ variant }}">Back to {{ "draft" if variant == "draft" else "completed" }} statement of compliance</a>
+    <a class="govuk-back-link" href="/plan/make/gateways/statement-of-compliance/{{ variant }}">Back to {{ "draft" if variant == "draft" else "completed" }} statement of compliance</a>
 
     <span class="govuk-caption-xl">{{ requirement.ref }}</span>
     <h1 class="govuk-heading-xl">{{ requirement.title }}</h1>
@@ -22,6 +22,19 @@
     <p class="govuk-body">
       <a class="govuk-link" href="{{ regulationUrl }}" target="_blank" rel="noopener noreferrer">Read regulation 32 on legislation.gov.uk<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>
     </p>
+
+    <h2 class="govuk-heading-m govuk-!-margin-top-6">Plan to meet requirement</h2>
+    {% if variant == "draft" and plannedActivity %}
+    <div class="govuk-inset-text">
+      <p class="govuk-body">{{ plannedActivity | legislationLinks }}</p>
+    </div>
+    {% elif variant == "draft" %}
+    <p class="govuk-body-s dlp-document-hint">No further activities planned for this requirement.</p>
+    {% else %}
+    <div class="govuk-inset-text">
+      <p class="govuk-body">No further action required.</p>
+    </div>
+    {% endif %}
 
     {% if requirement.confirmation %}
     <section class="dlp-soc-confirmation{% if variant == 'draft' %} dlp-soc-confirmation--pending{% endif %}" aria-labelledby="soc-confirmation-heading">
@@ -47,7 +60,7 @@
       <button type="submit" name="_action" value="add" class="govuk-visually-hidden" tabindex="-1" aria-hidden="true">Add link</button>
 
       <table class="govuk-table">
-        <caption class="govuk-table__caption govuk-table__caption--m">Where this requirement is met</caption>
+        <caption class="govuk-table__caption govuk-table__caption--m">Evidence of meeting requirement</caption>
         <thead class="govuk-table__head">
           <tr class="govuk-table__row">
             <th scope="col" class="govuk-table__header">Requirement</th>
@@ -110,21 +123,6 @@
         </div>
       </fieldset>
     </form>
-    {% endif %}
-
-    {% if variant == "draft" %}
-    <h2 class="govuk-heading-m govuk-!-margin-top-6">Planned activities</h2>
-    {% if plannedActivity %}
-    <div class="govuk-inset-text">
-      <p class="govuk-body">{{ plannedActivity | legislationLinks }}</p>
-    </div>
-    {% else %}
-    <p class="govuk-body-s dlp-document-hint">No further activities planned for this requirement.</p>
-    {% endif %}
-    {% else %}
-    <div class="govuk-inset-text">
-      <p class="govuk-body">No further action required.</p>
-    </div>
     {% endif %}
 
     <h2 class="govuk-heading-m govuk-!-margin-top-6">Evidence</h2>

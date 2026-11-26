@@ -1,0 +1,49 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Gateway 3 process" %}
+
+{# Gateways (site-map.js): what sits under Gateway 3. See CLAUDE.md, "Gateways". #}
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/plan/make">Back to Make your plan</a>
+
+    <span class="govuk-caption-xl">Gateways</span>
+    <h1 class="govuk-heading-xl">Gateway 3 process</h1>
+
+    <p class="govuk-body">
+      At Gateway 3 the plan is submitted for independent examination. It goes with a statement of
+      compliance showing how it meets the requirements prescribed by
+      <a class="govuk-link" href="https://www.legislation.gov.uk/uksi/2026/186/regulation/32/made" target="_blank" rel="noopener noreferrer">regulation 32 of the Town and Country Planning (Local Planning) (England) Regulations 2026<span class="govuk-visually-hidden"> (opens in a new tab)</span></a>,
+      and the evidence for each.
+    </p>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m" />
+
+    <div class="govuk-!-margin-bottom-6">
+      <h2 class="govuk-heading-m">
+        <a class="govuk-link" href="/plan/make/gateways/statement-of-compliance/completed">Completed statement of compliance</a>
+      </h2>
+      <p class="govuk-body">
+        Every requirement fully met, with no further action required: the statement as it would be
+        submitted with the plan for independent examination.
+      </p>
+    </div>
+
+    <div class="govuk-!-margin-bottom-6">
+      <h2 class="govuk-heading-m">
+        <a class="govuk-link" href="/plan/make/gateways/statement-of-compliance/spatial-development-strategy">Statement of general conformity with the London Plan</a>
+      </h2>
+      <p class="govuk-body">
+        Part of the evidence for regulation 32(j): the Greater London Authority’s representations
+        on whether the plan is in general conformity with the spatial development strategy (the
+        London Plan, in this example), and an optional short statement from the authority.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

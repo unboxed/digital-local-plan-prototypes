@@ -103,13 +103,25 @@ const SECTIONS = [
         ]
       },
       {
-        title: 'Gateway preparation',
-        description: 'Prepare for each gateway, including creating the documents it needs.',
+        title: 'Gateways',
+        description: 'Prepare for, submit to and complete Gateways 2 and 3, including creating the documents each needs.',
         prototypes: [
+          // Not built yet: a prototype with a slug and no href has a "not built yet" page at
+          // /plan/<section>/<slug>, like a feature with no prototypes.
           {
-            title: 'Statement of compliance',
-            href: '/plan/make/gateway-preparation/statement-of-compliance',
-            description: 'The Gateway 3 requirements of regulation 32 and the evidence for each, as a draft for checking progress and as completed for submission, with the Greater London Authority’s representations on general conformity with the London Plan.'
+            slug: 'planning-to-meet-requirements',
+            title: 'Planning to meet requirements',
+            description: 'Plan the work needed to meet each gateway’s requirements, and when it will be done.'
+          },
+          {
+            title: 'Gateway 2 process',
+            href: '/plan/make/gateways/gateway-2',
+            description: 'Prepare for Gateway 2: check progress against the requirements in the draft statement of compliance, and check the progress of the plan’s chapters and evidence base.'
+          },
+          {
+            title: 'Gateway 3 process',
+            href: '/plan/make/gateways/gateway-3',
+            description: 'Submit the plan at Gateway 3: the completed statement of compliance, with the evidence for each requirement of regulation 32, and the statement of general conformity with the London Plan.'
           }
         ]
       },
@@ -293,7 +305,11 @@ function getSection (id) {
 // A feature with no prototype, by its section ('dashboard' for the plan maker home) and slug.
 function getNotBuiltFeature (sectionId, slug) {
   const features = sectionId === 'dashboard' ? DASHBOARD_FEATURES : (getSection(sectionId) || { features: [] }).features
-  return features.find(feature => feature.slug === slug) || null
+  const feature = features.find(candidate => candidate.slug === slug)
+  if (feature) return feature
+  // A prototype not built yet: listed in its feature with a slug and no href.
+  const prototypes = features.flatMap(candidate => candidate.prototypes || [])
+  return prototypes.find(prototype => prototype.slug === slug && !prototype.href) || null
 }
 
 module.exports = {

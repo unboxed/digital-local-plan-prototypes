@@ -218,7 +218,27 @@
   }
 }
 
-// --- Where this requirement is met (requirements/show.html) ---------------------------------
+// --- Requirements table (partials/requirement-list.html) ------------------------------------
+
+// Scrolls sideways rather than pushing the page wider on a phone. `position: relative` keeps
+// the cells' absolutely positioned visually hidden text inside it too: without it they escape
+// the scroll box and widen the page.
+.dlp-soc-table-wrap {
+  position: relative;
+  overflow-x: auto;
+}
+
+.dlp-soc-requirements__ref,
+.dlp-soc-requirements__action {
+  white-space: nowrap;
+}
+
+.dlp-soc-requirements .govuk-tag {
+  max-width: none;
+  white-space: nowrap;
+}
+
+// --- Evidence of meeting requirement (requirements/show.html) ---------------------------------
 
 .dlp-soc-links {
   margin-bottom: 0;

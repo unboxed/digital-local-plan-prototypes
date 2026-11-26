@@ -80,7 +80,7 @@
         {# The Statement of compliance prototype's own list, shared with its checklist. #}
         <h2 class="govuk-heading-l">{{ organisationName }} Local Plan</h2>
         <p class="govuk-body">Every requirement below is fully met, with no further action required.</p>
-        {{ socRequirementList(requirements, statusColours, 3) }}
+        {{ socRequirementList(requirements, statusColours, { actionText: "View" }) }}
 
       {% else %}
         {% for paragraph in content.paragraphs %}

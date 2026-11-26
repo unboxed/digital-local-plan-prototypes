@@ -20,13 +20,13 @@ const { POLICIES } = require('./policies.js')
 
 const REGULATION_URL = 'https://www.legislation.gov.uk/uksi/2026/186/regulation/32/made'
 
-const SDS_STATEMENT_HREF = '/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy'
-const POLICIES_HREF = '/plan/make/gateway-preparation/statement-of-compliance/policies'
+const SDS_STATEMENT_HREF = '/plan/make/gateways/statement-of-compliance/spatial-development-strategy'
+const POLICIES_HREF = '/plan/make/gateways/statement-of-compliance/policies'
 // Every timetable link in the prototypes goes to the timetable's placeholder while its flow is
 // rebuilt (see CLAUDE.md, Getting ready).
 const TIMETABLE_HREF = '/plan/manage/getting-ready/timetable-placeholder'
 
-const SOC_BASE = '/plan/make/gateway-preparation/statement-of-compliance'
+const SOC_BASE = '/plan/make/gateways/statement-of-compliance'
 
 // Pages elsewhere in the prototypes that a requirement is met by. Anything with no page of its
 // own opens in the statement's placeholder document viewer (documentHref).
@@ -82,13 +82,12 @@ const LINK_PAGES = {
   policyLayers: { text: 'View the policy layers', href: PLACES.policyLayers },
   environmentalReport: { text: 'View the strategic environmental assessment', href: PLACES.environmentalReport },
   examinationLibrary: { text: 'View the examination library', href: PLACES.examinationLibrary },
-  statementOfCompliance: { text: 'View the statement of compliance', href: SOC_BASE }
+  statementOfCompliance: { text: 'View the statement of compliance', href: SOC_BASE + '/completed' }
 }
 
 const LINK_ROWS = {
   'Regulation 32(a)': [
-    { id: 'policies', requirement: 'Policies on the amount, type and location of development', links: ['page:allPolicies'] },
-    { id: 'timetable', requirement: 'Timetable for development', links: ['page:timetable'] }
+    { id: 'policies', requirement: 'Policies on the amount, type and location of development in its area, and the timetable for it', links: ['page:allPolicies'] }
   ],
   'Regulation 32(b)': [
     { id: 'vision', requirement: 'A vision for how the area will change over the plan period', links: ['document:Vision and measurable outcomes'] },

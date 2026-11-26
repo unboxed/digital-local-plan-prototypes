@@ -1,0 +1,46 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Gateway 2 process" %}
+
+{# Gateways (site-map.js): what sits under Gateway 2. See CLAUDE.md, "Gateways". #}
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <a class="govuk-back-link" href="/plan/make">Back to Make your plan</a>
+
+    <span class="govuk-caption-xl">Gateways</span>
+    <h1 class="govuk-heading-xl">Gateway 2 process</h1>
+
+    <p class="govuk-body">
+      Gateway 2 checks the plan’s progress before the consultation on the proposed local plan.
+      Use these to see how far the plan has got towards the requirements it must meet at
+      Gateway 3, and what is still to do.
+    </p>
+
+    <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--m" />
+
+    <div class="govuk-!-margin-bottom-6">
+      <h2 class="govuk-heading-m">
+        <a class="govuk-link" href="/plan/make/gateways/statement-of-compliance/draft">Draft statement of compliance</a>
+      </h2>
+      <p class="govuk-body">
+        The requirements of regulation 32 as they stand at Gateway 2: not every requirement is met
+        yet, and each requirement’s page shows the plan to meet it.
+      </p>
+    </div>
+
+    <div class="govuk-!-margin-bottom-6">
+      <h2 class="govuk-heading-m">
+        <a class="govuk-link" href="/plan/view/gateway-2-progress-check">Gateway 2 progress check</a>
+      </h2>
+      <p class="govuk-body">
+        Check the progress of the plan’s chapters and evidence base.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

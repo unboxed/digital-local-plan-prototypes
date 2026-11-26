@@ -36,12 +36,13 @@ const MOVED_URLS = [
   ['/pins-view', '/plan/view'],
   ['/gateway-2-progress-check', '/plan/view/gateway-2-progress-check'],
   ['/examination-inspector-view', '/plan/view/examination'],
-  ['/statement-of-compliance', '/plan/make/gateway-preparation/statement-of-compliance'],
+  ['/statement-of-compliance', '/plan/make/gateways/statement-of-compliance'],
   ['/plan/view/statement-of-compliance/spatial-development-strategy/policies', '/plan/make/london-plan-alignment/policies'],
   ['/plan/view/statement-of-compliance/spatial-development-strategy/evidence', '/plan/make/london-plan-alignment/evidence'],
-  ['/plan/view/statement-of-compliance', '/plan/make/gateway-preparation/statement-of-compliance'],
-  ['/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy/policies', '/plan/make/london-plan-alignment/policies'],
-  ['/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy/evidence', '/plan/make/london-plan-alignment/evidence'],
+  ['/plan/view/statement-of-compliance', '/plan/make/gateways/statement-of-compliance'],
+  ['/plan/make/gateways/statement-of-compliance/spatial-development-strategy/policies', '/plan/make/london-plan-alignment/policies'],
+  ['/plan/make/gateways/statement-of-compliance/spatial-development-strategy/evidence', '/plan/make/london-plan-alignment/evidence'],
+  ['/plan/make/gateway-preparation', '/plan/make/gateways'],
   ['/public-view', '/plan/view'],
   ['/user-stories', '/']
 ]
@@ -62,7 +63,7 @@ const MOVED_VIEWS = [
   ['/plan/consultation', 'consultations'],
   ['/plan/view/gateway-2-progress-check', 'gateway-2-progress-check'],
   ['/plan/view/examination', 'examination-inspector-view'],
-  ['/plan/make/gateway-preparation/statement-of-compliance', 'statement-of-compliance'],
+  ['/plan/make/gateways/statement-of-compliance', 'statement-of-compliance'],
   ['/plan/view', 'public-view']
 ]
 
@@ -3343,7 +3344,7 @@ router.get('/plan/view/gateway-2-progress-check/evidence/:source', (req, res) =>
 const SOC_VARIANTS = ['draft', 'completed']
 
 router.param('socVariant', (req, res, next, socVariant) => {
-  if (!SOC_VARIANTS.includes(socVariant)) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance')
+  if (!SOC_VARIANTS.includes(socVariant)) return res.redirect('/plan/make')
   next()
 })
 
@@ -3353,13 +3354,24 @@ const STATEMENT_STATUS_COLOURS = {
   'Fully met': 'green'
 }
 
-router.get('/plan/make/gateway-preparation/statement-of-compliance', (req, res) => {
-  res.render('statement-of-compliance/index.html')
+// --- Gateways: Gateway 2 process and Gateway 3 process ---
+//
+// Gateways (formerly Gateway preparation, at /plan/make/gateway-preparation, which redirects
+// here) is a feature of Make your plan with three prototypes (site-map.js): Planning to meet
+// requirements (not built), and a landing page each for Gateway 2 and Gateway 3. The draft
+// statement of compliance and Gateway 2 progress check sit under Gateway 2; the completed
+// statement and the GLA's representations on general conformity under Gateway 3. Neither
+// /plan/make/gateways nor the statement of compliance's own address has a page: both go to the
+// section page, which lists the prototypes.
+router.get('/plan/make/gateways/gateway-2', (req, res) => {
+  res.render('gateways/gateway-2.html')
 })
 
-// Gateway preparation is a feature of Make your plan rather than a page of its own, so its
-// address goes to the section page, which lists its prototypes.
-router.get('/plan/make/gateway-preparation', (req, res) => {
+router.get('/plan/make/gateways/gateway-3', (req, res) => {
+  res.render('gateways/gateway-3.html')
+})
+
+router.get(['/plan/make/gateways', '/plan/make/gateways/statement-of-compliance'], (req, res) => {
   res.redirect('/plan/make')
 })
 
@@ -3373,7 +3385,7 @@ router.get('/plan/make/gateway-preparation', (req, res) => {
 //
 // Registered before .../statement-of-compliance/:socVariant, which would otherwise take
 // "spatial-development-strategy" as a variant and redirect it away.
-const SOC_SDS = '/plan/make/gateway-preparation/statement-of-compliance/spatial-development-strategy'
+const SOC_SDS = '/plan/make/gateways/statement-of-compliance/spatial-development-strategy'
 const SOC_SDS_CONSULTEE = 'greater-london-authority'
 
 // One whole response per consultation phase, newest first, from the same response documents
@@ -3482,8 +3494,8 @@ router.post(SOC_SDS, (req, res) => {
 // plan order, with the ones that set the amount, type, location or timing of development marked.
 // Each policy has an id (policy-<ref>) so audit log entries can link to it. Registered before
 // .../statement-of-compliance/:socVariant, which would otherwise take "policies" as a variant.
-router.get('/plan/make/gateway-preparation/statement-of-compliance/policies', (req, res) => {
-  const base = '/plan/make/gateway-preparation/statement-of-compliance'
+router.get('/plan/make/gateways/statement-of-compliance/policies', (req, res) => {
+  const base = '/plan/make/gateways/statement-of-compliance'
   const areas = []
   POLICIES.forEach(policy => {
     let area = areas.find(candidate => candidate.name === policy.policyArea)
@@ -3497,7 +3509,7 @@ router.get('/plan/make/gateway-preparation/statement-of-compliance/policies', (r
     })
   })
   // Back to wherever in the statement the user came from (a requirement page, usually).
-  let backHref = base
+  let backHref = '/plan/make'
   try {
     const from = new URL(req.get('referer') || '')
     if (from.pathname.startsWith(base + '/') && from.pathname !== req.path) backHref = from.pathname
@@ -3717,7 +3729,10 @@ function socRequirementRows (variant) {
     ref: requirement.ref,
     title: requirement.title,
     status: getRequirementStatus(requirement.ref, variant),
-    href: '/plan/make/gateway-preparation/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(requirement.ref)
+    // legislation.gov.uk has no anchors for a regulation's lettered paragraphs, so every
+    // requirement links to regulation 32 itself.
+    regulationHref: SOC_REGULATION_URL,
+    href: '/plan/make/gateways/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(requirement.ref)
   }))
 }
 
@@ -3728,7 +3743,7 @@ const SOC_PDF = {
   completed: { size: '486 KB', pages: 24 }
 }
 
-router.get('/plan/make/gateway-preparation/statement-of-compliance/:socVariant', (req, res) => {
+router.get('/plan/make/gateways/statement-of-compliance/:socVariant', (req, res) => {
   const variant = req.params.socVariant
   res.render('statement-of-compliance/checklist.html', {
     variant,
@@ -3747,7 +3762,7 @@ router.get('/plan/make/gateway-preparation/statement-of-compliance/:socVariant',
 // { <requirement ref>: { <row id>: [link keys] } }, seeded from the data file's LINK_ROWS and
 // stamped like the other prototypes' state. Shared by the draft and completed statements: where
 // a requirement is met doesn't depend on which snapshot you're reading.
-const SOC_LINKS_SCHEMA_VERSION = 2
+const SOC_LINKS_SCHEMA_VERSION = 3
 
 function getSocLinks (req) {
   if (req.session.data.socLinksSchemaVersion !== SOC_LINKS_SCHEMA_VERSION) {
@@ -3758,13 +3773,13 @@ function getSocLinks (req) {
 }
 
 function socRequirementHref (variant, ref) {
-  return '/plan/make/gateway-preparation/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(ref)
+  return '/plan/make/gateways/statement-of-compliance/' + variant + '/requirements/' + encodeURIComponent(ref)
 }
 
-router.get('/plan/make/gateway-preparation/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
+router.get('/plan/make/gateways/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
   const variant = req.params.socVariant
   const requirement = getRequirement(req.params.ref)
-  if (!requirement) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance/' + variant)
+  if (!requirement) return res.redirect('/plan/make/gateways/statement-of-compliance/' + variant)
 
   const links = getSocLinks(req)[requirement.ref] || {}
   res.render('statement-of-compliance/requirements/show.html', {
@@ -3786,10 +3801,10 @@ router.get('/plan/make/gateway-preparation/statement-of-compliance/:socVariant/r
 
 // One form for the table: `_action` is `add` (with `_row` and `_link`) or
 // `remove:<row id>:<link key>`. A link already in the row isn't added twice.
-router.post('/plan/make/gateway-preparation/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
+router.post('/plan/make/gateways/statement-of-compliance/:socVariant/requirements/:ref', (req, res) => {
   const variant = req.params.socVariant
   const requirement = getRequirement(req.params.ref)
-  if (!requirement) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance/' + variant)
+  if (!requirement) return res.redirect('/plan/make/gateways/statement-of-compliance/' + variant)
 
   const state = getSocLinks(req)
   const links = state[requirement.ref] || (state[requirement.ref] = {})
@@ -3814,8 +3829,8 @@ router.post('/plan/make/gateway-preparation/statement-of-compliance/:socVariant/
 // A placeholder viewer for the materials linked from the audit log (the notice, a consultation
 // summary, the self-assessment, and so on) — there's no real document behind any of them, so
 // this renders the title only rather than pretending to show real content.
-router.get('/plan/make/gateway-preparation/statement-of-compliance/documents/:title', (req, res) => {
-  if (!isKnownDocument(req.params.title)) return res.redirect('/plan/make/gateway-preparation/statement-of-compliance')
+router.get('/plan/make/gateways/statement-of-compliance/documents/:title', (req, res) => {
+  if (!isKnownDocument(req.params.title)) return res.redirect('/plan/make')
 
   res.render('statement-of-compliance/documents/show.html', {
     title: req.params.title
@@ -8005,7 +8020,7 @@ function miqCompliance (req, state, question, refs) {
         ref,
         title: requirement ? requirement.title : '',
         status: getRequirementStatus(ref, 'completed'),
-        href: '/plan/make/gateway-preparation/statement-of-compliance/completed/requirements/' + encodeURIComponent(ref)
+        href: '/plan/make/gateways/statement-of-compliance/completed/requirements/' + encodeURIComponent(ref)
       }
     }),
     policies: refs.map(miqPolicyView),

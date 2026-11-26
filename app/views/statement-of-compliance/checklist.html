@@ -8,14 +8,14 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <a class="govuk-back-link" href="/plan/make/gateway-preparation/statement-of-compliance">Back to Statement of compliance</a>
+    <a class="govuk-back-link" href="/plan/make/gateways/{{ 'gateway-2' if variant == 'draft' else 'gateway-3' }}">Back to Gateway {{ "2" if variant == "draft" else "3" }} process</a>
 
     <span class="govuk-caption-xl">{{ "Draft" if variant == "draft" else "Completed" }} statement of compliance</span>
     <h1 class="govuk-heading-xl">{{ organisationName }} Local Plan</h1>
 
     {% if variant == "draft" %}
     <p class="govuk-body">
-      This statement is for checking progress before Gateway 3. Not every requirement is met
+      This statement is for checking progress at Gateway 2, ahead of Gateway 3. Not every requirement is met
       yet — see each requirement's evidence for what is planned and when.
     </p>
     {% else %}
@@ -80,8 +80,13 @@
 
     <hr class="govuk-section-break govuk-section-break--visible govuk-section-break--l" />
 
-    {{ socRequirementList(requirements, statusColours) }}
+  </div>
+</div>
 
+{# Full width, so the four columns have room. #}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    {{ socRequirementList(requirements, statusColours, { caption: "Requirements" }) }}
   </div>
 </div>
 
