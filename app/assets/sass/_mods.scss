@@ -187,3 +187,49 @@ del.dlp-mod--am {
   border-top: 1px solid $dlp-border-grey;
   padding-top: govuk-spacing(4);
 }
+
+// Minor changes and typos: grey, dotted, labelled "Typo" rather than MM or AM.
+$dlp-mod-typo: govuk-colour("black", $variant: "tint-25");
+
+ins.dlp-mod--typo,
+del.dlp-mod--typo {
+  border-bottom: 2px dotted $dlp-mod-typo;
+}
+
+.dlp-mod-label--typo {
+  border-style: dotted;
+  border-color: $dlp-mod-typo;
+  color: $dlp-mod-typo;
+
+  &:link,
+  &:visited {
+    color: $dlp-mod-typo;
+  }
+}
+
+// Capture suggested changes.
+.dlp-mods-acting,
+.dlp-mods-assign {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: govuk-spacing(2) govuk-spacing(3);
+}
+
+.dlp-mods-assign {
+  margin-bottom: govuk-spacing(2);
+
+  .govuk-label {
+    flex-basis: 100%;
+  }
+}
+
+.dlp-mods-capture {
+  border-bottom: 1px solid $dlp-border-grey;
+  margin-bottom: govuk-spacing(6);
+}
+
+.dlp-mod-suggestion + .dlp-mod-suggestion {
+  border-top: 1px solid $dlp-border-grey;
+  padding-top: govuk-spacing(4);
+}

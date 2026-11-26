@@ -8,7 +8,7 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
     <p class="govuk-body">
-      The team drafts each modification here. Open one to edit its wording, comment on it, send
+      The team drafts each suggested change here. Open one to edit its wording, comment on it, send
       it for review or agree it. Everything the team drafts goes into the
       <a class="govuk-link" href="/plan/make/mods/schedule">schedule of modifications</a>.
     </p>
@@ -17,15 +17,40 @@
 </div>
 
 {% if waiting | length %}
-  <h2 class="govuk-heading-m">Not started yet</h2>
-  <ul class="govuk-list">
-    {% for entry in waiting %}
-      <li>
-        <a class="govuk-link" href="{{ entry.href }}">Draft {{ entry.ref }}<span class="govuk-visually-hidden">, main modification to</span>: {{ entry.part.name }}</a>
-        <span class="dlp-miq-muted govuk-body-s">(asked for by the inspector)</span>
-      </li>
-    {% endfor %}
-  </ul>
+  <h2 class="govuk-heading-m">Suggested changes to draft</h2>
+  <p class="govuk-body">Changes suggested during the hearings that nobody has started yet. Start drafting to go straight to the policy.</p>
+  <table class="govuk-table">
+    <caption class="govuk-table__caption govuk-visually-hidden">Suggested changes not drafted yet</caption>
+    <thead class="govuk-table__head">
+      <tr class="govuk-table__row">
+        <th scope="col" class="govuk-table__header">Kind</th>
+        <th scope="col" class="govuk-table__header">Suggested change</th>
+        <th scope="col" class="govuk-table__header">Assigned to</th>
+        <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Action</span></th>
+      </tr>
+    </thead>
+    <tbody class="govuk-table__body">
+      {% for suggestion in waiting %}
+        <tr class="govuk-table__row" id="suggestion-{{ suggestion.id }}">
+          <td class="govuk-table__cell">{{ modTypeTag(suggestion.entry.type, suggestion.entry.ref) if suggestion.entry else modTypeTag(suggestion.kind) }}</td>
+          <td class="govuk-table__cell">
+            <strong>{{ suggestion.part.name }}</strong>
+            <span class="govuk-body-s govuk-!-display-block govuk-!-margin-bottom-1">{{ suggestion.text }}</span>
+            <span class="govuk-body-s dlp-miq-muted">Suggested by {{ suggestion.byName }}, {{ suggestion.byRole }}</span>
+          </td>
+          <td class="govuk-table__cell govuk-body-s">{% if suggestion.assigneeName %}{{ suggestion.assigneeName }}{% else %}<span class="dlp-miq-muted">Not assigned</span>{% endif %}</td>
+          <td class="govuk-table__cell">
+            <form method="post" action="/plan/make/mods/drafts/start" novalidate>
+              <input type="hidden" name="_suggestion" value="{{ suggestion.id }}">
+              <button type="submit" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">
+                Start drafting<span class="govuk-visually-hidden">: {{ suggestion.text }}</span>
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endif %}
 
 <h2 class="govuk-heading-m">Drafts</h2>
@@ -56,6 +81,6 @@
     </tbody>
   </table>
 {% else %}
-  <p class="govuk-body">Nothing has been drafted yet. Start with the <a class="govuk-link" href="/plan/make/mods/letter">inspector’s suggested modifications</a>.</p>
+  <p class="govuk-body">Nothing has been drafted yet. Start with the <a class="govuk-link" href="/plan/make/mods/suggestions">suggested changes</a>.</p>
 {% endif %}
 {% endblock %}

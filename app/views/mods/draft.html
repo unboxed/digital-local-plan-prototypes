@@ -6,12 +6,12 @@
 {% from "partials/tracked-text/macro.njk" import appTrackedText %}
 
 {% set pageName = "Policy " + part.ref + ": " + part.policyTitle %}
-{% set typeName = "Main modification" if item.type == "MM" else "Additional modification" %}
+{% set typeName = { MM: "Main modification", AM: "Additional modification", TYPO: "Minor change" }[item.type] %}
 {% set change = { ref: entry.ref, type: item.type, typeName: typeName } %}
 
 {#
   The drafting workspace, after Policy drafting's draft page: the draft on the left and the
-  inspector's request, comments and evidence on the right, in the shared split pane. Everything
+  suggested change, comments and evidence on the right, in the shared split pane. Everything
   that changes the modification belongs to one form, #mod-form, in the draft pane. Buttons and
   fields in the right-hand pane join it through form="mod-form", so pressing any of them also
   saves what has been typed.
@@ -38,7 +38,7 @@
         {# Inert, as in Policy drafting: a placeholder for inviting others into the draft. #}
         <button type="button" class="dlp-pw2-pane__link" aria-disabled="true">Invite collaborators</button>
         <button type="button" class="dlp-pw2-pane__link dlp-pw2-pane__reopen" data-dlp-split-reopen="support" hidden>
-          Show request and comments
+          Show suggested change and comments
         </button>
       </span>
     </div>
@@ -128,18 +128,17 @@
           <h3 class="govuk-heading-m govuk-!-margin-bottom-1">{{ typeName }} {{ entry.ref }}: {{ part.name }}</h3>
           <p class="govuk-body-s dlp-miq-muted">Assigned to {{ assigneeName }} &middot; Last edited by {{ item.updatedBy }} on {{ item.updatedAt }}</p>
 
-          {% if not item.requestId %}
-            {{ govukRadios({
-              idPrefix: "type",
-              name: "_type",
-              classes: "govuk-radios--small govuk-radios--inline",
-              fieldset: { legend: { text: "Kind of modification", classes: "govuk-fieldset__legend--s" } },
-              items: [
-                { value: "AM", text: "Additional modification", checked: item.type == "AM" },
-                { value: "MM", text: "Main modification", checked: item.type == "MM" }
-              ]
-            }) }}
-          {% endif %}
+          {% set kindItems = [] %}
+          {% for kind in kinds %}
+            {% set kindItems = (kindItems.push({ value: kind.value, text: kind.text, checked: item.type == kind.value }), kindItems) %}
+          {% endfor %}
+          {{ govukRadios({
+            idPrefix: "type",
+            name: "_type",
+            classes: "govuk-radios--small govuk-radios--inline",
+            fieldset: { legend: { text: "Kind of change", classes: "govuk-fieldset__legend--s" } },
+            items: kindItems
+          }) }}
 
           {{ govukTextarea({
             id: "reason",
@@ -173,9 +172,7 @@
               {{ govukButton({ text: "Reopen", name: "_action", value: "reopen", classes: "govuk-button--secondary" }) }}
             {% endif %}
           </div>
-          {% if not item.requestId %}
-            <p class="govuk-body-s"><button type="submit" name="_action" value="remove" class="dlp-link-button">Remove this modification</button></p>
-          {% endif %}
+          <p class="govuk-body-s"><button type="submit" name="_action" value="remove" class="dlp-link-button">Remove this modification</button></p>
         </div>
       </form>
     </div>
@@ -185,28 +182,28 @@
        role="separator"
        tabindex="0"
        aria-orientation="vertical"
-       aria-label="Resize the draft and the request and comments panels"
+       aria-label="Resize the draft and the suggested change and comments panels"
        aria-valuemin="30"
        aria-valuemax="70"
        aria-valuenow="55"
        data-dlp-split-divider></div>
 
-  {# --- The request, comments and evidence --- #}
+  {# --- The suggested change, comments and evidence --- #}
   <section class="dlp-pw2-pane dlp-pd-pane" aria-labelledby="support-heading" data-dlp-split-pane="support" id="support">
     <div class="dlp-pw2-pane__heading">
-      <h2 class="govuk-heading-s dlp-pw2-pane__title" id="support-heading">Request and comments</h2>
+      <h2 class="govuk-heading-s dlp-pw2-pane__title" id="support-heading">Suggested change and comments</h2>
       <span class="dlp-pw2-pane__actions">
         <button type="button" class="dlp-pw2-pane__close" data-dlp-split-close="support">
           <span aria-hidden="true">&#10005;</span>
-          <span class="govuk-visually-hidden">Close the request and comments panel</span>
+          <span class="govuk-visually-hidden">Close the suggested change and comments panel</span>
         </button>
       </span>
     </div>
     <div class="dlp-pw2-pane__body">
       {{ crTabs("About " + entry.ref, tabs) }}
 
-      {% if tab == "request" %}
-        {% include "mods/partials/tab-request.html" %}
+      {% if tab == "suggestion" %}
+        {% include "mods/partials/tab-suggestion.html" %}
       {% elif tab == "comments" %}
         {% include "mods/partials/tab-comments.html" %}
       {% else %}

@@ -14,12 +14,12 @@
       {% else %}
         <strong>Nothing drafted yet</strong>
       {% endif %}
-      &middot; {{ typeCounts.MM }} main and {{ typeCounts.AM }} additional modifications
+      &middot; {{ typeCounts.MM }} main and {{ typeCounts.AM }} additional modifications, {{ typeCounts.TYPO }} minor changes
     </p>
     <p class="govuk-body">
       Every modification the team is working on, in plan order. Main modifications are numbered
-      MM1, MM2 and so on, and additional modifications AM1, AM2, in the order they come in the
-      plan, so the numbers change when one is added earlier on.
+      MM1, MM2 and so on, additional modifications AM1, AM2, and minor changes Typo 1, Typo 2, in
+      the order they come in the plan, so the numbers change when one is added earlier on.
     </p>
     {{ govukButton({ text: "Add a modification", href: "/plan/make/mods/drafts/new", classes: "govuk-button--secondary" }) }}
   </div>
@@ -29,7 +29,7 @@
 <ul class="govuk-list dlp-sds-counts">
   {% for item in counts %}
     <li class="dlp-sds-counts__item">
-      <a class="govuk-link govuk-link--no-visited-state dlp-sds-counts__link" href="?modStatus={{ item.status | urlencode }}&amp;modType=&amp;modPolicy=">
+      <a class="govuk-link govuk-link--no-visited-state dlp-sds-counts__link" href="?modStatus={{ item.status | urlencode }}&amp;modType=&amp;modPolicy=&amp;modAssignee=">
         <span class="dlp-sds-counts__number">{{ item.count }}</span>
         <span class="dlp-sds-counts__label">{{ item.status }}</span>
       </a>
@@ -46,6 +46,7 @@
         <option value="">All types</option>
         <option value="MM" {%- if filters.type == "MM" %} selected{% endif %}>Main modifications</option>
         <option value="AM" {%- if filters.type == "AM" %} selected{% endif %}>Additional modifications</option>
+        <option value="TYPO" {%- if filters.type == "TYPO" %} selected{% endif %}>Minor changes and typos</option>
       </select>
     </div>
     <div class="govuk-form-group dlp-sds-field">
@@ -55,6 +56,16 @@
         {% for policy in policies %}
           <option value="{{ policy.ref }}" {%- if filters.policy == policy.ref %} selected{% endif %}>{{ policy.ref }} {{ policy.title }}</option>
         {% endfor %}
+      </select>
+    </div>
+    <div class="govuk-form-group dlp-sds-field">
+      <label class="govuk-label" for="mod-assignee">Assigned officer</label>
+      <select class="govuk-select" id="mod-assignee" name="modAssignee">
+        <option value="">Anyone</option>
+        {% for member in team %}
+          <option value="{{ member.id }}" {%- if filters.assignee == member.id %} selected{% endif %}>{{ member.name }}</option>
+        {% endfor %}
+        <option value="none" {%- if filters.assignee == "none" %} selected{% endif %}>Not assigned</option>
       </select>
     </div>
     <div class="govuk-form-group dlp-sds-field">
@@ -69,8 +80,8 @@
   </div>
   <div class="govuk-button-group">
     <button type="submit" class="govuk-button govuk-button--secondary dlp-sds-filters__apply" data-module="govuk-button">Apply filters</button>
-    {% if filters.type or filters.policy or filters.status %}
-      <a class="govuk-link" href="?modType=&amp;modPolicy=&amp;modStatus=">Clear filters</a>
+    {% if filters.type or filters.policy or filters.status or filters.assignee %}
+      <a class="govuk-link" href="?modType=&amp;modPolicy=&amp;modStatus=&amp;modAssignee=">Clear filters</a>
     {% endif %}
   </div>
 </form>
@@ -87,13 +98,14 @@
           <th scope="col" class="govuk-table__header">Policy and paragraph</th>
           <th scope="col" class="govuk-table__header dlp-mod-schedule__change">Change</th>
           <th scope="col" class="govuk-table__header">Reason</th>
+          <th scope="col" class="govuk-table__header">Assigned to</th>
           <th scope="col" class="govuk-table__header">Status</th>
           <th scope="col" class="govuk-table__header">Last updated</th>
         </tr>
       </thead>
       <tbody class="govuk-table__body">
         {% for row in rows %}
-          <tr class="govuk-table__row" id="{{ row.ref | lower }}">
+          <tr class="govuk-table__row" id="{{ row.ref | lower | replace(' ', '-') }}">
             <th scope="row" class="govuk-table__header">{{ modTypeTag(row.type, row.ref) }}</th>
             <td class="govuk-table__cell">
               <a class="govuk-link" href="{{ row.href }}">{{ row.part.name }}</a>
@@ -101,14 +113,15 @@
             </td>
             <td class="govuk-table__cell govuk-body-s">
               {% if not row.mod %}
-                <span class="dlp-miq-muted">Asked for by the inspector, not drafted yet</span>
+                <span class="dlp-miq-muted">Suggested change, not drafted yet</span>
               {% elif row.changed %}
                 {{ appTrackedText(row.segments, { marked: true, change: { ref: row.ref, type: row.type, typeName: row.typeName } }) }}
               {% else %}
                 <span class="dlp-miq-muted">No change to the wording yet</span>
               {% endif %}
             </td>
-            <td class="govuk-table__cell govuk-body-s">{{ row.reason or (row.request.text if row.request) }}</td>
+            <td class="govuk-table__cell govuk-body-s">{{ row.reason or (row.suggestion.text if row.suggestion) }}</td>
+            <td class="govuk-table__cell govuk-body-s">{% if row.assignee %}{{ row.assignee }}{% else %}<span class="dlp-miq-muted">Not assigned</span>{% endif %}</td>
             <td class="govuk-table__cell">{{ modStatusTag(row.status) }}</td>
             <td class="govuk-table__cell govuk-body-s">
               {% if row.mod %}{{ row.mod.updatedAt }}<span class="govuk-!-display-block dlp-miq-muted">{{ row.mod.updatedBy }}</span>{% else %}<span class="dlp-miq-muted">Not started</span>{% endif %}

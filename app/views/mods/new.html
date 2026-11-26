@@ -8,24 +8,12 @@
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <a class="govuk-back-link" href="{{ '/plan/make/mods/letter#request-' + request.id if request else '/plan/make/mods/drafts' }}">Back</a>
+    <a class="govuk-back-link" href="/plan/make/mods/drafts">Back</a>
 
-    {% if request %}
-      <span class="govuk-caption-l">Main modification</span>
-      <h1 class="govuk-heading-l">Draft {{ requestPart.name }}</h1>
-      <div class="govuk-inset-text">
-        <p class="govuk-body govuk-!-font-weight-bold govuk-!-margin-bottom-1">The inspector asks:</p>
-        <p class="govuk-body govuk-!-margin-bottom-0">{{ request.text }}</p>
-      </div>
-    {% else %}
-      <h1 class="govuk-heading-l">Add a modification</h1>
-      <p class="govuk-body">Choose what to change. You then edit its wording, and the change is tracked for you.</p>
-    {% endif %}
+    <h1 class="govuk-heading-l">Add a modification</h1>
+    <p class="govuk-body">Choose what to change. You then edit its wording, and the change is tracked for you.</p>
 
     <form method="post" action="/plan/make/mods/drafts/new" novalidate>
-      {% if request %}
-        <input type="hidden" name="_request" value="{{ request.id }}">
-      {% else %}
         <div class="govuk-form-group {%- if errors.target %} govuk-form-group--error{% endif %}">
           <label class="govuk-label govuk-label--s" for="target">What does it change?</label>
           <div class="govuk-hint" id="target-hint">Only policies with their full wording in the prototype can be changed: S3 and HS1 to HS8.</div>
@@ -42,23 +30,23 @@
           </select>
         </div>
 
+        {% set kindItems = [] %}
+        {% for kind in kinds %}
+          {% set kindItems = (kindItems.push({ value: kind.value, text: kind.text, checked: values.type == kind.value }), kindItems) %}
+        {% endfor %}
         {{ govukRadios({
           idPrefix: "type",
           name: "_type",
-          fieldset: { legend: { text: "What kind of modification is it?", classes: "govuk-fieldset__legend--s" } },
+          fieldset: { legend: { text: "What kind of change is it?", classes: "govuk-fieldset__legend--s" } },
           errorMessage: { text: errors.type } if errors.type,
-          items: [
-            { value: "AM", text: "Additional modification", checked: values.type == "AM", hint: { text: "A minor change, such as a correction or an update, that doesn’t affect soundness. Shown in the schedule but not consulted on." } },
-            { value: "MM", text: "Main modification", checked: values.type == "MM", hint: { text: "A change needed to make the plan sound. Consulted on." } }
-          ]
+          items: kindItems
         }) }}
-      {% endif %}
 
       <div class="govuk-form-group">
         <label class="govuk-label govuk-label--s" for="assignee">Assigned to</label>
         <select class="govuk-select" id="assignee" name="_assignee">
           {% for member in team %}
-            <option value="{{ member.id }}" {%- if (values.assignee or "priya-shah") == member.id %} selected{% endif %}>{{ member.name }}{% if loop.first %} (you){% endif %}</option>
+            <option value="{{ member.id }}" {%- if values.assignee == member.id %} selected{% endif %}>{{ member.name }}{% if loop.first %} (you){% endif %}</option>
           {% endfor %}
         </select>
       </div>

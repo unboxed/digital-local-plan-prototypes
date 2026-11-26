@@ -1,0 +1,132 @@
+{#
+  1. Capture suggested changes: notes taken during the hearings and since. Each has a
+  description, its kind (main or additional modification, or a minor change or typo), optionally
+  the part of a policy it is about, and who suggested it, captured from whoever is signed in. The
+  policy manager assigns each one to an officer. Drafting happens in Draft modifications.
+#}
+
+{% extends "mods/partials/layout.html" %}
+
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/radios/macro.njk" import govukRadios %}
+
+{% set pageName = "Capture suggested changes" %}
+
+{% block main %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <h1 class="govuk-heading-l">Capture suggested changes</h1>
+    <p class="govuk-body">
+      Note each change suggested during the hearings, by the inspector or by the team, as it comes
+      up. The policy manager assigns each one to an officer, who drafts it in
+      <a class="govuk-link" href="/plan/make/mods/drafts">Draft modifications</a>.
+    </p>
+
+    {# Who a suggestion is captured as comes from who is signed in. The prototype lets you switch. #}
+    <aside class="dlp-ce-handoff" aria-label="Prototype only">
+      <p class="dlp-ce-handoff__label">Prototype only — this would not appear in the real service</p>
+      <p class="govuk-body">Suggestions are recorded as made by whoever is signed in. Switch to see each role. Only the policy manager can assign suggestions.</p>
+      <form method="post" action="/plan/make/mods/suggestions/acting-as" class="dlp-mods-acting" novalidate>
+        <div class="govuk-form-group govuk-!-margin-bottom-0">
+          <label class="govuk-label govuk-label--s" for="acting-as">Signed in as</label>
+          <select class="govuk-select" id="acting-as" name="_actingAs">
+            {% for suggester in suggesters %}
+              <option value="{{ suggester.id }}" {%- if suggester.id == actingAs.id %} selected{% endif %}>{{ suggester.name }} ({{ suggester.roleName | lower }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        {{ govukButton({ text: "Switch", classes: "govuk-button--secondary govuk-!-margin-bottom-0" }) }}
+      </form>
+    </aside>
+
+    <h2 class="govuk-heading-m" id="add-suggestion">Add a suggested change</h2>
+    <form method="post" action="/plan/make/mods/suggestions" class="dlp-mods-capture" novalidate>
+      {{ govukTextarea({
+        id: "text",
+        name: "_text",
+        rows: 3,
+        label: { text: "Describe the change", classes: "govuk-label--s" },
+        hint: { text: "What should change, and why. For example, what the inspector asked for." },
+        value: values.text,
+        errorMessage: { text: errors.text } if errors.text
+      }) }}
+
+      {% set kindItems = [] %}
+      {% for kind in kinds %}
+        {% set kindItems = (kindItems.push({ value: kind.value, text: kind.text, checked: kind.value == (values.kind or "AM") }), kindItems) %}
+      {% endfor %}
+      {{ govukRadios({
+        idPrefix: "kind",
+        name: "_kind",
+        classes: "govuk-radios--small",
+        fieldset: { legend: { text: "What kind of change is it?", classes: "govuk-fieldset__legend--s" } },
+        items: kindItems
+      }) }}
+
+      <div class="govuk-form-group {%- if errors.target %} govuk-form-group--error{% endif %}">
+        <label class="govuk-label govuk-label--s" for="target">Which policy does this relate to?</label>
+        <div class="govuk-hint" id="target-hint">Only S3 and HS1 to HS8 have their full wording in the prototype.</div>
+        {% if errors.target %}<p id="target-error" class="govuk-error-message"><span class="govuk-visually-hidden">Error:</span> {{ errors.target }}</p>{% endif %}
+        <select class="govuk-select {%- if errors.target %} govuk-select--error{% endif %}" id="target" name="_target" aria-describedby="target-hint{% if errors.target %} target-error{% endif %}">
+          <option value="">Choose a policy</option>
+          {% for group in groups %}
+            <optgroup label="{{ group.ref }} {{ group.title }}">
+              {% for part in group.parts %}
+                <option value="{{ part.key }}" {%- if values.target == part.key %} selected{% endif %}>{{ group.ref }} {{ part.label }}</option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+
+      <p class="govuk-body-s dlp-miq-muted">Suggested by {{ actingAs.name }}, {{ actingAs.role }}. Recorded automatically.</p>
+      {{ govukButton({ text: "Add suggested change" }) }}
+    </form>
+
+    <h2 class="govuk-heading-m">Suggested changes</h2>
+    <p class="govuk-body">{{ suggestions | length }} suggested changes, newest first.</p>
+
+    <ol class="dlp-miq-questions dlp-mod-requests" reversed>
+      {% for suggestion in suggestions %}
+        <li class="dlp-miq-questions__item" id="suggestion-{{ suggestion.id }}">
+          <div class="dlp-mod-requests__head">
+            <h3 class="govuk-heading-s govuk-!-margin-bottom-1">
+              {{ modTypeTag(suggestion.entry.type, suggestion.entry.ref) if suggestion.entry else modTypeTag(suggestion.kind) }}
+              {{ suggestion.part.ref }} {{ suggestion.part.policyTitle }}, {{ suggestion.part.label }}
+            </h3>
+            {{ modStatusTag(suggestion.status) }}
+          </div>
+          <p class="govuk-body govuk-!-margin-bottom-2">{{ suggestion.text }}</p>
+          <p class="govuk-body-s dlp-miq-questions__meta govuk-!-margin-bottom-2">
+            {{ suggestion.kindText }} &middot; Suggested by <strong>{{ suggestion.byName }}</strong>, {{ suggestion.byRole }}, {{ suggestion.at }}
+            {%- if suggestion.matter %} &middot; Matter {{ suggestion.matter.id }}{% if suggestion.question %}, <a class="govuk-link" href="{{ suggestion.questionHref }}">question {{ suggestion.question.id }}</a>{% endif %}{% endif %}
+          </p>
+
+          {% if actingAs.isManager %}
+            <form method="post" action="/plan/make/mods/suggestions/{{ suggestion.id }}/assign" class="dlp-mods-assign" novalidate>
+              <label class="govuk-label govuk-body-s govuk-!-margin-bottom-1" for="assign-{{ suggestion.id }}">Assigned to</label>
+              <select class="govuk-select" id="assign-{{ suggestion.id }}" name="_assignee">
+                <option value="">Not assigned</option>
+                {% for officer in officers %}
+                  <option value="{{ officer.id }}" {%- if suggestion.assigneeId == officer.id %} selected{% endif %}>{{ officer.name }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">Assign<span class="govuk-visually-hidden"> this suggested change</span></button>
+            </form>
+          {% else %}
+            <p class="govuk-body-s govuk-!-margin-bottom-2">
+              {% if suggestion.assigneeName %}Assigned to <strong>{{ suggestion.assigneeName }}</strong>{% else %}<span class="dlp-miq-muted">Not assigned yet</span>{% endif %}
+            </p>
+          {% endif %}
+
+          {% if suggestion.mod %}
+            <p class="govuk-body-s govuk-!-margin-top-2 govuk-!-margin-bottom-0"><a class="govuk-link" href="{{ suggestion.href }}">View draft<span class="govuk-visually-hidden"> of {{ suggestion.part.name }}</span></a></p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+
+  </div>
+</div>
+{% endblock %}
